@@ -1,63 +1,161 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Group, Message } from '../types';
 
 export const Community: React.FC = () => {
-  return (
-    <div className="w-full max-w-4xl mx-auto space-y-8">
-      {/* Donations & Support */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-         <div className="paper-panel p-8 rounded-sm border-l-4 border-yellow-500">
-            <h2 className="text-xl font-serif font-bold text-[var(--text-primary)] mb-4">Donate / Support</h2>
-            <p className="text-[var(--text-secondary)] text-sm mb-4">Keep the servers alive.</p>
-            <div className="space-y-2">
-               <div className="bg-[var(--bg-color)] p-3 rounded text-xs flex justify-between cursor-pointer">
-                  <span>ETH/BASE: arewa.base.eth</span>
-                  <span className="material-icons text-[10px]">content_copy</span>
-               </div>
-               <div className="bg-[var(--bg-color)] p-3 rounded text-xs flex justify-between cursor-pointer">
-                  <span>NFT: zahrah.nft</span>
-                  <span className="material-icons text-[10px]">content_copy</span>
-               </div>
-            </div>
-         </div>
-         <div className="paper-panel p-8 rounded-sm border-l-4 border-green-500">
-            <h2 className="text-xl font-serif font-bold text-[var(--text-primary)] mb-4">Live Support</h2>
-            <p className="text-[var(--text-secondary)] text-sm mb-4">Issues with generation?</p>
-            <button className="w-full bg-green-600 text-white py-2 rounded font-bold text-sm">Start Live Chat</button>
-            <p className="text-[10px] text-[var(--text-secondary)] mt-2 text-center">Average wait: 2 mins</p>
-         </div>
-      </div>
+  const [activeGroup, setActiveGroup] = useState<string | null>(null);
+  const [input, setInput] = useState('');
+  
+  const [groups, setGroups] = useState<Group[]>([
+    { id: '1', name: 'Global Researchers', description: 'General academic discussion', memberCount: 1205, isJoined: false },
+    { id: '2', name: 'Bio-Systematics Core', description: 'Specialized group for biology majors', memberCount: 450, isJoined: false },
+    { id: '3', name: 'Thesis Survivors', description: 'Support group for final year students', memberCount: 3200, isJoined: false },
+  ]);
 
-      {/* The Lounge */}
-      <div className="paper-panel p-6 rounded-sm h-96 flex flex-col relative bg-[var(--panel-bg)]">
-         <h3 className="text-xl font-bold font-serif text-[var(--text-primary)] mb-4 flex items-center pb-4 border-b border-[var(--border-color)]">
-           <span className="material-icons mr-2 text-[var(--text-secondary)]">forum</span>
-           The Scholar's Lounge
-         </h3>
-         
-         <div className="flex-1 overflow-y-auto space-y-4 pr-2">
-           {[1, 2, 3].map((i) => (
-             <div key={i} className="flex items-start space-x-3">
-               <div className="w-8 h-8 rounded-full bg-[var(--bg-color)] border border-[var(--border-color)] flex items-center justify-center font-serif text-xs font-bold text-[var(--text-secondary)]">
-                 UE
-               </div>
-               <div className="bg-[var(--bg-color)] p-3 rounded-lg rounded-tl-none max-w-md border border-[var(--border-color)]">
-                 <p className="text-xs text-[var(--text-secondary)] mb-1 font-bold">User_Elite_{i}0{i}</p>
-                 <p className="text-sm text-[var(--text-primary)] font-serif">Just finished my dissertation using the new Thesis Forge. The citations are spotless.</p>
-               </div>
+  const [messages, setMessages] = useState<Message[]>([
+    { id: '1', sender: 'Dr. Smith', content: 'Has anyone seen the latest paper on CRISPR?', timestamp: '10:00 AM', reactions: { '👍': 5 } },
+    { id: '2', sender: 'Student_99', content: 'Yes, I linked it in the files section.', timestamp: '10:05 AM', reactions: {} }
+  ]);
+
+  const joinGroup = (id: string) => {
+    setGroups(groups.map(g => g.id === id ? { ...g, isJoined: true } : g));
+  };
+
+  const sendMessage = () => {
+    if (!input.trim()) return;
+    const newMsg: Message = {
+      id: Date.now().toString(),
+      sender: 'You',
+      content: input,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      reactions: {}
+    };
+    setMessages([...messages, newMsg]);
+    setInput('');
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Simulate upload
+    const file = e.target.files?.[0];
+    if (file) {
+      const newMsg: Message = {
+        id: Date.now().toString(),
+        sender: 'You',
+        content: `Uploaded: ${file.name}`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        reactions: {},
+        media: 'file_icon'
+      };
+      setMessages([...messages, newMsg]);
+    }
+  };
+
+  const currentGroupData = groups.find(g => g.id === activeGroup);
+
+  return (
+    <div className="w-full h-full max-w-6xl mx-auto flex gap-6">
+      {/* Groups List */}
+      <div className="w-1/3 paper-panel flex flex-col overflow-hidden">
+         <div className="p-4 border-b border-[var(--border-color)] bg-[var(--surface-color)]">
+           <h2 className="text-xl font-serif font-bold text-[var(--text-primary)]">Groups</h2>
+         </div>
+         <div className="flex-1 overflow-y-auto p-2 space-y-2">
+           {groups.map(g => (
+             <div 
+               key={g.id} 
+               className={`p-4 rounded-lg cursor-pointer border transition-colors ${activeGroup === g.id ? 'bg-[var(--primary)] text-white border-transparent' : 'bg-[var(--surface-color)] border-[var(--border-color)] hover:bg-[var(--bg-color)]'}`}
+               onClick={() => g.isJoined ? setActiveGroup(g.id) : null}
+             >
+                <div className="flex justify-between items-start">
+                  <h3 className={`font-bold ${activeGroup === g.id ? 'text-white' : 'text-[var(--text-primary)]'}`}>{g.name}</h3>
+                  {!g.isJoined && <span className="material-icons text-xs opacity-50">lock</span>}
+                </div>
+                <p className={`text-xs mt-1 ${activeGroup === g.id ? 'text-white opacity-80' : 'text-[var(--text-secondary)]'}`}>{g.description}</p>
+                <div className="flex justify-between items-center mt-3">
+                  <span className={`text-[10px] ${activeGroup === g.id ? 'text-white' : 'text-[var(--text-secondary)]'}`}>{g.memberCount} Members</span>
+                  {!g.isJoined && (
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); joinGroup(g.id); }}
+                      className="text-xs bg-[var(--accent)] text-white px-3 py-1 rounded font-bold hover:opacity-90"
+                    >
+                      Join
+                    </button>
+                  )}
+                </div>
              </div>
            ))}
          </div>
+      </div>
 
-         <div className="mt-4 flex bg-[var(--bg-color)] rounded border border-[var(--border-color)] p-1">
-           <input 
-             type="text" 
-             placeholder="Broadcast message to network..." 
-             className="flex-1 bg-transparent p-3 text-[var(--text-primary)] outline-none font-serif"
-           />
-           <button className="bg-[var(--accent)] text-white px-6 rounded text-sm font-bold uppercase tracking-wider">
-             Send
-           </button>
-         </div>
+      {/* Chat Area */}
+      <div className="w-2/3 paper-panel flex flex-col overflow-hidden bg-[var(--surface-color)] relative">
+         {!activeGroup ? (
+           <div className="flex-1 flex flex-col items-center justify-center text-[var(--text-secondary)] opacity-50 p-8 text-center">
+             <span className="material-icons text-6xl mb-4">groups</span>
+             <p className="font-serif text-xl">Select a joined group to view messages.</p>
+           </div>
+         ) : (
+           <>
+             {/* Chat Header */}
+             <div className="p-4 border-b border-[var(--border-color)] flex justify-between items-center bg-[var(--panel-bg)]">
+               <div>
+                 <h3 className="font-bold text-[var(--text-primary)]">{currentGroupData?.name}</h3>
+                 <p className="text-xs text-[var(--text-secondary)]">{currentGroupData?.memberCount} scholars online</p>
+               </div>
+               <button className="text-[var(--text-secondary)] hover:text-[var(--primary)]">
+                 <span className="material-icons">info</span>
+               </button>
+             </div>
+
+             {/* Messages */}
+             <div className="flex-1 overflow-y-auto p-4 space-y-4">
+               {messages.map(m => (
+                 <div key={m.id} className={`flex flex-col ${m.sender === 'You' ? 'items-end' : 'items-start'}`}>
+                   <div className="flex items-baseline space-x-2 mb-1">
+                     <span className="text-xs font-bold text-[var(--text-primary)]">{m.sender}</span>
+                     <span className="text-[10px] text-[var(--text-secondary)]">{m.timestamp}</span>
+                   </div>
+                   <div className={`max-w-[80%] p-3 rounded-lg text-sm ${m.sender === 'You' ? 'bg-[var(--primary)] text-white rounded-tr-none' : 'bg-[var(--bg-color)] text-[var(--text-primary)] rounded-tl-none border border-[var(--border-color)]'}`}>
+                     {m.media ? (
+                       <div className="flex items-center space-x-2 italic"><span className="material-icons">attachment</span> <span>{m.content}</span></div>
+                     ) : (
+                       m.content
+                     )}
+                   </div>
+                   {Object.keys(m.reactions).length > 0 && (
+                      <div className="flex gap-1 mt-1">
+                        {Object.entries(m.reactions).map(([emoji, count]) => (
+                          <span key={emoji} className="text-[10px] bg-[var(--bg-color)] px-1 rounded border border-[var(--border-color)]">{emoji} {count}</span>
+                        ))}
+                      </div>
+                   )}
+                 </div>
+               ))}
+             </div>
+
+             {/* Input Area */}
+             <div className="p-4 border-t border-[var(--border-color)] bg-[var(--panel-bg)]">
+               <div className="flex items-center space-x-2">
+                 <label className="cursor-pointer text-[var(--text-secondary)] hover:text-[var(--primary)]">
+                   <span className="material-icons">add_photo_alternate</span>
+                   <input type="file" className="hidden" onChange={handleFileUpload} />
+                 </label>
+                 <button className="text-[var(--text-secondary)] hover:text-[var(--primary)]">
+                   <span className="material-icons">mic</span>
+                 </button>
+                 <input 
+                   className="flex-1 bg-[var(--bg-color)] border border-[var(--border-color)] rounded-full px-4 py-2 text-sm focus:outline-none focus:border-[var(--primary)]"
+                   placeholder="Type a message..."
+                   value={input}
+                   onChange={(e) => setInput(e.target.value)}
+                   onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                 />
+                 <button onClick={sendMessage} className="text-[var(--primary)]">
+                   <span className="material-icons">send</span>
+                 </button>
+               </div>
+             </div>
+           </>
+         )}
       </div>
     </div>
   );

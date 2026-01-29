@@ -13,15 +13,22 @@ interface DocumentDraft {
   imageAnalysis?: string;
   history: string[];
   historyIndex: number;
+  uploadedImages: string[];
 }
 
 export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
   const [docs, setDocs] = useState<DocumentDraft[]>([
-    { id: '1', topic: '', details: '', report: '', history: [''], historyIndex: 0 }
+    { id: '1', topic: '', details: '', report: '', history: [''], historyIndex: 0, uploadedImages: [] }
   ]);
   const [activeDocId, setActiveDocId] = useState('1');
   const [loading, setLoading] = useState(false);
   const [analyzingImage, setAnalyzingImage] = useState(false);
+
+  // Mock Collaborators
+  const collaborators = [
+    { id: '1', name: 'You', color: 'bg-blue-500' },
+    { id: '2', name: 'Lab Partner', color: 'bg-orange-500' }
+  ];
 
   const activeDoc = docs.find(d => d.id === activeDocId) || docs[0];
 
@@ -29,7 +36,6 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
     setDocs(docs.map(d => d.id === activeDocId ? { ...d, [field]: value } : d));
   };
 
-  // Undo/Redo Logic
   const pushHistory = (newContent: string) => {
     if (newContent === activeDoc.report) return;
     const newHistory = activeDoc.history.slice(0, activeDoc.historyIndex + 1);
@@ -66,18 +72,13 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
 
   const createNewDraft = () => {
     const newId = Date.now().toString();
-    setDocs([...docs, { id: newId, topic: '', details: '', report: '', history: [''], historyIndex: 0 }]);
+    setDocs([...docs, { id: newId, topic: '', details: '', report: '', history: [''], historyIndex: 0, uploadedImages: [] }]);
     setActiveDocId(newId);
   };
 
   const closeDraft = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (docs.length === 1) {
-       updateDoc('topic', ''); 
-       updateDoc('details', ''); 
-       updateDoc('report', '');
-       return;
-    }
+    if (docs.length === 1) return;
     const newDocs = docs.filter(d => d.id !== id);
     setDocs(newDocs);
     if (activeDocId === id) setActiveDocId(newDocs[0].id);
@@ -97,28 +98,36 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
   };
 
   const handleExport = (format: string) => {
-    downloadFile(activeDoc.report, `${activeDoc.topic || 'Report'}.${format.toLowerCase()}`, 'application/msword');
+    let mime = 'text/plain';
+    if (format === 'DOCX') mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    if (format === 'ODT') mime = 'application/vnd.oasis.opendocument.text';
+    downloadFile(activeDoc.report, `${activeDoc.topic || 'Report'}.${format.toLowerCase()}`, mime);
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    setAnalyzingImage(true);
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      try {
-        const base64 = (reader.result as string).split(',')[1];
-        const analysis = await analyzeMicroscopeImage(base64);
-        updateDoc('imageAnalysis', analysis);
-        // Auto-append to details for convenience
-        updateDoc('details', activeDoc.details + `\n\n[Microscope Image Analysis]: ${analysis}`);
-      } catch (err) {
-        alert("Image analysis failed");
-      }
-      setAnalyzingImage(false);
-    };
-    reader.readAsDataURL(file);
+    const files = e.target.files;
+    if (files) {
+      Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const base64 = (reader.result as string);
+          // Add to uploaded images list
+          updateDoc('uploadedImages', [...activeDoc.uploadedImages, base64]);
+          
+          // If it's the first image, analyze it for lab reports
+          if (type === 'LAB' && !analyzingImage) {
+             setAnalyzingImage(true);
+             try {
+               const analysis = await analyzeMicroscopeImage(base64.split(',')[1]);
+               updateDoc('imageAnalysis', analysis);
+               updateDoc('details', activeDoc.details + `\n\n[Microscope Image Analysis]: ${analysis}`);
+             } catch(err) {}
+             setAnalyzingImage(false);
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    }
   };
 
   return (
@@ -132,9 +141,14 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
               {type === 'TECHNICAL' ? 'SIWES & Industrial Reports' : 'Experiments & Microscope Analysis'}
             </p>
          </div>
-         <div className="flex gap-1 bg-[var(--surface-color)] p-1 rounded border border-[var(--border-color)]">
-           <button onClick={handleUndo} disabled={activeDoc.historyIndex === 0} className="p-2 disabled:opacity-30 hover:bg-gray-100 rounded" title="Undo"><span className="material-icons text-sm">undo</span></button>
-           <button onClick={handleRedo} disabled={activeDoc.historyIndex === activeDoc.history.length - 1} className="p-2 disabled:opacity-30 hover:bg-gray-100 rounded" title="Redo"><span className="material-icons text-sm">redo</span></button>
+         <div className="flex items-center gap-4">
+             <div className="flex -space-x-2">
+                 {collaborators.map(c => <div key={c.id} className={`w-8 h-8 rounded-full ${c.color} border-2 border-white flex items-center justify-center text-white text-xs`}>{c.name[0]}</div>)}
+             </div>
+             <div className="flex gap-1 bg-[var(--surface-color)] p-1 rounded border border-[var(--border-color)]">
+               <button onClick={handleUndo} disabled={activeDoc.historyIndex === 0} className="p-2 disabled:opacity-30 hover:bg-gray-100 rounded" title="Undo"><span className="material-icons text-sm">undo</span></button>
+               <button onClick={handleRedo} disabled={activeDoc.historyIndex === activeDoc.history.length - 1} className="p-2 disabled:opacity-30 hover:bg-gray-100 rounded" title="Redo"><span className="material-icons text-sm">redo</span></button>
+             </div>
          </div>
        </div>
 
@@ -175,20 +189,19 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
              />
            </div>
 
-           {type === 'LAB' && (
-             <div className="mb-4 p-4 border-2 border-dashed border-[var(--border-color)] rounded-lg bg-[var(--bg-color)]">
-                <label className="flex items-center cursor-pointer justify-center gap-2 text-[var(--primary)] font-bold">
-                  <span className="material-icons">biotech</span>
-                  {analyzingImage ? "Analyzing Microscope Slide..." : "Upload Microscope Image"}
-                  <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={analyzingImage} />
-                </label>
-                {activeDoc.imageAnalysis && (
-                  <div className="mt-2 text-xs text-green-700 bg-green-50 p-2 rounded border border-green-200">
-                    <strong>Analysis Ready:</strong> {activeDoc.imageAnalysis.substring(0, 50)}...
-                  </div>
-                )}
+           <div className="mb-4">
+             <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">Attached Images (Microscope/Site)</label>
+             <div className="flex flex-wrap gap-2 mb-2">
+                 {activeDoc.uploadedImages.map((img, i) => (
+                   <div key={i} className="w-16 h-16 border rounded bg-cover bg-center" style={{ backgroundImage: `url(${img})` }}></div>
+                 ))}
+                 <label className="w-16 h-16 border-2 border-dashed border-[var(--primary)] rounded flex flex-col items-center justify-center cursor-pointer hover:bg-blue-50">
+                   <span className="material-icons text-[var(--primary)]">add_a_photo</span>
+                   <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} />
+                 </label>
              </div>
-           )}
+             {analyzingImage && <p className="text-xs text-[var(--primary)] animate-pulse">Analyzing image data...</p>}
+           </div>
 
            <div className="mb-4">
              <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
@@ -217,7 +230,7 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
                <div className="absolute top-4 right-4 flex gap-2">
                  <button onClick={() => handleExport('PDF')} className="text-xs font-bold border border-[var(--border-color)] px-3 py-1 rounded hover:bg-gray-50">PDF</button>
                  <button onClick={() => handleExport('DOCX')} className="text-xs font-bold border border-[var(--border-color)] px-3 py-1 rounded hover:bg-gray-50">Word</button>
-                 <button onClick={() => handleExport('RTF')} className="text-xs font-bold border border-[var(--border-color)] px-3 py-1 rounded hover:bg-gray-50">RTF</button>
+                 <button onClick={() => handleExport('ODT')} className="text-xs font-bold border border-[var(--border-color)] px-3 py-1 rounded hover:bg-gray-50">ODT</button>
                </div>
                <article className="prose prose-slate max-w-none mt-6">
                  <pre className="whitespace-pre-wrap font-serif text-base text-[var(--text-primary)] font-normal leading-relaxed">

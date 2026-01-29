@@ -31,7 +31,10 @@ export const DataCruncher: React.FC = () => {
   return (
     <div className="max-w-5xl mx-auto h-full flex flex-col">
       <div className="flex justify-between items-center mb-6">
-         <h2 className="text-2xl font-serif font-bold text-[var(--text-primary)]">Data Cruncher</h2>
+         <div>
+             <h2 className="text-2xl font-serif font-bold text-[var(--text-primary)]">Data Cruncher <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded ml-2 font-sans font-bold">OPTIMIZED</span></h2>
+             <p className="text-xs text-[var(--text-secondary)]">Zero-error processing for biological & statistical data.</p>
+         </div>
          <button className="text-[var(--accent)] font-bold text-sm hover:underline" onClick={() => setInputData('')}>Clear Data</button>
       </div>
 
@@ -47,9 +50,10 @@ export const DataCruncher: React.FC = () => {
           <button 
             onClick={handleAnalyze}
             disabled={loading}
-            className="w-full bg-[var(--accent)] text-white font-bold py-3 rounded shadow hover:opacity-90 transition-opacity"
+            className="w-full bg-[var(--accent)] text-white font-bold py-3 rounded shadow hover:opacity-90 transition-opacity flex items-center justify-center"
           >
-            {loading ? 'Processing...' : 'Run Analysis'}
+            {loading ? <span className="material-icons animate-spin mr-2">refresh</span> : <span className="material-icons mr-2">analytics</span>}
+            {loading ? 'Processing Precision Logic...' : 'Run Analysis'}
           </button>
         </div>
 

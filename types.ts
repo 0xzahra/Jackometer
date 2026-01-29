@@ -73,3 +73,21 @@ export interface Collaborator {
   color: string;
   status: 'ONLINE' | 'EDITING' | 'IDLE';
 }
+
+export interface Group {
+  id: string;
+  name: string;
+  description: string;
+  memberCount: number;
+  isJoined: boolean;
+}
+
+export interface Message {
+  id: string;
+  sender: string;
+  content: string;
+  timestamp: string;
+  reactions: Record<string, number>;
+  media?: string; // base64 or url
+  isVoice?: boolean;
+}

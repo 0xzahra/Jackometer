@@ -38,9 +38,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
   return (
     <div className="flex h-screen w-full overflow-hidden">
       
-      {/* Sidebar - Collapsible */}
+      {/* Sidebar - Opaque Background */}
       <nav 
-        className={`fixed inset-y-0 left-0 z-40 bg-[var(--panel-bg)] border-r border-[var(--border-color)] flex flex-col py-8 shadow-2xl transition-transform duration-300 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} w-72`}
+        className={`fixed inset-y-0 left-0 z-40 bg-[var(--surface-color)] border-r border-[var(--border-color)] flex flex-col py-8 shadow-2xl transition-transform duration-300 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} w-72`}
       >
         <div className="px-8 mb-6 flex justify-between items-center">
           <div>

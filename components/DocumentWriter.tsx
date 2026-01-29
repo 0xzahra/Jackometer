@@ -11,13 +11,14 @@ interface DocDraft {
   output: string;
   videos: YouTubeVideo[];
   citations: Citation[];
-  history: string[]; // For Undo/Redo
-  historyIndex: number; // For Undo/Redo
+  history: string[]; 
+  historyIndex: number;
+  uploadedImages: string[]; // Base64 strings or URLs
 }
 
 export const DocumentWriter: React.FC = () => {
   const [drafts, setDrafts] = useState<DocDraft[]>([
-    { id: '1', level: 'Undergraduate', course: '', topic: '', details: '', output: '', videos: [], citations: [], history: [''], historyIndex: 0 }
+    { id: '1', level: 'Undergraduate', course: '', topic: '', details: '', output: '', videos: [], citations: [], history: [''], historyIndex: 0, uploadedImages: [] }
   ]);
   const [activeId, setActiveId] = useState('1');
   const [loading, setLoading] = useState(false);
@@ -33,7 +34,6 @@ export const DocumentWriter: React.FC = () => {
 
   const activeDraft = drafts.find(d => d.id === activeId) || drafts[0];
 
-  // Helper to update draft
   const updateDraft = (field: keyof DocDraft, value: any) => {
     setDrafts(drafts.map(d => d.id === activeId ? { ...d, [field]: value } : d));
   };
@@ -41,13 +41,10 @@ export const DocumentWriter: React.FC = () => {
   // Undo/Redo Logic
   const pushHistory = (newContent: string) => {
     if (newContent === activeDraft.output) return;
-    
     const newHistory = activeDraft.history.slice(0, activeDraft.historyIndex + 1);
     newHistory.push(newContent);
-    
-    // Limit history stack size if needed, e.g. 50 steps
     if (newHistory.length > 50) newHistory.shift();
-
+    
     setDrafts(drafts.map(d => d.id === activeId ? { 
       ...d, 
       output: newContent, 
@@ -81,7 +78,7 @@ export const DocumentWriter: React.FC = () => {
   const newDraft = () => {
     const id = Date.now().toString();
     setDrafts([...drafts, { 
-      id, level: 'Undergraduate', course: '', topic: '', details: '', output: '', videos: [], citations: [], history: [''], historyIndex: 0 
+      id, level: 'Undergraduate', course: '', topic: '', details: '', output: '', videos: [], citations: [], history: [''], historyIndex: 0, uploadedImages: []
     }]);
     setActiveId(id);
   };
@@ -134,11 +131,29 @@ export const DocumentWriter: React.FC = () => {
   };
 
   // Export
-  const handleExport = (format: 'PDF' | 'DOCX' | 'RTF' | 'TXT') => {
+  const handleExport = (format: 'PDF' | 'DOCX' | 'RTF' | 'ODT' | 'TXT') => {
     const filename = `${activeDraft.topic || 'Document'}.${format.toLowerCase()}`;
-    // Simulating DOCX/RTF with text/html content for prototype compatibility
-    const mime = format === 'TXT' ? 'text/plain' : 'application/msword'; 
+    let mime = 'text/plain';
+    if (format === 'DOCX') mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    if (format === 'ODT') mime = 'application/vnd.oasis.opendocument.text';
+    if (format === 'RTF') mime = 'application/rtf';
+    if (format === 'PDF') mime = 'application/pdf'; // Note: Proper PDF requires library, browser can print text
+
     downloadFile(activeDraft.output, filename, mime);
+  };
+
+  // Image Upload
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+           updateDraft('uploadedImages', [...activeDraft.uploadedImages, reader.result as string]);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
   };
 
   // Function to render text with clickable links
@@ -159,9 +174,8 @@ export const DocumentWriter: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto h-full flex flex-col relative">
-      {/* Collaboration Bar / Header */}
+      {/* Top Bar */}
       <div className="flex justify-between items-center mb-4 border-b border-[var(--border-color)] pb-2">
-         {/* Tabs */}
          <div className="flex items-center gap-2 overflow-x-auto">
             {drafts.map(d => (
               <div 
@@ -178,9 +192,9 @@ export const DocumentWriter: React.FC = () => {
             <button onClick={newDraft} className="p-2 text-[var(--text-secondary)] hover:text-[var(--primary)]"><span className="material-icons">add_circle</span></button>
          </div>
 
-         {/* Collaboration & Export Actions */}
          <div className="flex items-center gap-4">
-            <div className="flex -space-x-2 cursor-pointer" onClick={() => setCollabPanelOpen(!collabPanelOpen)} title="Active Collaborators">
+            {/* Collaborators */}
+            <div className="flex -space-x-2 cursor-pointer" title="Active Collaborators">
                {collaborators.map(c => (
                  <div key={c.id} className={`w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-white text-xs ${c.color} relative`}>
                     {c.name[0]}
@@ -190,30 +204,32 @@ export const DocumentWriter: React.FC = () => {
                <div className="w-8 h-8 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-xs text-gray-500 hover:bg-gray-300">+</div>
             </div>
             
+            {/* Undo/Redo */}
             <div className="flex gap-1 bg-[var(--surface-color)] rounded p-1 border border-[var(--border-color)]">
               <button onClick={handleUndo} disabled={activeDraft.historyIndex === 0} className="p-1 disabled:opacity-30 hover:bg-gray-100 rounded" title="Undo"><span className="material-icons text-sm">undo</span></button>
               <button onClick={handleRedo} disabled={activeDraft.historyIndex === activeDraft.history.length - 1} className="p-1 disabled:opacity-30 hover:bg-gray-100 rounded" title="Redo"><span className="material-icons text-sm">redo</span></button>
             </div>
 
+            {/* Export */}
             <div className="relative group">
-              <button className="flex items-center gap-1 bg-[var(--accent)] text-white px-3 py-1.5 rounded text-sm font-bold">
+              <button className="flex items-center gap-1 bg-[var(--accent)] text-white px-3 py-1.5 rounded text-sm font-bold shadow-sm">
                 Export <span className="material-icons text-sm">expand_more</span>
               </button>
               <div className="absolute right-0 mt-2 w-48 bg-white border border-[var(--border-color)] shadow-xl rounded-lg hidden group-hover:block z-50">
-                 <button onClick={() => handleExport('PDF')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 text-sm">PDF Document (.pdf)</button>
-                 <button onClick={() => handleExport('DOCX')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 text-sm">Word Document (.doc)</button>
-                 <button onClick={() => handleExport('RTF')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 text-sm">Rich Text (.rtf)</button>
-                 <button onClick={() => handleExport('TXT')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 text-sm">Plain Text (.txt)</button>
+                 <button onClick={() => handleExport('PDF')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 text-sm font-medium">PDF Document (.pdf)</button>
+                 <button onClick={() => handleExport('DOCX')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 text-sm font-medium">Word Document (.docx)</button>
+                 <button onClick={() => handleExport('ODT')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 text-sm font-medium">OpenDocument (.odt)</button>
+                 <button onClick={() => handleExport('RTF')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 text-sm font-medium">Rich Text (.rtf)</button>
+                 <button onClick={() => handleExport('TXT')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 text-sm font-medium">Plain Text (.txt)</button>
               </div>
             </div>
          </div>
       </div>
 
       <div className="flex flex-col md:flex-row gap-6 flex-1 overflow-hidden">
-        {/* Left Sidebar: Inputs & Tools */}
+        {/* Left Sidebar */}
         <div className="w-full md:w-1/3 space-y-6 overflow-y-auto pb-10 pr-2 custom-scrollbar">
           
-          {/* Main Input Panel */}
           <div className="paper-panel p-6 rounded-sm">
             <h3 className="font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
               <span className="material-icons text-sm">edit_note</span> Document Details
@@ -231,6 +247,20 @@ export const DocumentWriter: React.FC = () => {
               <input value={activeDraft.topic} onChange={(e) => updateDraft('topic', e.target.value)} className="w-full" placeholder="Research Topic" />
               <textarea value={activeDraft.details} onChange={(e) => updateDraft('details', e.target.value)} className="w-full h-24" placeholder="Context & Specifics..."></textarea>
             </div>
+            
+            {/* Multi Image Upload */}
+            <div className="mt-4">
+               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">Attached Images</label>
+               <div className="flex flex-wrap gap-2 mb-2">
+                 {activeDraft.uploadedImages.map((img, i) => (
+                   <div key={i} className="w-12 h-12 border rounded bg-cover bg-center" style={{ backgroundImage: `url(${img})` }}></div>
+                 ))}
+                 <label className="w-12 h-12 border border-dashed rounded flex items-center justify-center cursor-pointer hover:bg-gray-100">
+                   <span className="material-icons text-gray-400">add</span>
+                   <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} />
+                 </label>
+               </div>
+            </div>
 
             <button onClick={handleGenerate} disabled={loading} className="w-full btn-primary mt-4 flex items-center justify-center gap-2">
               {loading ? <span className="animate-spin material-icons">refresh</span> : <span className="material-icons">auto_awesome</span>}
@@ -242,7 +272,7 @@ export const DocumentWriter: React.FC = () => {
           <div className="paper-panel p-6 rounded-sm border-t-4 border-[var(--primary)]">
              <h3 className="font-bold text-[var(--text-primary)] mb-4 flex items-center justify-between">
                 <span className="flex items-center gap-2"><span className="material-icons text-sm">format_quote</span> Citation Manager</span>
-                <button onClick={addCitation} className="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded">+ Add</button>
+                <button onClick={addCitation} className="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded border border-gray-300">+ Add</button>
              </h3>
              
              <div className="space-y-3 max-h-64 overflow-y-auto mb-4">
@@ -271,27 +301,9 @@ export const DocumentWriter: React.FC = () => {
                 ))}
              </div>
           </div>
-
-          {/* Videos */}
-          {activeDraft.videos.length > 0 && (
-             <div className="paper-panel p-6 rounded-sm border-l-4 border-red-500">
-               <h3 className="font-bold text-[var(--text-primary)] mb-4 flex items-center">
-                 <span className="material-icons text-red-500 mr-2">smart_display</span>
-                 Related Videos
-               </h3>
-               <div className="space-y-4">
-                 {activeDraft.videos.map((v, i) => (
-                   <a key={i} href={v.url} target="_blank" rel="noopener noreferrer" className="block p-3 bg-[var(--bg-color)] rounded border border-[var(--border-color)] hover:bg-[var(--shadow-sm)]">
-                     <p className="font-bold text-sm text-[var(--text-primary)] mb-1">{v.title}</p>
-                     <p className="text-xs text-[var(--text-secondary)] line-clamp-2">{v.description}</p>
-                   </a>
-                 ))}
-               </div>
-             </div>
-          )}
         </div>
 
-        {/* Editor / Output */}
+        {/* Editor Area */}
         <div className="w-full md:w-2/3 paper-panel p-10 rounded-sm overflow-y-auto bg-white border border-[var(--border-color)] shadow-inner relative">
            {activeDraft.output ? (
              <article className="prose prose-slate max-w-none">

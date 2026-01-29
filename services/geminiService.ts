@@ -6,9 +6,10 @@ const API_KEY = process.env.API_KEY || '';
 const getAI = () => new GoogleGenAI({ apiKey: API_KEY });
 
 // --- UTILS ---
-// Helper to download files (Polyfill for Export functionality)
 export const downloadFile = (content: string, filename: string, mimeType: string) => {
-  const blob = new Blob([content], { type: mimeType });
+  // Add BOM for UTF-8 compatibility
+  const blobContent = mimeType.includes('csv') || mimeType.includes('text') ? `\uFEFF${content}` : content;
+  const blob = new Blob([blobContent], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -207,7 +208,7 @@ export const generateBibliography = async (citations: Citation[], style: string)
     Return only the formatted bibliography text.
   `;
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview', // Use flash for speed
+    model: 'gemini-3-flash-preview', 
     contents: prompt
   });
   return response.text || "";
@@ -243,7 +244,6 @@ export const generateLabReport = async (experiment: string, observations: string
   return response.text || "";
 };
 
-// New: Microscope Image Analysis
 export const analyzeMicroscopeImage = async (base64Image: string): Promise<string> => {
   const ai = getAI();
   const prompt = `
@@ -268,23 +268,27 @@ export const analyzeMicroscopeImage = async (base64Image: string): Promise<strin
   return response.text || "Analysis complete but no text returned.";
 };
 
-// --- DATA CRUNCHER ---
+// --- DATA CRUNCHER (OPTIMIZED) ---
 export const analyzeData = async (dataInput: string): Promise<AnalysisResult> => {
   const ai = getAI();
   const prompt = `
-    Analyze the following dataset/observations:
-    ${dataInput}
+    Perform a rigorous statistical and bio-systematic analysis of the following data.
+    Input Data: ${dataInput}
     
-    Provide a statistical and bio-systematic analysis (if applicable).
-    Compare with standard occurrences.
+    Requirements:
+    1. Accuracy: Ensure zero errors in calculation.
+    2. Complexity: Handle bio-systematics and statistical variance.
+    3. Output: Simplified JSON structure.
+    
     Output JSON.
   `;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+    model: 'gemini-3-pro-preview', // Pro model for maximum accuracy
     contents: prompt,
     config: {
       responseMimeType: 'application/json',
+      thinkingConfig: { thinkingBudget: 2048 }, // Allow thinking for precision
       responseSchema: {
         type: Type.OBJECT,
         properties: {

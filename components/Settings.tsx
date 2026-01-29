@@ -9,77 +9,58 @@ export const Settings: React.FC = () => {
   });
 
   return (
-    <div className="max-w-3xl mx-auto">
-      <h2 className="text-3xl font-serif font-bold text-slate-900 mb-8">System Configuration</h2>
+    <div className="max-w-3xl mx-auto space-y-8">
+      <h2 className="text-3xl font-serif font-bold text-[var(--text-primary)] mb-8">System Configuration</h2>
       
-      <div className="paper-panel p-8 rounded-sm mb-8">
-        <h3 className="text-lg font-bold text-slate-800 mb-6 border-b border-slate-100 pb-2">Profile Information</h3>
+      <div className="paper-panel p-8 rounded-sm">
+        <h3 className="text-lg font-bold text-[var(--text-primary)] mb-6 border-b border-[var(--border-color)] pb-2">Profile Information</h3>
         <div className="grid grid-cols-2 gap-6">
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Display Name</label>
+            <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">Display Name</label>
             <input 
               value={user.name} 
               onChange={(e) => setUser({...user, name: e.target.value})} 
-              className="w-full bg-slate-50 border border-slate-200 p-3 rounded text-slate-900 outline-none focus:border-slate-800"
+              className="w-full"
             />
           </div>
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Institution</label>
+            <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">Institution</label>
             <input 
               value={user.university} 
               onChange={(e) => setUser({...user, university: e.target.value})} 
-              className="w-full bg-slate-50 border border-slate-200 p-3 rounded text-slate-900 outline-none focus:border-slate-800"
+              className="w-full"
             />
           </div>
-          <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Academic Role</label>
-            <select 
-              value={user.role} 
-              onChange={(e) => setUser({...user, role: e.target.value})} 
-              className="w-full bg-slate-50 border border-slate-200 p-3 rounded text-slate-900 outline-none focus:border-slate-800"
-            >
-              <option>Undergraduate</option>
-              <option>MSc Student</option>
-              <option>PhD Candidate</option>
-              <option>Professor</option>
-              <option>Researcher</option>
-            </select>
-          </div>
         </div>
       </div>
 
-      <div className="paper-panel p-8 rounded-sm mb-8">
-        <h3 className="text-lg font-bold text-slate-800 mb-6 border-b border-slate-100 pb-2">Application Preferences</h3>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-slate-50 rounded">
-            <div>
-              <p className="font-bold text-slate-800">Interface Theme</p>
-              <p className="text-xs text-slate-500">Current: {user.theme}</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+         {/* Support Section */}
+         <div className="paper-panel p-8 rounded-sm border-l-4 border-yellow-500">
+            <h2 className="text-xl font-serif font-bold text-[var(--text-primary)] mb-4">Support the Dev</h2>
+            <p className="text-[var(--text-secondary)] text-sm mb-4">Keep the servers alive with a donation.</p>
+            <div className="space-y-2">
+               <div className="bg-[var(--bg-color)] p-3 rounded text-xs flex justify-between cursor-pointer border border-[var(--border-color)]">
+                  <span>ETH/BASE: arewa.base.eth</span>
+                  <span className="material-icons text-[10px]">content_copy</span>
+               </div>
+               <div className="bg-[var(--bg-color)] p-3 rounded text-xs flex justify-between cursor-pointer border border-[var(--border-color)]">
+                  <span>NFT: zahrah.nft</span>
+                  <span className="material-icons text-[10px]">content_copy</span>
+               </div>
             </div>
-            <button className="text-xs font-bold text-slate-900 border border-slate-300 px-3 py-1 rounded bg-white">
-              Locked to Paper
-            </button>
-          </div>
-          <div className="flex items-center justify-between p-4 bg-slate-50 rounded">
-            <div>
-              <p className="font-bold text-slate-800">Academic Integrity Mode</p>
-              <p className="text-xs text-slate-500">Filters non-academic sources</p>
-            </div>
-            <div className="w-12 h-6 bg-green-500 rounded-full flex items-center px-1">
-              <div className="w-4 h-4 bg-white rounded-full ml-auto"></div>
-            </div>
-          </div>
-          <div className="flex items-center justify-between p-4 bg-slate-50 rounded">
-            <div>
-              <p className="font-bold text-slate-800">Local Vault Storage</p>
-              <p className="text-xs text-slate-500">Clear local cache</p>
-            </div>
-            <button className="text-red-500 text-xs font-bold hover:underline">Clear Data</button>
-          </div>
-        </div>
+         </div>
+
+         {/* Live Help */}
+         <div className="paper-panel p-8 rounded-sm border-l-4 border-green-500">
+            <h2 className="text-xl font-serif font-bold text-[var(--text-primary)] mb-4">Live Support</h2>
+            <p className="text-[var(--text-secondary)] text-sm mb-4">Encountering bugs?</p>
+            <button className="w-full bg-green-600 text-white py-2 rounded font-bold text-sm hover:bg-green-700">Start Live Chat</button>
+            <p className="text-[10px] text-[var(--text-secondary)] mt-2 text-center">Average wait: 2 mins</p>
+         </div>
       </div>
 
-      <div className="text-center text-xs text-slate-400 font-serif italic">
+      <div className="text-center text-xs text-[var(--text-secondary)] font-serif italic mt-8">
         Jackometer v2050. Enterprise Core License Active.
       </div>
     </div>
