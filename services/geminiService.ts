@@ -1,9 +1,23 @@
 import { GoogleGenAI, Type, FunctionDeclaration, Modality, Schema } from "@google/genai";
-import { ProjectTitle, SlideDeck, CVData, AnalysisResult, YouTubeVideo } from "../types";
+import { ProjectTitle, SlideDeck, CVData, AnalysisResult, YouTubeVideo, Citation } from "../types";
 
 const API_KEY = process.env.API_KEY || '';
 
 const getAI = () => new GoogleGenAI({ apiKey: API_KEY });
+
+// --- UTILS ---
+// Helper to download files (Polyfill for Export functionality)
+export const downloadFile = (content: string, filename: string, mimeType: string) => {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
 
 // --- RESEARCH ENGINE ---
 export const generateResearchTitles = async (topic: string): Promise<ProjectTitle[]> => {
@@ -75,7 +89,6 @@ export const searchYouTubeVideos = async (topic: string): Promise<YouTubeVideo[]
     Output JSON.
   `;
   
-  // Note: Gemini 3 Flash is good for this extraction if it uses search tools internally or knowledge base
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
     contents: prompt,
@@ -160,7 +173,7 @@ export const generateRapidPresentation = async (topic: string, rawData: string):
   return JSON.parse(response.text || '{}');
 };
 
-// --- DOCUMENT WRITER (NEW) ---
+// --- DOCUMENT WRITER ---
 export const generateAcademicDocument = async (level: string, course: string, topic: string, details: string): Promise<string> => {
     const ai = getAI();
     const prompt = `
@@ -185,6 +198,20 @@ export const generateAcademicDocument = async (level: string, course: string, to
     });
     return response.text || "";
 }
+
+export const generateBibliography = async (citations: Citation[], style: string): Promise<string> => {
+  const ai = getAI();
+  const prompt = `
+    Format the following citations into a Bibliography using ${style} style.
+    Input: ${JSON.stringify(citations)}
+    Return only the formatted bibliography text.
+  `;
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview', // Use flash for speed
+    contents: prompt
+  });
+  return response.text || "";
+};
 
 export const generateTechnicalReport = async (topic: string, details: string): Promise<string> => {
   const ai = getAI();
@@ -214,6 +241,31 @@ export const generateLabReport = async (experiment: string, observations: string
     contents: prompt
   });
   return response.text || "";
+};
+
+// New: Microscope Image Analysis
+export const analyzeMicroscopeImage = async (base64Image: string): Promise<string> => {
+  const ai = getAI();
+  const prompt = `
+    You are an expert biologist/pathologist.
+    Analyze this microscope image.
+    1. Identify the specimen/organism.
+    2. Describe morphology (shape, stain, arrangement).
+    3. Note any significant features (nuclei, cell walls, etc.).
+    4. Provide a likely classification.
+  `;
+  
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash-image',
+    contents: {
+      parts: [
+        { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
+        { text: prompt }
+      ]
+    }
+  });
+
+  return response.text || "Analysis complete but no text returned.";
 };
 
 // --- DATA CRUNCHER ---

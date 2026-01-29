@@ -57,3 +57,19 @@ export interface YouTubeVideo {
   url: string;
   description: string;
 }
+
+export interface Citation {
+  id: string;
+  type: 'WEBSITE' | 'BOOK' | 'JOURNAL';
+  title: string;
+  author: string;
+  year: string;
+  url?: string;
+}
+
+export interface Collaborator {
+  id: string;
+  name: string;
+  color: string;
+  status: 'ONLINE' | 'EDITING' | 'IDLE';
+}

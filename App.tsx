@@ -12,6 +12,7 @@ import { DataCruncher } from './components/DataCruncher';
 import { Inbox } from './components/Inbox';
 import { Notifications } from './components/Notifications';
 import { DocumentWriter } from './components/DocumentWriter';
+import { Profile } from './components/Profile';
 import { AppView } from './types';
 
 // Mock Live API Context
@@ -47,11 +48,7 @@ export default function App() {
         {currentView === AppView.LAB_REPORT && <ReportSuite type="LAB" />}
         {currentView === AppView.INBOX && <Inbox />}
         {currentView === AppView.NOTIFICATIONS && <Notifications />}
-        {currentView === AppView.PROFILE && (
-          <div className="flex items-center justify-center h-full text-[var(--text-secondary)] font-serif italic">
-            Profile Module Loading...
-          </div>
-        )}
+        {currentView === AppView.PROFILE && <Profile />}
       </Layout>
 
       <VoiceAssistant />
