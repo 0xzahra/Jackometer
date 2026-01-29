@@ -1,0 +1,183 @@
+import React, { useState } from 'react';
+import { generateResearchTitles, generateDeepResearch } from '../services/geminiService';
+import { ProjectTitle } from '../types';
+
+export const ResearchEngine: React.FC = () => {
+  const [mode, setMode] = useState<'FORGE' | 'WRITER'>('FORGE');
+  const [topicInput, setTopicInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [titles, setTitles] = useState<ProjectTitle[]>([]);
+  const [selectedTitle, setSelectedTitle] = useState<ProjectTitle | null>(null);
+  const [generatedContent, setGeneratedContent] = useState('');
+
+  const handleForge = async () => {
+    if (!topicInput) return;
+    setLoading(true);
+    try {
+      const results = await generateResearchTitles(topicInput);
+      setTitles(results);
+    } catch (e) {
+      console.error(e);
+      alert("Failed to forge titles. Try again.");
+    }
+    setLoading(false);
+  };
+
+  const handleSelectTitle = (t: ProjectTitle) => {
+    setSelectedTitle(t);
+    setMode('WRITER');
+  };
+
+  const handleGenerateChapter = async (chapter: string) => {
+    if (!selectedTitle) return;
+    setLoading(true);
+    try {
+      const content = await generateDeepResearch(
+        selectedTitle.title, 
+        chapter, 
+        selectedTitle.description
+      );
+      setGeneratedContent(prev => prev + `\n\n${chapter.toUpperCase()}\n\n` + content);
+    } catch (e) {
+      alert("Failed to generate content.");
+    }
+    setLoading(false);
+  };
+
+  // Helper to render markdown-style links
+  const renderContent = (text: string) => {
+    const parts = text.split(/(\[.*?\]\(.*?\))/g);
+    return parts.map((part, index) => {
+      const match = part.match(/\[(.*?)\]\((.*?)\)/);
+      if (match) {
+        return (
+          <a key={index} href={match[2]} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-bold bg-blue-50 px-1 rounded">
+            {match[1]} <span className="material-icons text-[10px] inline">open_in_new</span>
+          </a>
+        );
+      }
+      return part;
+    });
+  };
+
+  return (
+    <div className="w-full max-w-6xl mx-auto">
+      {mode === 'FORGE' && (
+        <div className="flex flex-col items-center justify-center min-h-[60vh]">
+           <div className="w-full max-w-2xl paper-panel p-10 rounded-sm relative overflow-hidden text-center">
+             <div className="absolute top-0 left-0 w-full h-1 bg-slate-800"></div>
+             <h2 className="text-4xl font-serif font-bold text-[var(--text-primary)] mb-2">Topic Forge</h2>
+             <p className="text-[var(--text-secondary)] mb-8 italic font-serif">"Enter a concept. We will build the thesis."</p>
+             
+             <div className="relative mb-8">
+               <input
+                type="text"
+                value={topicInput}
+                onChange={(e) => setTopicInput(e.target.value)}
+                placeholder="e.g. 'Sustainable Architecture' or 'Parasites'"
+                className="w-full bg-[var(--bg-color)] border-b-2 border-[var(--border-color)] text-[var(--text-primary)] p-4 text-2xl text-center focus:outline-none focus:border-[var(--accent)] placeholder-[var(--text-secondary)] font-serif"
+               />
+             </div>
+
+             <button
+              onClick={handleForge}
+              disabled={loading}
+              className="w-full bg-[var(--accent)] text-white font-bold py-4 rounded transition-all disabled:opacity-50 flex items-center justify-center shadow-lg"
+             >
+               {loading ? (
+                 <span className="animate-spin material-icons">refresh</span>
+               ) : (
+                 <>
+                   <span className="material-icons mr-2">psychology</span>
+                   INITIATE FORGE
+                 </>
+               )}
+             </button>
+           </div>
+
+           {/* Results */}
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-12 w-full">
+             {titles.map((t, idx) => (
+               <div key={idx} className="paper-card p-6 rounded-sm cursor-pointer group hover:border-[var(--accent)]" onClick={() => handleSelectTitle(t)}>
+                 <h3 className="text-lg font-bold text-[var(--text-primary)] mb-3 font-serif leading-tight group-hover:text-[var(--accent)]">{t.title}</h3>
+                 <p className="text-xs text-[var(--text-secondary)] mb-4 line-clamp-3 leading-relaxed">{t.description}</p>
+                 <div className="text-xs text-[var(--text-secondary)] bg-[var(--bg-color)] p-2 rounded">
+                   <strong>Requires:</strong> {t.requirements.join(', ')}
+                 </div>
+               </div>
+             ))}
+           </div>
+        </div>
+      )}
+
+      {mode === 'WRITER' && selectedTitle && (
+        <div className="flex flex-col h-full">
+          <div className="paper-panel p-6 rounded-sm mb-6 flex justify-between items-center sticky top-0 z-20 shadow-sm">
+            <div>
+              <h2 className="text-xl font-bold font-serif text-[var(--text-primary)] truncate max-w-lg">{selectedTitle.title}</h2>
+              <p className="text-xs text-[var(--text-secondary)] uppercase tracking-widest mt-1">Dissertation Builder Active</p>
+            </div>
+            <button className="text-xs border border-red-200 text-red-700 px-4 py-2 rounded hover:bg-red-50 transition-colors uppercase tracking-widest font-bold" onClick={() => setMode('FORGE')}>
+              Exit
+            </button>
+          </div>
+
+          <div className="grid grid-cols-12 gap-8 h-full">
+            {/* Outline Sidebar */}
+            <div className="col-span-3 paper-panel rounded-sm overflow-hidden flex flex-col h-[70vh]">
+              <div className="bg-[var(--bg-color)] p-4 border-b border-[var(--border-color)]">
+                <h3 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Table of Contents</h3>
+              </div>
+              <div className="overflow-y-auto p-2 flex-1">
+                {['Chapter One: Introduction', 'Chapter Two: Literature Review', 'Chapter Three: Methodology', 'Chapter Four: Analysis', 'Chapter Five: Conclusion'].map((chapter, i) => (
+                  <button 
+                    key={i}
+                    onClick={() => handleGenerateChapter(chapter)}
+                    className="w-full text-left p-3 mb-1 rounded hover:bg-[var(--bg-color)] text-xs font-serif text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors border-l-2 border-transparent hover:border-[var(--accent)]"
+                  >
+                    {chapter}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Editor Area */}
+            <div className="col-span-9 paper-panel rounded-sm p-12 overflow-y-auto relative h-[70vh] bg-white shadow-inner">
+               {loading && (
+                 <div className="absolute inset-0 bg-white/80 z-20 flex items-center justify-center backdrop-blur-sm">
+                   <div className="text-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--accent)] mx-auto mb-4"></div>
+                      <p className="text-[var(--text-primary)] text-sm font-serif italic">Consulting Premium Repositories...</p>
+                   </div>
+                 </div>
+               )}
+               {generatedContent ? (
+                 <article className="prose prose-slate max-w-none">
+                   <div className="whitespace-pre-wrap font-serif text-base leading-relaxed text-[var(--text-primary)]">
+                     {renderContent(generatedContent)}
+                   </div>
+                 </article>
+               ) : (
+                 <div className="h-full flex flex-col items-center justify-center text-[var(--text-secondary)] opacity-50">
+                   <span className="material-icons text-6xl mb-4">library_books</span>
+                   <p className="font-serif text-xl italic">Select a chapter to begin writing.</p>
+                 </div>
+               )}
+            </div>
+          </div>
+          
+          <div className="mt-6 flex justify-end space-x-4">
+             <button className="bg-white border border-[var(--border-color)] hover:bg-[var(--bg-color)] text-[var(--text-primary)] px-6 py-3 rounded-sm flex items-center text-sm font-bold shadow-sm">
+               <span className="material-icons mr-2 text-sm">picture_as_pdf</span>
+               PDF
+             </button>
+             <button className="bg-[var(--accent)] text-white px-8 py-3 rounded-sm flex items-center text-sm font-bold shadow-lg">
+               <span className="material-icons mr-2 text-sm">save</span>
+               Save to Vault
+             </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

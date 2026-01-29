@@ -1,0 +1,9 @@
+{
+  "name": "Jackometer",
+  "description": "An AI-powered academic research assistant featuring a neo-futuristic interface, deep research capabilities, field trip tools, and career building utilities.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
