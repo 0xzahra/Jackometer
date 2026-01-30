@@ -1,17 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export const Settings: React.FC = () => {
-  const [contact, setContact] = useState({
-    email: 'scholar@university.edu',
-    phone: '+1 (555) 000-0000',
-    recoveryEmail: ''
-  });
-
   const [security, setSecurity] = useState({
     currentPass: '',
     newPass: '',
     confirmPass: ''
   });
+
+  const [fontSize, setFontSize] = useState(16);
+
+  useEffect(() => {
+    // Read current font size from root
+    const current = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    setFontSize(current);
+  }, []);
+
+  const handleFontSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newSize = parseInt(e.target.value);
+    setFontSize(newSize);
+    document.documentElement.style.fontSize = `${newSize}px`;
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-10">
@@ -57,42 +65,64 @@ export const Settings: React.FC = () => {
           </div>
         </div>
 
-        {/* Contact Information */}
+        {/* Display Settings */}
         <div className="paper-panel p-8 rounded-sm">
+           <div className="flex items-center gap-3 mb-6 border-b border-[var(--border-color)] pb-2">
+            <span className="material-icons text-[var(--accent)]">visibility</span>
+            <h3 className="text-lg font-bold text-[var(--text-primary)]">Accessibility & Display</h3>
+          </div>
+          
+          <div className="space-y-6">
+             <div>
+               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">
+                 UI Font Size ({fontSize}px)
+               </label>
+               <input 
+                 type="range" 
+                 min="12" 
+                 max="24" 
+                 value={fontSize} 
+                 onChange={handleFontSizeChange}
+                 className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+               />
+               <div className="flex justify-between text-[10px] text-[var(--text-secondary)] mt-1">
+                 <span>Small</span>
+                 <span>Medium</span>
+                 <span>Large</span>
+               </div>
+             </div>
+          </div>
+        </div>
+
+        {/* Developer Contact Information */}
+        <div className="paper-panel p-8 rounded-sm md:col-span-2">
           <div className="flex items-center gap-3 mb-6 border-b border-[var(--border-color)] pb-2">
-            <span className="material-icons text-[var(--accent)]">contact_mail</span>
-            <h3 className="text-lg font-bold text-[var(--text-primary)]">Contact Information</h3>
+            <span className="material-icons text-[var(--accent)]">code</span>
+            <h3 className="text-lg font-bold text-[var(--text-primary)]">Developer Contact</h3>
           </div>
 
-          <div className="space-y-4">
-             <div>
-               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">Primary Email</label>
-               <input 
-                 value={contact.email}
-                 onChange={(e) => setContact({...contact, email: e.target.value})}
-                 className="w-full"
-               />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+             <div className="p-4 border border-[var(--border-color)] rounded bg-[var(--bg-color)]">
+                <div className="flex items-center gap-3 mb-2">
+                   <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">A</div>
+                   <div>
+                      <p className="font-bold text-[var(--text-primary)]">arewa.base.eth</p>
+                      <p className="text-xs text-[var(--text-secondary)]">Lead Developer</p>
+                   </div>
+                </div>
+                <p className="text-sm text-[var(--text-secondary)] mt-2">For technical inquiries, bug reports, and blockchain integrations.</p>
              </div>
-             <div>
-               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">Phone Number</label>
-               <input 
-                 value={contact.phone}
-                 onChange={(e) => setContact({...contact, phone: e.target.value})}
-                 className="w-full"
-               />
+
+             <div className="p-4 border border-[var(--border-color)] rounded bg-[var(--bg-color)]">
+                <div className="flex items-center gap-3 mb-2">
+                   <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold">Z</div>
+                   <div>
+                      <p className="font-bold text-[var(--text-primary)]">zahrah.nft</p>
+                      <p className="text-xs text-[var(--text-secondary)]">Design & UX Lead</p>
+                   </div>
+                </div>
+                <p className="text-sm text-[var(--text-secondary)] mt-2">For design feedback, feature requests, and community support.</p>
              </div>
-             <div>
-               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">Recovery Email</label>
-               <input 
-                 value={contact.recoveryEmail}
-                 onChange={(e) => setContact({...contact, recoveryEmail: e.target.value})}
-                 className="w-full"
-                 placeholder="Optional"
-               />
-             </div>
-             <button className="w-full border border-[var(--border-color)] text-[var(--text-primary)] py-2 rounded font-bold text-sm hover:bg-[var(--bg-color)]">
-               Save Changes
-             </button>
           </div>
         </div>
       </div>
@@ -147,10 +177,6 @@ export const Settings: React.FC = () => {
                </div>
             </div>
          </div>
-      </div>
-
-      <div className="text-center text-xs text-[var(--text-secondary)] font-serif italic pt-4">
-        Jackometer v2050. Enterprise Core License Active.
       </div>
     </div>
   );

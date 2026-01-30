@@ -1,127 +1,209 @@
-import React, { useState, useEffect } from 'react';
-import { generateRapidPresentation, generateFieldTripDocument } from '../services/geminiService';
+import React, { useState, useEffect, useRef } from 'react';
+import { generateRapidPresentation, generateFieldTripDocument, estimateWeatherConditions } from '../services/geminiService';
 import { SlideDeck, FieldTable } from '../types';
 
 export const FieldTripSuite: React.FC = () => {
-  const [tab, setTab] = useState<'GPS' | 'DATA' | 'SLIDES' | 'DOCUMENT'>('GPS');
+  const [tab, setTab] = useState<'ENVIRONMENT' | 'DATA' | 'SLIDES' | 'DOCUMENT'>('ENVIRONMENT');
   const [loading, setLoading] = useState(false);
   const [topic, setTopic] = useState('');
   const [notes, setNotes] = useState('');
   const [deck, setDeck] = useState<SlideDeck | null>(null);
   const [documentContent, setDocumentContent] = useState('');
-  const [coords, setCoords] = useState({ lat: 0, lng: 0 });
-  const [tables, setTables] = useState<FieldTable[]>([]);
+  
+  // Sensor State
+  const [coords, setCoords] = useState<{ lat: number, lng: number, alt: number | null, acc: number | null }>({ lat: 0, lng: 0, alt: null, acc: null });
+  const [weather, setWeather] = useState({ temp: '', humidity: '', conditions: '', pressure: '' });
+  const [analyzingWeather, setAnalyzingWeather] = useState(false);
+  
+  // Evidence State
+  const [evidence, setEvidence] = useState<{ src: string, meta: string }[]>([]);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  useEffect(() => {
+  // --- GPS Logic ---
+  const refreshLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => console.log("Loc failed")
+        (pos) => setCoords({ 
+          lat: pos.coords.latitude, 
+          lng: pos.coords.longitude,
+          alt: pos.coords.altitude,
+          acc: pos.coords.accuracy
+        }),
+        (err) => console.log("Loc failed", err),
+        { enableHighAccuracy: true }
       );
     }
-  }, []);
+  };
 
+  useEffect(() => { refreshLocation(); }, []);
+
+  // --- Weather Logic ---
+  const fetchWeather = async () => {
+    if (coords.lat === 0) { alert("Acquire GPS signal first."); return; }
+    setAnalyzingWeather(true);
+    try {
+      const data = await estimateWeatherConditions(coords.lat, coords.lng);
+      setWeather({ ...weather, ...data });
+    } catch (e) {
+      alert("Weather analysis failed.");
+    }
+    setAnalyzingWeather(false);
+  };
+
+  // --- Camera & Overlay Logic ---
+  const handleCameraCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+       const reader = new FileReader();
+       reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+             const canvas = document.createElement('canvas');
+             const ctx = canvas.getContext('2d');
+             if (ctx) {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+                
+                // Overlay Metadata
+                const metaText = `LAT: ${coords.lat.toFixed(5)} | LNG: ${coords.lng.toFixed(5)} | ${new Date().toLocaleString()}\n${weather.temp} ${weather.conditions}`;
+                ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+                ctx.fillRect(0, canvas.height - 100, canvas.width, 100);
+                ctx.fillStyle = "#fff";
+                ctx.font = "bold 24px monospace";
+                ctx.fillText(metaText, 20, canvas.height - 40);
+                
+                setEvidence([...evidence, { src: canvas.toDataURL(), meta: metaText }]);
+             }
+          };
+          img.src = event.target?.result as string;
+       };
+       reader.readAsDataURL(file);
+    }
+  };
+
+  // --- Data Table Logic ---
+  const [tables, setTables] = useState<FieldTable[]>([]);
   const addTable = () => {
-    const newTable: FieldTable = {
-      id: Date.now().toString(),
-      name: `Table ${tables.length + 1}`,
-      headers: ['Parameter', 'Observation', 'Remarks'],
-      rows: [['', '', '']],
-      collapsed: false
-    };
-    setTables([...tables, newTable]);
+    setTables([...tables, { id: Date.now().toString(), name: `Site Data ${tables.length + 1}`, headers: ['Param', 'Value', 'Unit'], rows: [['', '', '']], collapsed: false }]);
+  };
+  const updateCell = (tIdx: number, rIdx: number, cIdx: number, val: string) => {
+    const newTables = [...tables]; newTables[tIdx].rows[rIdx][cIdx] = val; setTables(newTables);
+  };
+  const addRow = (tIdx: number) => {
+    const newTables = [...tables]; newTables[tIdx].rows.push(new Array(3).fill('')); setTables(newTables);
+  };
+  const toggleTable = (i: number) => {
+    const newTables = [...tables]; newTables[i].collapsed = !newTables[i].collapsed; setTables(newTables);
   };
 
-  const updateCell = (tableIndex: number, rowIndex: number, colIndex: number, val: string) => {
-    const newTables = [...tables];
-    newTables[tableIndex].rows[rowIndex][colIndex] = val;
-    setTables(newTables);
-  };
-
-  const addRow = (tableIndex: number) => {
-    const newTables = [...tables];
-    const colCount = newTables[tableIndex].headers.length;
-    newTables[tableIndex].rows.push(new Array(colCount).fill(''));
-    setTables(newTables);
-  };
-
-  const toggleTable = (index: number) => {
-    const newTables = [...tables];
-    newTables[index].collapsed = !newTables[index].collapsed;
-    setTables(newTables);
-  };
-
-  const formatTablesForAI = () => {
-    return tables.map(t => {
-      return `Table: ${t.name}\nHeaders: ${t.headers.join(', ')}\nRows:\n${t.rows.map(r => r.join(' | ')).join('\n')}`;
-    }).join('\n\n');
+  const formatData = () => {
+    const tableStr = tables.map(t => `Table: ${t.name}\n${t.rows.map(r => r.join('|')).join('\n')}`).join('\n\n');
+    const weatherStr = `Weather: ${weather.temp}, ${weather.humidity}, ${weather.conditions}`;
+    return `${weatherStr}\n\n${tableStr}`;
   };
 
   const handleGenerateDeck = async () => {
     setLoading(true);
-    try {
-      const tableData = formatTablesForAI();
-      const result = await generateRapidPresentation(topic, `${notes}\n\n${tableData}`);
-      setDeck(result);
-      setTab('SLIDES');
-    } catch (e) {
-      alert("Error generating deck");
-    }
+    await generateRapidPresentation(topic, `${notes}\n\n${formatData()}`).then(setDeck);
+    setTab('SLIDES');
     setLoading(false);
   };
 
   const handleGenerateDoc = async () => {
     setLoading(true);
-    try {
-      const tableData = formatTablesForAI();
-      const result = await generateFieldTripDocument(topic, tableData, notes);
-      setDocumentContent(result);
-      setTab('DOCUMENT');
-    } catch (e) {
-      alert("Error generating document");
-    }
+    await generateFieldTripDocument(topic, formatData(), notes).then(setDocumentContent);
+    setTab('DOCUMENT');
     setLoading(false);
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto h-full flex flex-col">
+    <div className="w-full max-w-7xl mx-auto h-full flex flex-col">
       <div className="flex space-x-2 md:space-x-4 mb-6 border-b border-[var(--border-color)] pb-1 overflow-x-auto">
-        {['GPS', 'DATA', 'SLIDES', 'DOCUMENT'].map((t) => (
+        {['ENVIRONMENT', 'DATA', 'SLIDES', 'DOCUMENT'].map((t) => (
           <button 
             key={t}
             onClick={() => setTab(t as any)}
             className={`px-4 md:px-6 py-2 font-bold font-serif transition-colors whitespace-nowrap ${tab === t ? 'text-[var(--text-primary)] border-b-2 border-[var(--accent)]' : 'text-[var(--text-secondary)] opacity-60 hover:opacity-100'}`}
           >
-            {t === 'GPS' ? 'Telemetry' : t === 'DATA' ? 'Input Data' : t === 'SLIDES' ? 'Presentation' : 'Document'}
+            {t === 'ENVIRONMENT' ? 'Environment Monitor' : t === 'DATA' ? 'Field Input' : t === 'SLIDES' ? 'Presentation' : 'Document'}
           </button>
         ))}
       </div>
 
-      {tab === 'GPS' && (
-        <div className="paper-panel p-6 rounded-sm relative overflow-hidden flex flex-col justify-between h-96">
-           <div className="absolute inset-0 bg-[url('https://maps.googleapis.com/maps/api/staticmap?center=40.7128,-74.0060&zoom=13&size=600x300&maptype=roadmap')] bg-cover opacity-10"></div>
-           <div className="relative z-10">
-             <h3 className="text-[var(--text-primary)] font-bold mb-6 flex items-center border-b border-[var(--border-color)] pb-2">
-               <span className="material-icons mr-2">satellite</span>
-               Live Telemetry
-             </h3>
-             <div className="space-y-4 font-mono text-sm">
-               <div className="flex justify-between border-b border-[var(--border-color)] pb-2 border-dashed">
-                 <span className="text-[var(--text-secondary)]">LATITUDE</span>
-                 <span className="text-[var(--text-primary)] font-bold">{coords.lat.toFixed(6)} N</span>
-               </div>
-               <div className="flex justify-between border-b border-[var(--border-color)] pb-2 border-dashed">
-                 <span className="text-[var(--text-secondary)]">LONGITUDE</span>
-                 <span className="text-[var(--text-primary)] font-bold">{coords.lng.toFixed(6)} E</span>
-               </div>
-               <div className="flex justify-between border-b border-[var(--border-color)] pb-2 border-dashed">
-                 <span className="text-[var(--text-secondary)]">TEMP</span>
-                 <span className="text-[var(--text-primary)] font-bold">32°C (Dry)</span>
-               </div>
-             </div>
+      {tab === 'ENVIRONMENT' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+           
+           {/* GPS CARD */}
+           <div className="paper-panel p-6 rounded-sm relative overflow-hidden">
+              <div className="flex justify-between items-center mb-4">
+                 <h3 className="font-bold text-[var(--text-primary)] flex items-center"><span className="material-icons mr-2 text-[var(--accent)]">satellite</span> GPS Telemetry</h3>
+                 <button onClick={refreshLocation} className="text-xs bg-[var(--bg-color)] p-2 rounded hover:bg-gray-200"><span className="material-icons animate-pulse">my_location</span></button>
+              </div>
+              <div className="space-y-3 font-mono text-sm">
+                 <div className="flex justify-between border-b border-dashed border-gray-300 pb-1">
+                    <span className="text-[var(--text-secondary)]">LATITUDE</span>
+                    <span className="font-bold">{coords.lat.toFixed(6)}° N</span>
+                 </div>
+                 <div className="flex justify-between border-b border-dashed border-gray-300 pb-1">
+                    <span className="text-[var(--text-secondary)]">LONGITUDE</span>
+                    <span className="font-bold">{coords.lng.toFixed(6)}° E</span>
+                 </div>
+                 <div className="flex justify-between border-b border-dashed border-gray-300 pb-1">
+                    <span className="text-[var(--text-secondary)]">ALTITUDE</span>
+                    <span className="font-bold">{coords.alt ? coords.alt.toFixed(1) + 'm' : 'N/A'}</span>
+                 </div>
+                 <div className="flex justify-between">
+                    <span className="text-[var(--text-secondary)]">ACCURACY</span>
+                    <span className="font-bold">±{coords.acc ? coords.acc.toFixed(1) + 'm' : '--'}</span>
+                 </div>
+              </div>
            </div>
-           <div className="relative z-10 mt-6 bg-[var(--bg-color)] p-3 rounded border border-[var(--border-color)] text-xs text-[var(--text-secondary)]">
-             TIMESTAMP: {new Date().toLocaleString()}
+
+           {/* WEATHER CARD */}
+           <div className="paper-panel p-6 rounded-sm">
+              <div className="flex justify-between items-center mb-4">
+                 <h3 className="font-bold text-[var(--text-primary)] flex items-center"><span className="material-icons mr-2 text-blue-500">cloud</span> Weather Analysis</h3>
+                 <button onClick={fetchWeather} disabled={analyzingWeather} className="text-xs bg-[var(--accent)] text-white px-2 py-1 rounded font-bold">{analyzingWeather ? '...' : 'Fetch Estimate'}</button>
+              </div>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                 <div>
+                    <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Temperature</label>
+                    <input className="w-full text-sm font-mono border-b border-gray-300 bg-transparent" placeholder="--°C" value={weather.temp} onChange={(e) => setWeather({...weather, temp: e.target.value})} />
+                 </div>
+                 <div>
+                    <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Humidity</label>
+                    <input className="w-full text-sm font-mono border-b border-gray-300 bg-transparent" placeholder="--%" value={weather.humidity} onChange={(e) => setWeather({...weather, humidity: e.target.value})} />
+                 </div>
+              </div>
+              <div>
+                 <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Conditions</label>
+                 <input className="w-full text-sm font-mono border-b border-gray-300 bg-transparent" placeholder="e.g. Sunny, Dry" value={weather.conditions} onChange={(e) => setWeather({...weather, conditions: e.target.value})} />
+              </div>
+           </div>
+
+           {/* EVIDENCE CARD */}
+           <div className="paper-panel p-6 rounded-sm">
+              <h3 className="font-bold text-[var(--text-primary)] mb-4 flex items-center"><span className="material-icons mr-2 text-red-500">camera_alt</span> Evidence Capture</h3>
+              <label className="w-full h-32 border-2 border-dashed border-[var(--border-color)] rounded flex flex-col items-center justify-center cursor-pointer hover:bg-[var(--bg-color)] transition-colors">
+                 <span className="material-icons text-3xl text-[var(--text-secondary)]">add_a_photo</span>
+                 <span className="text-xs font-bold text-[var(--text-secondary)] mt-2">Capture & Overlay Meta</span>
+                 <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleCameraCapture} />
+              </label>
+           </div>
+           
+           {/* Gallery */}
+           <div className="col-span-full paper-panel p-6 rounded-sm">
+              <h3 className="font-bold text-[var(--text-primary)] mb-4">Captured Evidence ({evidence.length})</h3>
+              <div className="flex gap-4 overflow-x-auto pb-4">
+                 {evidence.map((ev, i) => (
+                    <div key={i} className="flex-shrink-0 w-64 border border-[var(--border-color)] rounded overflow-hidden shadow-sm">
+                       <img src={ev.src} className="w-full h-40 object-cover" alt="Evidence" />
+                       <div className="p-2 bg-[var(--bg-color)] text-[10px] font-mono break-all leading-tight">{ev.meta.split('\n')[0]}</div>
+                    </div>
+                 ))}
+                 {evidence.length === 0 && <p className="text-sm text-[var(--text-secondary)] italic">No photos captured yet.</p>}
+              </div>
            </div>
         </div>
       )}
@@ -129,16 +211,16 @@ export const FieldTripSuite: React.FC = () => {
       {tab === 'DATA' && (
         <div className="space-y-6 pb-20">
           <div className="paper-panel p-6 rounded-sm">
-            <h3 className="text-[var(--text-primary)] font-bold mb-4 font-serif">Basic Info</h3>
+            <h3 className="text-[var(--text-primary)] font-bold mb-4 font-serif">Field Notes</h3>
             <input 
               className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded p-3 text-[var(--text-primary)] mb-4 focus:border-[var(--accent)] outline-none" 
-              placeholder="Field Trip Topic (e.g., Tilapia at BUK)"
+              placeholder="Topic / Location Name"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
             />
             <textarea 
               className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded p-3 text-[var(--text-primary)] mb-4 focus:border-[var(--accent)] outline-none resize-none font-mono text-xs h-32" 
-              placeholder="Paste raw data, observations, or lab notes here..."
+              placeholder="Observations..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             ></textarea>
@@ -189,10 +271,10 @@ export const FieldTripSuite: React.FC = () => {
              </button>
              <div className="space-x-2">
                 <button onClick={handleGenerateDeck} disabled={loading} className="bg-[var(--accent)] text-white font-bold px-6 py-2 rounded shadow text-sm">
-                   {loading ? '...' : 'Generate Slides'}
+                   {loading ? 'Processing...' : 'Generate Slides'}
                 </button>
                 <button onClick={handleGenerateDoc} disabled={loading} className="bg-[var(--text-secondary)] text-white font-bold px-6 py-2 rounded shadow text-sm">
-                   {loading ? '...' : 'Write Document'}
+                   {loading ? 'Processing...' : 'Write Document'}
                 </button>
              </div>
           </div>

@@ -138,7 +138,7 @@ export const generateFieldTripDocument = async (topic: string, tables: string, n
       
       Structure:
       1. Introduction
-      2. Methodology
+      2. Methodology (Include specific location data if provided)
       3. Results (incorporate the table data textually)
       4. Discussion
       5. Conclusion
@@ -187,6 +187,33 @@ export const generateRapidPresentation = async (topic: string, rawData: string):
   });
 
   return JSON.parse(response.text || '{}');
+};
+
+export const estimateWeatherConditions = async (lat: number, lng: number): Promise<{temp: string, humidity: string, conditions: string}> => {
+  const ai = getAI();
+  const prompt = `
+    Based on the coordinates ${lat}, ${lng} and the current date ${new Date().toDateString()}, 
+    provide a REALISTIC estimate of the weather conditions for a field report.
+    Output JSON with 'temp' (e.g. '32°C'), 'humidity' (e.g. '45%'), and 'conditions' (e.g. 'Partly Cloudy, Dry').
+  `;
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: prompt,
+    config: {
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          temp: { type: Type.STRING },
+          humidity: { type: Type.STRING },
+          conditions: { type: Type.STRING }
+        }
+      }
+    }
+  });
+
+  return JSON.parse(response.text || '{"temp": "--", "humidity": "--", "conditions": "--"}');
 };
 
 // --- DOCUMENT WRITER ---

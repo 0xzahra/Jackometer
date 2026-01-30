@@ -74,22 +74,44 @@ export interface Collaborator {
   status: 'ONLINE' | 'EDITING' | 'IDLE';
 }
 
+export interface Member {
+  id: string;
+  name: string;
+  role: string;
+  university: string;
+  status: 'Online' | 'Offline' | 'Researching';
+  bio: string;
+}
+
 export interface Group {
   id: string;
   name: string;
   description: string;
   memberCount: number;
   isJoined: boolean;
+  members?: Member[];
 }
 
 export interface Message {
   id: string;
   sender: string;
+  subject?: string;
   content: string;
   timestamp: string;
+  read: boolean;
   reactions: Record<string, number>;
   media?: string; // base64 or url
   isVoice?: boolean;
+}
+
+export interface NotificationItem {
+  id: string;
+  icon: string;
+  title: string;
+  desc: string;
+  time: string;
+  read: boolean;
+  type: 'SYSTEM' | 'RESEARCH' | 'SOCIAL';
 }
 
 export interface AppendixItem {
