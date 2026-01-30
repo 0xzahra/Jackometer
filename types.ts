@@ -81,6 +81,12 @@ export interface Member {
   university: string;
   status: 'Online' | 'Offline' | 'Researching';
   bio: string;
+  papers?: {
+    title: string;
+    abstract: string;
+    citations: number;
+    year: string;
+  }[];
 }
 
 export interface Group {
@@ -102,6 +108,11 @@ export interface Message {
   reactions: Record<string, number>;
   media?: string; // base64 or url
   isVoice?: boolean;
+  replyTo?: {
+    id: string;
+    sender: string;
+    content: string;
+  };
 }
 
 export interface NotificationItem {
