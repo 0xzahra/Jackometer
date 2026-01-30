@@ -302,7 +302,7 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
            <div className="border-t border-[var(--border-color)] pt-4">
               <div className="flex justify-between items-center mb-2">
                  <label className="text-xs font-bold text-[var(--text-secondary)] uppercase">Data Tables</label>
-                 <button onClick={addTable} className="text-xs text-[var(--accent)] font-bold hover:underline">+ Add Table</button>
+                 <button onClick={addTable} className="text-xs text-[var(--accent)] font-bold hover:underline">+ Add Table (Collapsible)</button>
               </div>
               {activeDoc.tables.map(t => (
                 <div key={t.id} className="mb-2 border border-[var(--border-color)] rounded bg-[var(--bg-color)]">
@@ -355,6 +355,7 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
                              className="w-full text-xs p-1 bg-transparent border-none outline-none resize-none h-12" 
                              value={item.caption} 
                              onChange={(e) => updateCaption(item.id, e.target.value)}
+                             placeholder="Is this caption accurate? Edit here..."
                           />
                        </div>
                        <button onClick={() => removeAppendixItem(item.id)} className="text-red-400 hover:text-red-600">

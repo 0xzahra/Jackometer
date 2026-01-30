@@ -19,14 +19,14 @@ const NavButton: React.FC<{
     <div className="relative group w-full px-4 mb-2">
       <button
         onClick={onClick}
-        className={`w-full flex items-center p-3 rounded-lg transition-all duration-300 group ${
+        className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 group ${
           active 
-            ? 'bg-[var(--accent)] text-white shadow-lg scale-[1.02] border-l-4 border-white font-bold' 
-            : 'text-[var(--text-secondary)] hover:bg-[var(--shadow-color)] hover:text-[var(--text-primary)]'
+            ? 'bg-[var(--accent)] text-white shadow-md border-l-4 border-white font-bold opacity-100' 
+            : 'text-[var(--text-secondary)] hover:bg-[var(--shadow-color)] hover:text-[var(--text-primary)] hover:font-semibold'
         }`}
       >
         <span className={`material-icons text-xl mr-4 ${active ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--accent)]'}`}>{icon}</span>
-        <span className={`font-serif text-sm tracking-wide ${active ? 'font-bold' : 'font-semibold'}`}>{label}</span>
+        <span className={`font-serif text-sm tracking-wide ${active ? 'font-bold' : 'font-normal'}`}>{label}</span>
       </button>
     </div>
   );
@@ -55,7 +55,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
         </div>
         
         <div className="flex-1 overflow-y-auto">
-          <div className="px-4 mb-2 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider opacity-60">Modules</div>
+          <div className="px-4 mb-2 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider opacity-100">Modules</div>
           <NavButton active={currentView === AppView.RESEARCH} onClick={() => { setView(AppView.RESEARCH); setSidebarOpen(false); }} icon="school" label="Research Engine" />
           <NavButton active={currentView === AppView.DOCUMENT_WRITER} onClick={() => { setView(AppView.DOCUMENT_WRITER); setSidebarOpen(false); }} icon="description" label="Document Writer" />
           <NavButton active={currentView === AppView.FIELD_TRIP} onClick={() => { setView(AppView.FIELD_TRIP); setSidebarOpen(false); }} icon="landscape" label="Field Trip" />
@@ -64,12 +64,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
           <NavButton active={currentView === AppView.DATA_CRUNCHER} onClick={() => { setView(AppView.DATA_CRUNCHER); setSidebarOpen(false); }} icon="analytics" label="Data Cruncher" />
           <NavButton active={currentView === AppView.CAREER} onClick={() => { setView(AppView.CAREER); setSidebarOpen(false); }} icon="work_outline" label="Career Studio" />
           
-          <div className="px-4 mb-2 mt-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider opacity-60">Communication</div>
+          <div className="px-4 mb-2 mt-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider opacity-100">Communication</div>
           <NavButton active={currentView === AppView.COMMUNITY} onClick={() => { setView(AppView.COMMUNITY); setSidebarOpen(false); }} icon="forum" label="Community Groups" />
           <NavButton active={currentView === AppView.INBOX} onClick={() => { setView(AppView.INBOX); setSidebarOpen(false); }} icon="mail" label="Inbox" />
           <NavButton active={currentView === AppView.NOTIFICATIONS} onClick={() => { setView(AppView.NOTIFICATIONS); setSidebarOpen(false); }} icon="notifications" label="Notifications" />
 
-          <div className="px-4 mb-2 mt-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider opacity-60">System</div>
+          <div className="px-4 mb-2 mt-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider opacity-100">System</div>
           <NavButton active={currentView === AppView.SETTINGS} onClick={() => { setView(AppView.SETTINGS); setSidebarOpen(false); }} icon="settings" label="Settings" />
         </div>
 

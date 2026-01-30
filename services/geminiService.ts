@@ -75,9 +75,10 @@ export const generateDeepResearch = async (title: string, chapter: string, conte
     
     Write the content for this chapter. 
     Style: Academic, "Old Money" authority, 20+ years experience.
-    Strictly academic format (APA). 
-    IMPORTANT: You MUST use the search tool to find REAL, EXISTING sources. 
-    Include citations as clickable Markdown links where possible (e.g., [Author, Year](url)).
+    Strictly academic format (APA 7th Edition). 
+    IMPORTANT: You MUST use the search tool to find REAL, EXISTING, VERIFIABLE sources. 
+    Do NOT fabricate citations. 
+    Include citations in text (e.g., (Smith, 2023)) and ensure they correspond to real papers.
     Use high-level vocabulary.
     Do NOT use markdown symbols for headers like **, ##. Format as plain, beautifully written text.
     Be precise.
@@ -141,7 +142,7 @@ export const generateFieldTripDocument = async (topic: string, tables: string, n
       3. Results (incorporate the table data textually)
       4. Discussion
       5. Conclusion
-      6. References (APA Style - Real Sources Only)
+      6. References (APA 7th Style - Real Sources Only)
       
       Tone: Academic, Formal.
     `;
@@ -200,9 +201,9 @@ export const generateAcademicDocument = async (level: string, course: string, to
       Appendix Items (Images & Captions): ${appendixData}
       
       Requirements:
-      - Thoroughly researched content.
-      - Genuine citations with URLs where possible (Format: [Source Title](URL)).
-      - STRICT APA referencing for all citations and bibliography.
+      - Thoroughly researched content using Google Search.
+      - Genuine, REAL citations with URLs where possible.
+      - STRICT APA 7th referencing for all citations and bibliography.
       - No "As an AI" disclaimers.
       - Tone: "Old Money" Academic Expert.
       - If Appendix items are provided, refer to them in the text (e.g. "See Appendix A").
@@ -241,7 +242,7 @@ export const generateTechnicalReport = async (topic: string, details: string, ta
     Data Tables: ${tables}.
     Appendix: ${appendix}.
 
-    Structure: Introduction, Experience Gained, Technical Procedures, Challenges, Conclusion, References (APA), Appendix.
+    Structure: Introduction, Experience Gained, Technical Procedures, Challenges, Conclusion, References (APA 7th), Appendix.
     Tone: Professional, Experienced, Academic.
   `;
   const response = await ai.models.generateContent({
@@ -260,7 +261,7 @@ export const generateLabReport = async (experiment: string, observations: string
     Data Tables: ${tables}.
     Appendix (Images/Captions): ${appendix}.
 
-    Structure: Title, Aim, Apparatus, Procedure, Results (Tabulated), Calculation, Discussion (Biological & Chemical analysis), Conclusion, References (APA), Appendix.
+    Structure: Title, Aim, Apparatus, Procedure, Results (Tabulated), Calculation, Discussion (Biological & Chemical analysis), Conclusion, References (APA 7th - Real Sources), Appendix.
     Focus on biological and chemical observations inferred from the data.
   `;
   const response = await ai.models.generateContent({
@@ -276,10 +277,13 @@ export const analyzeMicroscopeImage = async (base64Image: string): Promise<strin
   const prompt = `
     You are an expert biologist and chemist.
     Analyze this microscope image (or lab sample image).
-    1. Identify the specimen/organism or chemical substance.
-    2. Biological Observations: Describe morphology (shape, stain, arrangement, organelles, cell wall, nuclei).
-    3. Chemical Observations: Note any reactions, precipitate colors, viscosity, or crystalline structures visible.
-    4. Provide a likely classification or compound identity.
+    
+    1. IDENTIFICATION: Identify the specimen/organism or chemical substance.
+    2. BIOLOGICAL ANALYSIS: Describe morphology (shape, stain, arrangement, organelles, cell wall, nuclei). Identify the phase (mitosis, etc.) if applicable.
+    3. CHEMICAL ANALYSIS: Note any color changes, precipitation, viscosity, crystalline structures, or indications of chemical reaction.
+    4. CLASSIFICATION: Provide the scientific classification or compound identity.
+    
+    Be precise and academic.
   `;
   
   const response = await ai.models.generateContent({
