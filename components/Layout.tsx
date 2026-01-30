@@ -21,12 +21,12 @@ const NavButton: React.FC<{
         onClick={onClick}
         className={`w-full flex items-center p-3 rounded-lg transition-all duration-300 group ${
           active 
-            ? 'bg-[var(--accent)] text-white shadow-md' 
-            : 'text-[var(--text-secondary)] hover:bg-[var(--shadow-color)]'
+            ? 'bg-[var(--accent)] text-white shadow-lg scale-[1.02] border-l-4 border-white font-bold' 
+            : 'text-[var(--text-secondary)] hover:bg-[var(--shadow-color)] hover:text-[var(--text-primary)]'
         }`}
       >
-        <span className={`material-icons text-xl mr-4 ${active ? 'text-white' : 'text-[var(--text-secondary)]'}`}>{icon}</span>
-        <span className="font-serif text-sm font-semibold tracking-wide">{label}</span>
+        <span className={`material-icons text-xl mr-4 ${active ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--accent)]'}`}>{icon}</span>
+        <span className={`font-serif text-sm tracking-wide ${active ? 'font-bold' : 'font-semibold'}`}>{label}</span>
       </button>
     </div>
   );
@@ -64,9 +64,11 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
           <NavButton active={currentView === AppView.DATA_CRUNCHER} onClick={() => { setView(AppView.DATA_CRUNCHER); setSidebarOpen(false); }} icon="analytics" label="Data Cruncher" />
           <NavButton active={currentView === AppView.CAREER} onClick={() => { setView(AppView.CAREER); setSidebarOpen(false); }} icon="work_outline" label="Career Studio" />
           
-          <div className="px-4 mb-2 mt-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider opacity-60">Network</div>
-          <NavButton active={currentView === AppView.COMMUNITY} onClick={() => { setView(AppView.COMMUNITY); setSidebarOpen(false); }} icon="forum" label="Community" />
-          
+          <div className="px-4 mb-2 mt-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider opacity-60">Communication</div>
+          <NavButton active={currentView === AppView.COMMUNITY} onClick={() => { setView(AppView.COMMUNITY); setSidebarOpen(false); }} icon="forum" label="Community Groups" />
+          <NavButton active={currentView === AppView.INBOX} onClick={() => { setView(AppView.INBOX); setSidebarOpen(false); }} icon="mail" label="Inbox" />
+          <NavButton active={currentView === AppView.NOTIFICATIONS} onClick={() => { setView(AppView.NOTIFICATIONS); setSidebarOpen(false); }} icon="notifications" label="Notifications" />
+
           <div className="px-4 mb-2 mt-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider opacity-60">System</div>
           <NavButton active={currentView === AppView.SETTINGS} onClick={() => { setView(AppView.SETTINGS); setSidebarOpen(false); }} icon="settings" label="Settings" />
         </div>

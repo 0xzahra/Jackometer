@@ -7,8 +7,20 @@ const getAI = () => new GoogleGenAI({ apiKey: API_KEY });
 
 // --- UTILS ---
 export const downloadFile = (content: string, filename: string, mimeType: string) => {
-  // Add BOM for UTF-8 compatibility
-  const blobContent = mimeType.includes('csv') || mimeType.includes('text') ? `\uFEFF${content}` : content;
+  let blobContent = content;
+  
+  if (mimeType.includes('msword') || mimeType.includes('opendocument')) {
+      blobContent = `
+        <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+        <head><meta charset='utf-8'><title>${filename}</title></head>
+        <body style="font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.5;">
+          ${content.replace(/\n\n/g, '<p>').replace(/\n/g, '<br>')}
+        </body></html>
+      `;
+  } else if (mimeType.includes('csv') || mimeType.includes('text')) {
+      blobContent = `\uFEFF${content}`; // BOM for UTF-8
+  }
+
   const blob = new Blob([blobContent], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -64,7 +76,8 @@ export const generateDeepResearch = async (title: string, chapter: string, conte
     Write the content for this chapter. 
     Style: Academic, "Old Money" authority, 20+ years experience.
     Strictly academic format (APA). 
-    IMPORTANT: Include citations as clickable Markdown links where possible (e.g., [Author, Year](url)).
+    IMPORTANT: You MUST use the search tool to find REAL, EXISTING sources. 
+    Include citations as clickable Markdown links where possible (e.g., [Author, Year](url)).
     Use high-level vocabulary.
     Do NOT use markdown symbols for headers like **, ##. Format as plain, beautifully written text.
     Be precise.
@@ -113,7 +126,7 @@ export const searchYouTubeVideos = async (topic: string): Promise<YouTubeVideo[]
   return JSON.parse(response.text || '[]');
 };
 
-// --- FIELD TRIP ---
+// --- FIELD TRIP & LAB ---
 export const generateFieldTripDocument = async (topic: string, tables: string, notes: string): Promise<string> => {
     const ai = getAI();
     const prompt = `
@@ -128,10 +141,11 @@ export const generateFieldTripDocument = async (topic: string, tables: string, n
       3. Results (incorporate the table data textually)
       4. Discussion
       5. Conclusion
+      6. References (APA Style - Real Sources Only)
       
       Tone: Academic, Formal.
     `;
-    const response = await ai.models.generateContent({ model: 'gemini-3-pro-preview', contents: prompt });
+    const response = await ai.models.generateContent({ model: 'gemini-3-pro-preview', contents: prompt, config: { tools: [{ googleSearch: {} }] } });
     return response.text || "";
 }
 
@@ -175,7 +189,7 @@ export const generateRapidPresentation = async (topic: string, rawData: string):
 };
 
 // --- DOCUMENT WRITER ---
-export const generateAcademicDocument = async (level: string, course: string, topic: string, details: string): Promise<string> => {
+export const generateAcademicDocument = async (level: string, course: string, topic: string, details: string, appendixData: string): Promise<string> => {
     const ai = getAI();
     const prompt = `
       Write a full academic document.
@@ -183,12 +197,16 @@ export const generateAcademicDocument = async (level: string, course: string, to
       Course of Study: ${course}
       Topic: ${topic}
       Specific Details: ${details}
+      Appendix Items (Images & Captions): ${appendixData}
       
       Requirements:
       - Thoroughly researched content.
       - Genuine citations with URLs where possible (Format: [Source Title](URL)).
+      - STRICT APA referencing for all citations and bibliography.
       - No "As an AI" disclaimers.
       - Tone: "Old Money" Academic Expert.
+      - If Appendix items are provided, refer to them in the text (e.g. "See Appendix A").
+      - Include an "Appendix" section at the very end with the descriptions provided.
     `;
     const response = await ai.models.generateContent({
         model: 'gemini-3-pro-preview',
@@ -206,6 +224,7 @@ export const generateBibliography = async (citations: Citation[], style: string)
     Format the following citations into a Bibliography using ${style} style.
     Input: ${JSON.stringify(citations)}
     Return only the formatted bibliography text.
+    Ensure strict adherence to the style guide (italics, punctuation).
   `;
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview', 
@@ -214,32 +233,40 @@ export const generateBibliography = async (citations: Citation[], style: string)
   return response.text || "";
 };
 
-export const generateTechnicalReport = async (topic: string, details: string): Promise<string> => {
+export const generateTechnicalReport = async (topic: string, details: string, tables: string, appendix: string): Promise<string> => {
   const ai = getAI();
   const prompt = `
     Generate a full Student Industrial Work Experience Scheme (SIWES) or Technical Report on: ${topic}.
     Details: ${details}.
-    Structure: Introduction, Experience Gained, Technical Procedures, Challenges, Conclusion.
+    Data Tables: ${tables}.
+    Appendix: ${appendix}.
+
+    Structure: Introduction, Experience Gained, Technical Procedures, Challenges, Conclusion, References (APA), Appendix.
     Tone: Professional, Experienced, Academic.
   `;
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
-    contents: prompt
+    contents: prompt,
+    config: { tools: [{ googleSearch: {} }] }
   });
   return response.text || "";
 };
 
-export const generateLabReport = async (experiment: string, observations: string): Promise<string> => {
+export const generateLabReport = async (experiment: string, observations: string, tables: string, appendix: string): Promise<string> => {
   const ai = getAI();
   const prompt = `
     Generate a comprehensive Lab Report for experiment: ${experiment}.
     Observations: ${observations}.
-    Structure: Title, Aim, Apparatus, Procedure, Results (Tabulated), Calculation, Discussion, Conclusion.
-    Format: APA style.
+    Data Tables: ${tables}.
+    Appendix (Images/Captions): ${appendix}.
+
+    Structure: Title, Aim, Apparatus, Procedure, Results (Tabulated), Calculation, Discussion (Biological & Chemical analysis), Conclusion, References (APA), Appendix.
+    Focus on biological and chemical observations inferred from the data.
   `;
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
-    contents: prompt
+    contents: prompt,
+    config: { tools: [{ googleSearch: {} }] }
   });
   return response.text || "";
 };
@@ -247,12 +274,12 @@ export const generateLabReport = async (experiment: string, observations: string
 export const analyzeMicroscopeImage = async (base64Image: string): Promise<string> => {
   const ai = getAI();
   const prompt = `
-    You are an expert biologist/pathologist.
-    Analyze this microscope image.
-    1. Identify the specimen/organism.
-    2. Describe morphology (shape, stain, arrangement).
-    3. Note any significant features (nuclei, cell walls, etc.).
-    4. Provide a likely classification.
+    You are an expert biologist and chemist.
+    Analyze this microscope image (or lab sample image).
+    1. Identify the specimen/organism or chemical substance.
+    2. Biological Observations: Describe morphology (shape, stain, arrangement, organelles, cell wall, nuclei).
+    3. Chemical Observations: Note any reactions, precipitate colors, viscosity, or crystalline structures visible.
+    4. Provide a likely classification or compound identity.
   `;
   
   const response = await ai.models.generateContent({
@@ -268,12 +295,33 @@ export const analyzeMicroscopeImage = async (base64Image: string): Promise<strin
   return response.text || "Analysis complete but no text returned.";
 };
 
+export const generateImageCaption = async (base64Image: string): Promise<string> => {
+  const ai = getAI();
+  const prompt = `
+    Generate a concise, academic caption for this image to be used in an Appendix.
+    Identify what is shown (e.g., "Figure 1: Microscopic view of Spyrogyra...").
+  `;
+  
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash-image',
+    contents: {
+      parts: [
+        { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
+        { text: prompt }
+      ]
+    }
+  });
+
+  return response.text || "Figure: Image content.";
+};
+
 // --- DATA CRUNCHER (OPTIMIZED) ---
-export const analyzeData = async (dataInput: string): Promise<AnalysisResult> => {
+export const analyzeData = async (dataInput: string, tableData: string): Promise<AnalysisResult> => {
   const ai = getAI();
   const prompt = `
     Perform a rigorous statistical and bio-systematic analysis of the following data.
-    Input Data: ${dataInput}
+    Input Text: ${dataInput}
+    Input Tables: ${tableData}
     
     Requirements:
     1. Accuracy: Ensure zero errors in calculation.

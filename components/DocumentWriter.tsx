@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { generateAcademicDocument, searchYouTubeVideos, generateBibliography, downloadFile } from '../services/geminiService';
-import { YouTubeVideo, Citation, Collaborator } from '../types';
+import { generateAcademicDocument, searchYouTubeVideos, generateBibliography, downloadFile, generateImageCaption } from '../services/geminiService';
+import { YouTubeVideo, Citation, Collaborator, AppendixItem } from '../types';
 
 interface DocDraft {
   id: string;
@@ -13,17 +13,18 @@ interface DocDraft {
   citations: Citation[];
   history: string[]; 
   historyIndex: number;
-  uploadedImages: string[]; // Base64 strings or URLs
+  uploadedImages: string[];
+  appendix: AppendixItem[];
 }
 
 export const DocumentWriter: React.FC = () => {
   const [drafts, setDrafts] = useState<DocDraft[]>([
-    { id: '1', level: 'Undergraduate', course: '', topic: '', details: '', output: '', videos: [], citations: [], history: [''], historyIndex: 0, uploadedImages: [] }
+    { id: '1', level: 'Undergraduate', course: '', topic: '', details: '', output: '', videos: [], citations: [], history: [''], historyIndex: 0, uploadedImages: [], appendix: [] }
   ]);
   const [activeId, setActiveId] = useState('1');
   const [loading, setLoading] = useState(false);
   const [citationLoading, setCitationLoading] = useState(false);
-  const [collabPanelOpen, setCollabPanelOpen] = useState(false);
+  const [captionLoading, setCaptionLoading] = useState(false);
 
   // Mock Collaborators
   const collaborators: Collaborator[] = [
@@ -78,7 +79,7 @@ export const DocumentWriter: React.FC = () => {
   const newDraft = () => {
     const id = Date.now().toString();
     setDrafts([...drafts, { 
-      id, level: 'Undergraduate', course: '', topic: '', details: '', output: '', videos: [], citations: [], history: [''], historyIndex: 0, uploadedImages: []
+      id, level: 'Undergraduate', course: '', topic: '', details: '', output: '', videos: [], citations: [], history: [''], historyIndex: 0, uploadedImages: [], appendix: []
     }]);
     setActiveId(id);
   };
@@ -95,8 +96,9 @@ export const DocumentWriter: React.FC = () => {
     if (!activeDraft.topic || !activeDraft.course) return;
     setLoading(true);
     try {
+      const appendixStr = activeDraft.appendix.map((a, i) => `Figure ${i+1}: ${a.caption}`).join('\n');
       const [docText, fetchedVideos] = await Promise.all([
-        generateAcademicDocument(activeDraft.level, activeDraft.course, activeDraft.topic, activeDraft.details),
+        generateAcademicDocument(activeDraft.level, activeDraft.course, activeDraft.topic, activeDraft.details, appendixStr),
         searchYouTubeVideos(activeDraft.topic)
       ]);
       pushHistory(docText);
@@ -130,6 +132,41 @@ export const DocumentWriter: React.FC = () => {
     setCitationLoading(false);
   };
 
+  // Appendix Logic
+  const handleAppendixUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      setCaptionLoading(true);
+      const newItems: AppendixItem[] = [];
+      for (const file of Array.from(files)) {
+        await new Promise<void>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = async () => {
+             const base64 = reader.result as string;
+             const caption = await generateImageCaption(base64.split(',')[1]);
+             newItems.push({
+               id: Date.now() + Math.random().toString(),
+               image: base64,
+               caption: caption
+             });
+             resolve();
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+      updateDraft('appendix', [...activeDraft.appendix, ...newItems]);
+      setCaptionLoading(false);
+    }
+  };
+
+  const updateCaption = (id: string, text: string) => {
+    updateDraft('appendix', activeDraft.appendix.map(a => a.id === id ? { ...a, caption: text } : a));
+  };
+
+  const removeAppendix = (id: string) => {
+    updateDraft('appendix', activeDraft.appendix.filter(a => a.id !== id));
+  };
+
   // Export
   const handleExport = (format: 'PDF' | 'DOCX' | 'RTF' | 'ODT' | 'TXT') => {
     const filename = `${activeDraft.topic || 'Document'}.${format.toLowerCase()}`;
@@ -137,23 +174,9 @@ export const DocumentWriter: React.FC = () => {
     if (format === 'DOCX') mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
     if (format === 'ODT') mime = 'application/vnd.oasis.opendocument.text';
     if (format === 'RTF') mime = 'application/rtf';
-    if (format === 'PDF') mime = 'application/pdf'; // Note: Proper PDF requires library, browser can print text
+    if (format === 'PDF') mime = 'application/pdf'; 
 
     downloadFile(activeDraft.output, filename, mime);
-  };
-
-  // Image Upload
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      Array.from(files).forEach(file => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-           updateDraft('uploadedImages', [...activeDraft.uploadedImages, reader.result as string]);
-        };
-        reader.readAsDataURL(file);
-      });
-    }
   };
 
   // Function to render text with clickable links
@@ -247,18 +270,35 @@ export const DocumentWriter: React.FC = () => {
               <input value={activeDraft.topic} onChange={(e) => updateDraft('topic', e.target.value)} className="w-full" placeholder="Research Topic" />
               <textarea value={activeDraft.details} onChange={(e) => updateDraft('details', e.target.value)} className="w-full h-24" placeholder="Context & Specifics..."></textarea>
             </div>
-            
-            {/* Multi Image Upload */}
-            <div className="mt-4">
-               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">Attached Images</label>
-               <div className="flex flex-wrap gap-2 mb-2">
-                 {activeDraft.uploadedImages.map((img, i) => (
-                   <div key={i} className="w-12 h-12 border rounded bg-cover bg-center" style={{ backgroundImage: `url(${img})` }}></div>
-                 ))}
-                 <label className="w-12 h-12 border border-dashed rounded flex items-center justify-center cursor-pointer hover:bg-gray-100">
-                   <span className="material-icons text-gray-400">add</span>
-                   <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} />
-                 </label>
+
+            {/* Appendix Builder */}
+            <div className="border-t border-[var(--border-color)] pt-4 mt-4">
+               <div className="flex justify-between items-center mb-2">
+                  <label className="text-xs font-bold text-[var(--text-secondary)] uppercase">Appendix (Images & Captions)</label>
+                  <label className="text-xs text-[var(--accent)] font-bold hover:underline cursor-pointer">
+                     + Add Image
+                     <input type="file" multiple accept="image/*" className="hidden" onChange={handleAppendixUpload} />
+                  </label>
+               </div>
+               {captionLoading && <p className="text-xs text-[var(--text-secondary)] animate-pulse">Generating academic captions...</p>}
+               <div className="space-y-3">
+                  {activeDraft.appendix.map((item, idx) => (
+                     <div key={item.id} className="flex gap-3 items-start bg-[var(--bg-color)] p-2 rounded border border-[var(--border-color)]">
+                        <img src={item.image} className="w-16 h-16 object-cover rounded" alt="Appendix" />
+                        <div className="flex-1">
+                           <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Figure {idx + 1}</p>
+                           <textarea 
+                              className="w-full text-xs p-1 bg-transparent border-none outline-none resize-none h-12" 
+                              value={item.caption} 
+                              onChange={(e) => updateCaption(item.id, e.target.value)}
+                              placeholder="Review caption..."
+                           />
+                        </div>
+                        <button onClick={() => removeAppendix(item.id)} className="text-red-400 hover:text-red-600">
+                           <span className="material-icons text-sm">delete</span>
+                        </button>
+                     </div>
+                  ))}
                </div>
             </div>
 

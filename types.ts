@@ -91,3 +91,9 @@ export interface Message {
   media?: string; // base64 or url
   isVoice?: boolean;
 }
+
+export interface AppendixItem {
+  id: string;
+  image: string; // Base64
+  caption: string;
+}

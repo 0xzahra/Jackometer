@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { generateTechnicalReport, generateLabReport, analyzeMicroscopeImage, downloadFile } from '../services/geminiService';
+import { generateTechnicalReport, generateLabReport, analyzeMicroscopeImage, generateImageCaption, downloadFile } from '../services/geminiService';
+import { AppendixItem, FieldTable } from '../types';
 
 interface ReportSuiteProps {
   type: 'TECHNICAL' | 'LAB';
@@ -13,16 +14,18 @@ interface DocumentDraft {
   imageAnalysis?: string;
   history: string[];
   historyIndex: number;
-  uploadedImages: string[];
+  tables: FieldTable[];
+  appendix: AppendixItem[];
 }
 
 export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
   const [docs, setDocs] = useState<DocumentDraft[]>([
-    { id: '1', topic: '', details: '', report: '', history: [''], historyIndex: 0, uploadedImages: [] }
+    { id: '1', topic: '', details: '', report: '', history: [''], historyIndex: 0, tables: [], appendix: [] }
   ]);
   const [activeDocId, setActiveDocId] = useState('1');
   const [loading, setLoading] = useState(false);
   const [analyzingImage, setAnalyzingImage] = useState(false);
+  const [captionLoading, setCaptionLoading] = useState(false);
 
   // Mock Collaborators
   const collaborators = [
@@ -72,7 +75,7 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
 
   const createNewDraft = () => {
     const newId = Date.now().toString();
-    setDocs([...docs, { id: newId, topic: '', details: '', report: '', history: [''], historyIndex: 0, uploadedImages: [] }]);
+    setDocs([...docs, { id: newId, topic: '', details: '', report: '', history: [''], historyIndex: 0, tables: [], appendix: [] }]);
     setActiveDocId(newId);
   };
 
@@ -84,12 +87,99 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
     if (activeDocId === id) setActiveDocId(newDocs[0].id);
   };
 
+  // --- Table Logic ---
+  const addTable = () => {
+    const newTable: FieldTable = {
+      id: Date.now().toString(),
+      name: `Data Table ${activeDoc.tables.length + 1}`,
+      headers: ['Variable', 'Reading 1', 'Reading 2', 'Average'],
+      rows: [['', '', '', '']],
+      collapsed: false
+    };
+    updateDoc('tables', [...activeDoc.tables, newTable]);
+  };
+
+  const updateTableData = (tableId: string, rowIndex: number, colIndex: number, val: string) => {
+    const newTables = activeDoc.tables.map(t => {
+      if (t.id === tableId) {
+        const newRows = [...t.rows];
+        newRows[rowIndex][colIndex] = val;
+        return { ...t, rows: newRows };
+      }
+      return t;
+    });
+    updateDoc('tables', newTables);
+  };
+
+  const addTableRow = (tableId: string) => {
+    const newTables = activeDoc.tables.map(t => {
+      if (t.id === tableId) {
+        return { ...t, rows: [...t.rows, new Array(t.headers.length).fill('')] };
+      }
+      return t;
+    });
+    updateDoc('tables', newTables);
+  };
+
+  const toggleTable = (tableId: string) => {
+    updateDoc('tables', activeDoc.tables.map(t => t.id === tableId ? { ...t, collapsed: !t.collapsed } : t));
+  };
+
+  const formatTablesForAI = () => {
+    return activeDoc.tables.map(t => {
+      return `Table: ${t.name}\nHeaders: ${t.headers.join(', ')}\nRows:\n${t.rows.map(r => r.join(' | ')).join('\n')}`;
+    }).join('\n\n');
+  };
+
+  // --- Appendix Logic ---
+  const handleAppendixUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      setCaptionLoading(true);
+      const newItems: AppendixItem[] = [];
+      for (const file of Array.from(files)) {
+        await new Promise<void>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = async () => {
+            const base64 = reader.result as string;
+            // Generate caption
+            const caption = await generateImageCaption(base64.split(',')[1]);
+            newItems.push({
+              id: Date.now() + Math.random().toString(),
+              image: base64,
+              caption: caption
+            });
+            resolve();
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+      updateDoc('appendix', [...activeDoc.appendix, ...newItems]);
+      setCaptionLoading(false);
+    }
+  };
+
+  const updateCaption = (id: string, newCaption: string) => {
+    updateDoc('appendix', activeDoc.appendix.map(item => item.id === id ? { ...item, caption: newCaption } : item));
+  };
+
+  const removeAppendixItem = (id: string) => {
+    updateDoc('appendix', activeDoc.appendix.filter(item => item.id !== id));
+  };
+
+  const formatAppendixForAI = () => {
+    return activeDoc.appendix.map((item, i) => `Image ${i+1}: ${item.caption}`).join('\n');
+  };
+
+  // --- Main Generation ---
   const handleGenerate = async () => {
     setLoading(true);
     try {
+      const tableData = formatTablesForAI();
+      const appendixData = formatAppendixForAI();
       const result = type === 'TECHNICAL' 
-        ? await generateTechnicalReport(activeDoc.topic, activeDoc.details)
-        : await generateLabReport(activeDoc.topic, activeDoc.details + (activeDoc.imageAnalysis ? `\n\nMicroscope Analysis:\n${activeDoc.imageAnalysis}` : ''));
+        ? await generateTechnicalReport(activeDoc.topic, activeDoc.details, tableData, appendixData)
+        : await generateLabReport(activeDoc.topic, activeDoc.details + (activeDoc.imageAnalysis ? `\n\nMicroscope Analysis:\n${activeDoc.imageAnalysis}` : ''), tableData, appendixData);
       pushHistory(result);
     } catch (e) {
       alert("Report generation failed");
@@ -104,30 +194,22 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
     downloadFile(activeDoc.report, `${activeDoc.topic || 'Report'}.${format.toLowerCase()}`, mime);
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      Array.from(files).forEach(file => {
-        const reader = new FileReader();
-        reader.onloadend = async () => {
-          const base64 = (reader.result as string);
-          // Add to uploaded images list
-          updateDoc('uploadedImages', [...activeDoc.uploadedImages, base64]);
-          
-          // If it's the first image, analyze it for lab reports
-          if (type === 'LAB' && !analyzingImage) {
-             setAnalyzingImage(true);
-             try {
-               const analysis = await analyzeMicroscopeImage(base64.split(',')[1]);
-               updateDoc('imageAnalysis', analysis);
-               updateDoc('details', activeDoc.details + `\n\n[Microscope Image Analysis]: ${analysis}`);
-             } catch(err) {}
-             setAnalyzingImage(false);
-          }
-        };
-        reader.readAsDataURL(file);
-      });
-    }
+  // --- Microscope Analysis ---
+  const handleMicroscopeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+     const file = e.target.files?.[0];
+     if (!file) return;
+     setAnalyzingImage(true);
+     const reader = new FileReader();
+     reader.onloadend = async () => {
+        const base64 = reader.result as string;
+        try {
+           const analysis = await analyzeMicroscopeImage(base64.split(',')[1]);
+           updateDoc('imageAnalysis', analysis);
+           updateDoc('details', activeDoc.details + `\n\n[BIO/CHEM OBSERVATION]: ${analysis}`);
+        } catch (e) { alert("Analysis failed"); }
+        setAnalyzingImage(false);
+     };
+     reader.readAsDataURL(file);
   };
 
   return (
@@ -177,8 +259,10 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
 
        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 overflow-hidden">
          {/* Input Side */}
-         <div className="paper-panel p-6 rounded-sm overflow-y-auto">
-           <div className="mb-4">
+         <div className="paper-panel p-6 rounded-sm overflow-y-auto space-y-6">
+           
+           {/* Basic Info */}
+           <div>
              <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
                 {type === 'TECHNICAL' ? "Establishment / Topic" : "Experiment Title"}
              </label>
@@ -189,29 +273,96 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
              />
            </div>
 
-           <div className="mb-4">
-             <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">Attached Images (Microscope/Site)</label>
-             <div className="flex flex-wrap gap-2 mb-2">
-                 {activeDoc.uploadedImages.map((img, i) => (
-                   <div key={i} className="w-16 h-16 border rounded bg-cover bg-center" style={{ backgroundImage: `url(${img})` }}></div>
-                 ))}
-                 <label className="w-16 h-16 border-2 border-dashed border-[var(--primary)] rounded flex flex-col items-center justify-center cursor-pointer hover:bg-blue-50">
-                   <span className="material-icons text-[var(--primary)]">add_a_photo</span>
-                   <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} />
-                 </label>
+           {/* Microscope Analysis (Lab Only) */}
+           {type === 'LAB' && (
+             <div className="border-2 border-dashed border-[var(--accent)] bg-blue-50/50 p-4 rounded text-center">
+                <label className="cursor-pointer block">
+                  <span className="material-icons text-3xl text-[var(--accent)] mb-2">biotech</span>
+                  <div className="font-bold text-[var(--accent)]">Analyze Biological/Chemical Sample</div>
+                  <div className="text-xs text-[var(--text-secondary)]">Upload microscope or chemical reaction images for AI observation.</div>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleMicroscopeUpload} />
+                </label>
+                {analyzingImage && <p className="text-xs text-[var(--accent)] mt-2 animate-pulse">Analyzing cellular structure & chemical properties...</p>}
+                {activeDoc.imageAnalysis && <p className="text-xs text-green-600 mt-2 font-bold">Analysis Attached to Observations.</p>}
              </div>
-             {analyzingImage && <p className="text-xs text-[var(--primary)] animate-pulse">Analyzing image data...</p>}
-           </div>
+           )}
 
-           <div className="mb-4">
+           <div>
              <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
                {type === 'TECHNICAL' ? "Experience Details" : "Observations & Procedure"}
              </label>
              <textarea 
-                className="w-full h-64 resize-none"
+                className="w-full h-40 resize-none"
                 value={activeDoc.details}
                 onChange={(e) => updateDoc('details', e.target.value)}
              ></textarea>
+           </div>
+
+           {/* Collapsible Input Tables */}
+           <div className="border-t border-[var(--border-color)] pt-4">
+              <div className="flex justify-between items-center mb-2">
+                 <label className="text-xs font-bold text-[var(--text-secondary)] uppercase">Data Tables</label>
+                 <button onClick={addTable} className="text-xs text-[var(--accent)] font-bold hover:underline">+ Add Table</button>
+              </div>
+              {activeDoc.tables.map(t => (
+                <div key={t.id} className="mb-2 border border-[var(--border-color)] rounded bg-[var(--bg-color)]">
+                   <div className="p-2 flex justify-between items-center cursor-pointer bg-[var(--surface-color)]" onClick={() => toggleTable(t.id)}>
+                      <span className="font-bold text-sm text-[var(--text-primary)]">{t.name}</span>
+                      <span className="material-icons text-sm">{t.collapsed ? 'expand_more' : 'expand_less'}</span>
+                   </div>
+                   {!t.collapsed && (
+                     <div className="p-2 overflow-x-auto">
+                        <table className="w-full text-xs">
+                           <thead>
+                              <tr>{t.headers.map((h, i) => <th key={i} className="border p-1">{h}</th>)}</tr>
+                           </thead>
+                           <tbody>
+                              {t.rows.map((row, rIdx) => (
+                                 <tr key={rIdx}>
+                                    {row.map((cell, cIdx) => (
+                                       <td key={cIdx} className="border p-0">
+                                          <input className="w-full p-1 bg-transparent outline-none" value={cell} onChange={(e) => updateTableData(t.id, rIdx, cIdx, e.target.value)} />
+                                       </td>
+                                    ))}
+                                 </tr>
+                              ))}
+                           </tbody>
+                        </table>
+                        <button onClick={() => addTableRow(t.id)} className="text-[10px] text-[var(--accent)] font-bold mt-1">+ Row</button>
+                     </div>
+                   )}
+                </div>
+              ))}
+           </div>
+
+           {/* Appendix Builder */}
+           <div className="border-t border-[var(--border-color)] pt-4">
+              <div className="flex justify-between items-center mb-2">
+                 <label className="text-xs font-bold text-[var(--text-secondary)] uppercase">Appendix (Images & Captions)</label>
+                 <label className="text-xs text-[var(--accent)] font-bold hover:underline cursor-pointer">
+                    + Upload Image
+                    <input type="file" multiple accept="image/*" className="hidden" onChange={handleAppendixUpload} />
+                 </label>
+              </div>
+              {captionLoading && <p className="text-xs text-[var(--text-secondary)] animate-pulse">Generating academic captions...</p>}
+              <div className="space-y-3">
+                 {activeDoc.appendix.map((item, idx) => (
+                    <div key={item.id} className="flex gap-3 items-start bg-[var(--bg-color)] p-2 rounded border border-[var(--border-color)]">
+                       <img src={item.image} className="w-16 h-16 object-cover rounded" alt="Appendix" />
+                       <div className="flex-1">
+                          <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Figure {idx + 1}</p>
+                          <textarea 
+                             className="w-full text-xs p-1 bg-transparent border-none outline-none resize-none h-12" 
+                             value={item.caption} 
+                             onChange={(e) => updateCaption(item.id, e.target.value)}
+                          />
+                       </div>
+                       <button onClick={() => removeAppendixItem(item.id)} className="text-red-400 hover:text-red-600">
+                          <span className="material-icons text-sm">delete</span>
+                       </button>
+                    </div>
+                 ))}
+              </div>
            </div>
            
            <button 
