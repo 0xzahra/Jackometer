@@ -138,7 +138,8 @@ export const DocumentWriter: React.FC = () => {
     if (files) {
       setCaptionLoading(true);
       const newItems: AppendixItem[] = [];
-      for (const file of Array.from(files)) {
+      // Explicitly cast to File[] to avoid 'unknown' type error in strict environments
+      for (const file of Array.from(files) as File[]) {
         await new Promise<void>((resolve) => {
           const reader = new FileReader();
           reader.onloadend = async () => {
