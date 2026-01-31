@@ -58,6 +58,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
           <div className="px-4 mb-2 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider opacity-100">Modules</div>
           <NavButton active={currentView === AppView.RESEARCH} onClick={() => { setView(AppView.RESEARCH); setSidebarOpen(false); }} icon="school" label="Research Engine" />
           <NavButton active={currentView === AppView.DOCUMENT_WRITER} onClick={() => { setView(AppView.DOCUMENT_WRITER); setSidebarOpen(false); }} icon="description" label="Document Writer" />
+          <NavButton active={currentView === AppView.ASSIGNMENT} onClick={() => { setView(AppView.ASSIGNMENT); setSidebarOpen(false); }} icon="gavel" label="Assignment / Grader" />
           <NavButton active={currentView === AppView.FIELD_TRIP} onClick={() => { setView(AppView.FIELD_TRIP); setSidebarOpen(false); }} icon="landscape" label="Field Trip" />
           <NavButton active={currentView === AppView.TECHNICAL_REPORT} onClick={() => { setView(AppView.TECHNICAL_REPORT); setSidebarOpen(false); }} icon="engineering" label="Technical Report" />
           <NavButton active={currentView === AppView.LAB_REPORT} onClick={() => { setView(AppView.LAB_REPORT); setSidebarOpen(false); }} icon="science" label="Lab Report" />

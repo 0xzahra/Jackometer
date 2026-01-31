@@ -15,8 +15,8 @@ const StickyCard: React.FC<{
 }> = ({ title, desc, icon, color = 'var(--panel-bg)', rotate, onClick }) => (
   <div 
     onClick={onClick}
-    className="sticky-card p-6 rounded-sm h-64 flex flex-col justify-between cursor-pointer"
-    style={{ transform: `rotate(${rotate}deg)`, backgroundColor: color }}
+    className="sticky-card p-6 rounded-sm h-64 flex flex-col justify-between cursor-pointer select-none"
+    style={{ backgroundColor: color }}
   >
     <div className="flex justify-between items-start">
       <span className="material-icons text-3xl opacity-70 text-[var(--text-primary)]">{icon}</span>
@@ -28,9 +28,9 @@ const StickyCard: React.FC<{
       <p className="text-xs text-[var(--text-secondary)] leading-relaxed line-clamp-3">{desc}</p>
     </div>
 
-    <div className="flex items-center text-xs font-bold text-[var(--accent)] uppercase tracking-widest mt-2">
+    <div className="flex items-center text-xs font-bold text-[var(--accent)] uppercase tracking-widest mt-2 group">
       <span>Access</span>
-      <span className="material-icons text-sm ml-1">arrow_right_alt</span>
+      <span className="material-icons text-sm ml-1 transition-transform group-hover:translate-x-1">arrow_right_alt</span>
     </div>
   </div>
 );
@@ -70,61 +70,68 @@ export const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
         <p className="text-xs font-bold text-[var(--accent)] uppercase tracking-widest">— {quote.author}</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 px-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 px-4">
         <StickyCard 
           title="Research Engine" 
           desc="Thesis Forge & Dissertation Builder."
           icon="school"
-          rotate={-2}
+          rotate={0}
           onClick={() => setView(AppView.RESEARCH)}
         />
         <StickyCard 
           title="Document Writer" 
           desc="Full academic document generator for any course."
           icon="description"
-          rotate={1}
+          rotate={0}
           onClick={() => setView(AppView.DOCUMENT_WRITER)}
+        />
+        <StickyCard 
+          title="Assignment / Grader" 
+          desc="Essay Critique, Grading & 'Handwriting' Protocol."
+          icon="gavel"
+          rotate={0}
+          onClick={() => setView(AppView.ASSIGNMENT)}
         />
         <StickyCard 
           title="Field Trip" 
           desc="GPS, Weather & Rapid Presentation."
           icon="landscape"
-          rotate={1}
+          rotate={0}
           onClick={() => setView(AppView.FIELD_TRIP)}
         />
         <StickyCard 
           title="Technical Report" 
           desc="SIWES & Industrial Reports."
           icon="engineering"
-          rotate={-1}
+          rotate={0}
           onClick={() => setView(AppView.TECHNICAL_REPORT)}
         />
         <StickyCard 
           title="Lab Report" 
           desc="Experiment analysis & tabulation."
           icon="science"
-          rotate={2}
+          rotate={0}
           onClick={() => setView(AppView.LAB_REPORT)}
         />
         <StickyCard 
           title="Data Cruncher" 
           desc="Statistical & Bio-systematic analysis."
           icon="analytics"
-          rotate={-3}
+          rotate={0}
           onClick={() => setView(AppView.DATA_CRUNCHER)}
         />
         <StickyCard 
           title="Career Studio" 
           desc="CV, Resume & Passport builder."
           icon="work_outline"
-          rotate={1}
+          rotate={0}
           onClick={() => setView(AppView.CAREER)}
         />
         <StickyCard 
           title="Community" 
           desc="Global scholar network & support."
           icon="forum"
-          rotate={2}
+          rotate={0}
           onClick={() => setView(AppView.COMMUNITY)}
         />
       </div>

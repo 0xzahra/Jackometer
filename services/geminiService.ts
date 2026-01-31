@@ -382,6 +382,49 @@ export const analyzeData = async (dataInput: string, tableData: string): Promise
   return JSON.parse(response.text || '{}');
 };
 
+// --- ASSIGNMENT SUITE (Reviewer 2) ---
+export const gradeEssay = async (essay: string, instruction: string): Promise<string> => {
+    const ai = getAI();
+    const prompt = `
+      Act as "Reviewer 2": A strict, expert academic external examiner.
+      Task: Grade and critique the following student essay.
+      Additional Instructions: ${instruction}
+      
+      Essay Content:
+      ${essay}
+      
+      Output Structure:
+      1. Letter Grade (e.g. A, B-, F)
+      2. Brutal Critique (Point out weak arguments, passive voice, lack of evidence).
+      3. Reference Check (Identify missing or weak citations).
+      4. "Bias Decoder" (Suggestions to improve tone for a specific lecturer archetype).
+      5. Corrected Snippet (Rewrite the weakest paragraph to be perfect).
+    `;
+    const response = await ai.models.generateContent({ model: 'gemini-3-pro-preview', contents: prompt });
+    return response.text || "";
+};
+
+export const synthesizeCritique = async (sourceMaterial: string): Promise<string> => {
+    const ai = getAI();
+    const prompt = `
+      Act as an academic critic.
+      Task: Write a critical review essay based on the provided source material/link.
+      Source: ${sourceMaterial}
+      
+      Requirements:
+      - 100% Unique, non-plagiarized output.
+      - Analyze the arguments, methodology, and conclusions of the source.
+      - Critique the validity.
+      - Tone: High-level academic discourse.
+    `;
+    const response = await ai.models.generateContent({ 
+        model: 'gemini-3-pro-preview', 
+        contents: prompt,
+        config: { tools: [{ googleSearch: {} }] }
+    });
+    return response.text || "";
+};
+
 // --- CAREER STUDIO ---
 export const generatePassportEdit = async (base64Image: string, backgroundType: 'white' | 'red'): Promise<string> => {
   const ai = getAI();

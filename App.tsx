@@ -12,6 +12,7 @@ import { DataCruncher } from './components/DataCruncher';
 import { Inbox } from './components/Inbox';
 import { Notifications } from './components/Notifications';
 import { DocumentWriter } from './components/DocumentWriter';
+import { AssignmentSuite } from './components/AssignmentSuite';
 import { Profile } from './components/Profile';
 import { AppView } from './types';
 
@@ -39,6 +40,7 @@ export default function App() {
         {currentView === AppView.DASHBOARD && <Dashboard setView={setCurrentView} />}
         {currentView === AppView.RESEARCH && <ResearchEngine />}
         {currentView === AppView.DOCUMENT_WRITER && <DocumentWriter />}
+        {currentView === AppView.ASSIGNMENT && <AssignmentSuite />}
         {currentView === AppView.FIELD_TRIP && <FieldTripSuite />}
         {currentView === AppView.CAREER && <CareerStudio />}
         {currentView === AppView.COMMUNITY && <Community />}
