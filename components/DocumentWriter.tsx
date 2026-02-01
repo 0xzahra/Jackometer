@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { generateAcademicDocument, searchYouTubeVideos, generateBibliography, downloadFile, generateImageCaption, enrichCitationFromUrl } from '../services/geminiService';
 import { YouTubeVideo, Citation, Collaborator, AppendixItem, UserSearchResult } from '../types';
 import { CollaborationModal } from './CollaborationModal';
+import katex from 'katex';
 
 interface DocDraft {
   id: string;
@@ -27,6 +28,7 @@ export const DocumentWriter: React.FC = () => {
   const [citationLoading, setCitationLoading] = useState(false);
   const [smartImportUrl, setSmartImportUrl] = useState('');
   const [captionLoading, setCaptionLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   // Collaboration State
   const [collaborators, setCollaborators] = useState<Collaborator[]>([
@@ -72,6 +74,15 @@ export const DocumentWriter: React.FC = () => {
 
   const updateDraft = (field: keyof DocDraft, value: any) => {
     setDrafts(drafts.map(d => d.id === activeId ? { ...d, [field]: value } : d));
+  };
+
+  const handleManualEdit = (val: string) => {
+    updateDraft('output', val);
+  };
+
+  const insertLatex = () => {
+    const template = " $$ E = mc^2 $$ ";
+    updateDraft('output', activeDraft.output + template);
   };
 
   // Undo/Redo Logic
@@ -241,8 +252,8 @@ export const DocumentWriter: React.FC = () => {
     downloadFile(activeDraft.output, filename, mime);
   };
 
-  // Enhanced Render: Rich Link Tooltips
-  const renderContent = (text: string) => {
+  // Enhanced Render: Rich Link Tooltips & LaTeX Support
+  const renderLinks = (text: string) => {
     const parts = text.split(/(\[.*?\]\(.*?\))/g);
     return parts.map((part, index) => {
       const match = part.match(/\[(.*?)\]\((.*?)\)/);
@@ -269,7 +280,36 @@ export const DocumentWriter: React.FC = () => {
           </div>
         );
       }
-      return part;
+      return <span key={index}>{part}</span>;
+    });
+  };
+
+  const renderContent = (text: string) => {
+    // Split by Block Math ($$...$$) or Inline Math ($...$)
+    const regex = /(\$\$[\s\S]*?\$\$|\$[^\n$]+\$)/g;
+    const parts = text.split(regex);
+
+    return parts.map((part, index) => {
+      if (part.startsWith('$$') && part.endsWith('$$')) {
+        // Block Math
+        try {
+          const html = katex.renderToString(part.slice(2, -2), { displayMode: true, throwOnError: false });
+          return <div key={index} dangerouslySetInnerHTML={{ __html: html }} className="my-4 text-center overflow-x-auto" />;
+        } catch (e) {
+          return <code key={index} className="text-red-500 block">{part}</code>;
+        }
+      } else if (part.startsWith('$') && part.endsWith('$')) {
+        // Inline Math
+        try {
+          const html = katex.renderToString(part.slice(1, -1), { displayMode: false, throwOnError: false });
+          return <span key={index} dangerouslySetInnerHTML={{ __html: html }} className="mx-1" />;
+        } catch (e) {
+          return <code key={index} className="text-red-500">{part}</code>;
+        }
+      } else {
+        // Regular Text (with Links)
+        return <span key={index}>{renderLinks(part)}</span>;
+      }
     });
   };
 
@@ -473,19 +513,50 @@ export const DocumentWriter: React.FC = () => {
         </div>
 
         {/* Editor Area */}
-        <div className="w-full md:w-2/3 paper-panel p-10 rounded-sm overflow-y-auto bg-white border border-[var(--border-color)] shadow-inner relative">
-           {activeDraft.output ? (
-             <article className="prose prose-slate max-w-none">
-               <div className="whitespace-pre-wrap font-serif text-base text-[var(--text-primary)] font-normal leading-relaxed">
-                 {renderContent(activeDraft.output)}
-               </div>
-             </article>
-           ) : (
-             <div className="flex flex-col items-center justify-center h-full text-[var(--text-secondary)] opacity-50">
-               <span className="material-icons text-6xl mb-4">article</span>
-               <p className="italic">Document Preview will appear here.</p>
-             </div>
-           )}
+        <div className="w-full md:w-2/3 paper-panel rounded-sm overflow-hidden bg-white border border-[var(--border-color)] shadow-inner relative flex flex-col">
+           {/* Editor Toolbar */}
+           <div className="h-10 bg-[var(--surface-color)] border-b border-[var(--border-color)] flex items-center justify-between px-4">
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setIsEditing(!isEditing)}
+                  className={`text-xs font-bold px-3 py-1 rounded flex items-center gap-1 ${isEditing ? 'bg-[var(--accent)] text-white' : 'bg-gray-100 text-[var(--text-secondary)] hover:bg-gray-200'}`}
+                >
+                  <span className="material-icons text-sm">{isEditing ? 'visibility' : 'edit'}</span>
+                  {isEditing ? 'View Mode' : 'Edit Mode'}
+                </button>
+                {isEditing && (
+                  <button onClick={insertLatex} className="text-xs bg-gray-100 px-2 py-1 rounded hover:bg-gray-200 text-[var(--text-secondary)]" title="Insert Equation">
+                    $$x^2$$
+                  </button>
+                )}
+              </div>
+              <span className="text-[10px] text-[var(--text-secondary)] uppercase font-bold tracking-widest">{isEditing ? 'Raw Editor' : 'Rendered View'}</span>
+           </div>
+
+           <div className="flex-1 overflow-y-auto relative p-10">
+              {activeDraft.output || isEditing ? (
+                 isEditing ? (
+                   <textarea 
+                     className="w-full h-full bg-transparent resize-none outline-none font-mono text-sm leading-relaxed"
+                     value={activeDraft.output}
+                     onChange={(e) => handleManualEdit(e.target.value)}
+                     placeholder="Start typing your document here..."
+                   />
+                 ) : (
+                   <article className="prose prose-slate max-w-none">
+                     <div className="whitespace-pre-wrap font-serif text-base text-[var(--text-primary)] font-normal leading-relaxed">
+                       {renderContent(activeDraft.output)}
+                     </div>
+                   </article>
+                 )
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-[var(--text-secondary)] opacity-50">
+                  <span className="material-icons text-6xl mb-4">article</span>
+                  <p className="italic">Document Preview will appear here.</p>
+                  <p className="text-xs mt-2">Generate content or switch to Edit Mode to write.</p>
+                </div>
+              )}
+           </div>
         </div>
       </div>
     </div>
