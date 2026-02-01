@@ -1,7 +1,8 @@
 import { GoogleGenAI, Type, FunctionDeclaration, Modality, Schema } from "@google/genai";
 import { ProjectTitle, SlideDeck, CVData, AnalysisResult, YouTubeVideo, Citation } from "../types";
 
-const API_KEY = process.env.API_KEY || '';
+// SAFELY ACCESS PROCESS.ENV to prevent crashes
+const API_KEY = (typeof process !== 'undefined' && process.env && process.env.API_KEY) ? process.env.API_KEY : '';
 
 const getAI = () => new GoogleGenAI({ apiKey: API_KEY });
 

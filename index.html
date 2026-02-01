@@ -38,6 +38,15 @@
         background-color: var(--bg-color);
         color: var(--text-primary);
         transition: background-color 0.3s, color 0.3s;
+        overflow: hidden; /* Prevent body scroll, let root handle it */
+      }
+
+      #root {
+        height: 100vh;
+        width: 100vw;
+        position: relative;
+        z-index: 1; /* Explicitly place app above noise */
+        overflow: hidden;
       }
 
       /* Crunchy Noise Texture - The "Paper" Feel */
@@ -48,7 +57,7 @@
         width: 100vw;
         height: 100vh;
         pointer-events: none;
-        z-index: 0; /* Lowered from 50 to 0 to prevent click blocking */
+        z-index: 0; /* Lowered to background */
         opacity: 0.08;
         background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
       }
