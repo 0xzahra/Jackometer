@@ -76,12 +76,15 @@ export const generateDeepResearch = async (title: string, chapter: string, conte
     Write the content for this chapter. 
     Style: Academic, "Old Money" authority, 20+ years experience.
     Strictly academic format (APA 7th Edition). 
-    IMPORTANT: You MUST use the search tool to find REAL, EXISTING, VERIFIABLE sources. 
-    Do NOT fabricate citations. 
-    Include citations in text (e.g., (Smith, 2023)) and ensure they correspond to real papers.
+    
+    CRITICAL CITATION RULES:
+    1. You MUST use Google Search to find real sources.
+    2. Every factual claim must be immediately followed by a citation link in this format: [Short Source Title](URL).
+    3. Do NOT use footnotes or [1]. Use the [Title](URL) format inline.
+    4. At the very end of the response, create a section called "URL Context References". In this section, list every URL used and provide a 1-sentence "Preview" of what that link contains.
+
     Use high-level vocabulary.
-    Do NOT use markdown symbols for headers like **, ##. Format as plain, beautifully written text.
-    Be precise.
+    Do NOT use markdown symbols for headers like **, ##. Format as plain, beautifully written text, but keep the links.
   `;
 
   const response = await ai.models.generateContent({
@@ -142,9 +145,14 @@ export const generateFieldTripDocument = async (topic: string, tables: string, n
       3. Results (incorporate the table data textually)
       4. Discussion
       5. Conclusion
-      6. References (APA 7th Style - Real Sources Only)
+      6. References & URL Context
       
       Tone: Academic, Formal.
+      
+      CITATION REQUIREMENT:
+      - Use Google Search to back up ecological/geological facts.
+      - Cite sources inline using Markdown links: [Source Name](URL).
+      - Add a "URL Context References" section at the end describing each link.
     `;
     const response = await ai.models.generateContent({ model: 'gemini-3-pro-preview', contents: prompt, config: { tools: [{ googleSearch: {} }] } });
     return response.text || "";
@@ -229,12 +237,11 @@ export const generateAcademicDocument = async (level: string, course: string, to
       
       Requirements:
       - Thoroughly researched content using Google Search.
-      - Genuine, REAL citations with URLs where possible.
-      - STRICT APA 7th referencing for all citations and bibliography.
+      - Genuine, REAL citations with URLs.
+      - STRICT CITATION FORMAT: Use inline Markdown links for every fact: [Source Title](URL).
       - No "As an AI" disclaimers.
       - Tone: "Old Money" Academic Expert.
-      - If Appendix items are provided, refer to them in the text (e.g. "See Appendix A").
-      - Include an "Appendix" section at the very end with the descriptions provided.
+      - Include a "URL Context References" section at the end. List every URL used and a 1-sentence preview of the site content.
     `;
     const response = await ai.models.generateContent({
         model: 'gemini-3-pro-preview',
@@ -269,8 +276,11 @@ export const generateTechnicalReport = async (topic: string, details: string, ta
     Data Tables: ${tables}.
     Appendix: ${appendix}.
 
-    Structure: Introduction, Experience Gained, Technical Procedures, Challenges, Conclusion, References (APA 7th), Appendix.
+    Structure: Introduction, Experience Gained, Technical Procedures, Challenges, Conclusion, References.
     Tone: Professional, Experienced, Academic.
+    
+    CITATIONS: Use Google Search. Hyperlink every external fact using [Source](URL). 
+    Add a "URL Context" section at the end with descriptions of the links.
   `;
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
@@ -288,8 +298,11 @@ export const generateLabReport = async (experiment: string, observations: string
     Data Tables: ${tables}.
     Appendix (Images/Captions): ${appendix}.
 
-    Structure: Title, Aim, Apparatus, Procedure, Results (Tabulated), Calculation, Discussion (Biological & Chemical analysis), Conclusion, References (APA 7th - Real Sources), Appendix.
+    Structure: Title, Aim, Apparatus, Procedure, Results (Tabulated), Calculation, Discussion (Biological & Chemical analysis), Conclusion, References.
     Focus on biological and chemical observations inferred from the data.
+    
+    CITATIONS: Use Google Search to back up scientific claims. Hyperlink sources inline: [Source](URL).
+    Add a "URL Context" section at the end with descriptions of the links.
   `;
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
@@ -399,8 +412,14 @@ export const gradeEssay = async (essay: string, instruction: string): Promise<st
       3. Reference Check (Identify missing or weak citations).
       4. "Bias Decoder" (Suggestions to improve tone for a specific lecturer archetype).
       5. Corrected Snippet (Rewrite the weakest paragraph to be perfect).
+      
+      Hyperlink any resources you suggest using [Resource Name](URL).
     `;
-    const response = await ai.models.generateContent({ model: 'gemini-3-pro-preview', contents: prompt });
+    const response = await ai.models.generateContent({ 
+        model: 'gemini-3-pro-preview', 
+        contents: prompt,
+        config: { tools: [{ googleSearch: {} }] }
+    });
     return response.text || "";
 };
 
@@ -416,6 +435,9 @@ export const synthesizeCritique = async (sourceMaterial: string): Promise<string
       - Analyze the arguments, methodology, and conclusions of the source.
       - Critique the validity.
       - Tone: High-level academic discourse.
+      - Use Google Search to cross-reference facts. 
+      - CITE every external fact with an inline link: [Source](URL).
+      - End with a "URL Context" section describing the sources.
     `;
     const response = await ai.models.generateContent({ 
         model: 'gemini-3-pro-preview', 

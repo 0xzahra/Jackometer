@@ -26,6 +26,38 @@ export const AssignmentSuite: React.FC = () => {
     setLoading(false);
   };
 
+  // Enhanced Render: Rich Link Tooltips
+  const renderContent = (text: string) => {
+    const parts = text.split(/(\[.*?\]\(.*?\))/g);
+    return parts.map((part, index) => {
+      const match = part.match(/\[(.*?)\]\((.*?)\)/);
+      if (match) {
+        return (
+          <div key={index} className="inline-block relative group z-10 align-baseline">
+            <a href={match[2]} target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] font-bold bg-blue-50 px-2 py-0.5 rounded mx-1 hover:underline cursor-pointer border border-blue-100 text-sm font-sans">
+              {match[1]} <span className="material-icons text-[10px] inline-block align-middle">link</span>
+            </a>
+            {/* Hover Tooltip / Preview Card */}
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-white p-3 rounded-lg shadow-xl border border-[var(--border-color)] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto z-50">
+               <div className="flex items-center gap-2 mb-2">
+                 <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-[var(--text-secondary)]">
+                    <span className="material-icons text-xs">public</span>
+                 </div>
+                 <span className="text-xs font-bold text-[var(--text-primary)] truncate block w-full">{match[1]}</span>
+               </div>
+               <p className="text-[10px] text-[var(--text-secondary)] truncate mb-2">{match[2]}</p>
+               <div className="bg-gray-50 p-2 rounded text-[10px] text-gray-500 italic">
+                 Click to open source context.
+               </div>
+               <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white rotate-45 border-b border-r border-[var(--border-color)]"></div>
+            </div>
+          </div>
+        );
+      }
+      return part;
+    });
+  };
+
   return (
     <div className="max-w-6xl mx-auto h-full flex flex-col">
       <div className="flex justify-between items-center mb-6">
@@ -104,7 +136,7 @@ export const AssignmentSuite: React.FC = () => {
            {output ? (
              <article className={`prose max-w-none mt-8 ${handwritingMode ? 'font-handwriting text-blue-800' : 'font-serif text-[var(--text-primary)]'}`}>
                <div className="whitespace-pre-wrap leading-relaxed text-base">
-                 {output}
+                 {renderContent(output)}
                </div>
              </article>
            ) : (
