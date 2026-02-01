@@ -103,6 +103,18 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
           </div>
           
           <div className="flex items-center space-x-2 md:space-x-4">
+             {/* Back to Dashboard Navigation (RHS) */}
+             {currentView !== AppView.DASHBOARD && (
+               <button
+                 onClick={() => setView(AppView.DASHBOARD)}
+                 className="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-[var(--text-primary)] px-3 py-1.5 rounded-full text-xs font-bold transition-colors mr-2 border border-[var(--border-color)]"
+                 title="Back to Dashboard"
+               >
+                  <span className="material-icons text-sm">grid_view</span>
+                  <span className="hidden md:inline">Dashboard</span>
+               </button>
+             )}
+
              <button onClick={toggleTheme} className="text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors p-2" title="Toggle Theme">
                <span className="material-icons">{theme === 'light' ? 'dark_mode' : 'light_mode'}</span>
              </button>

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { gradeEssay, synthesizeCritique } from '../services/geminiService';
+import { gradeEssay, synthesizeCritique, solveAssignment } from '../services/geminiService';
 
 export const AssignmentSuite: React.FC = () => {
-  const [mode, setMode] = useState<'GRADER' | 'SYNTHESIZER'>('GRADER');
+  const [mode, setMode] = useState<'GRADER' | 'SYNTHESIZER' | 'SOLVER'>('GRADER');
   const [input, setInput] = useState('');
   const [instruction, setInstruction] = useState('');
   const [output, setOutput] = useState('');
@@ -16,8 +16,11 @@ export const AssignmentSuite: React.FC = () => {
       if (mode === 'GRADER') {
         const res = await gradeEssay(input, instruction);
         setOutput(res);
-      } else {
+      } else if (mode === 'SYNTHESIZER') {
         const res = await synthesizeCritique(input);
+        setOutput(res);
+      } else {
+        const res = await solveAssignment(input);
         setOutput(res);
       }
     } catch (e) {
@@ -63,10 +66,10 @@ export const AssignmentSuite: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-2xl font-serif font-bold text-[var(--text-primary)]">
-            {mode === 'GRADER' ? 'The Tribunal (Grader)' : 'Reviewer 2 (Synthesizer)'}
+            {mode === 'GRADER' ? 'The Tribunal (Grader)' : mode === 'SYNTHESIZER' ? 'Reviewer 2 (Synthesizer)' : 'Assignment Solver'}
           </h2>
           <p className="text-sm text-[var(--text-secondary)]">
-            {mode === 'GRADER' ? 'Strict external examination & bias decoding.' : 'Generate critical reviews from sources.'}
+            {mode === 'GRADER' ? 'Strict external examination & bias decoding.' : mode === 'SYNTHESIZER' ? 'Generate critical reviews from sources.' : 'Auto-write assignments with pre-judgment.'}
           </p>
         </div>
         <div className="flex bg-[var(--surface-color)] rounded-lg p-1 border border-[var(--border-color)]">
@@ -74,13 +77,19 @@ export const AssignmentSuite: React.FC = () => {
              onClick={() => setMode('GRADER')}
              className={`px-4 py-2 rounded text-sm font-bold transition-colors ${mode === 'GRADER' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-color)]'}`}
            >
-             Grader Mode
+             Grader
            </button>
            <button 
              onClick={() => setMode('SYNTHESIZER')}
              className={`px-4 py-2 rounded text-sm font-bold transition-colors ${mode === 'SYNTHESIZER' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-color)]'}`}
            >
-             Synthesizer Mode
+             Synthesizer
+           </button>
+           <button 
+             onClick={() => setMode('SOLVER')}
+             className={`px-4 py-2 rounded text-sm font-bold transition-colors ${mode === 'SOLVER' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-color)]'}`}
+           >
+             Solver
            </button>
         </div>
       </div>
@@ -90,11 +99,11 @@ export const AssignmentSuite: React.FC = () => {
         {/* Input Section */}
         <div className="paper-panel p-6 rounded-sm flex flex-col">
            <label className="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">
-             {mode === 'GRADER' ? 'Paste Your Essay / Draft' : 'Paste Source Link or Abstract'}
+             {mode === 'GRADER' ? 'Paste Your Essay / Draft' : mode === 'SYNTHESIZER' ? 'Paste Source Link or Abstract' : 'Paste Assignment Question'}
            </label>
            <textarea 
              className="flex-1 bg-[var(--bg-color)] border border-[var(--border-color)] p-4 rounded outline-none resize-none font-serif text-sm leading-relaxed"
-             placeholder={mode === 'GRADER' ? "Paste your text here for brutal critique..." : "e.g. https://doi.org/10.1038/s41586-023..."}
+             placeholder={mode === 'GRADER' ? "Paste your text here for brutal critique..." : mode === 'SYNTHESIZER' ? "e.g. https://doi.org/10.1038/s41586-023..." : "Paste the question here. We will write and judge it."}
              value={input}
              onChange={(e) => setInput(e.target.value)}
            ></textarea>
@@ -116,8 +125,8 @@ export const AssignmentSuite: React.FC = () => {
              disabled={loading || !input}
              className="w-full btn-primary mt-6 flex items-center justify-center"
            >
-             {loading ? <span className="material-icons animate-spin mr-2">refresh</span> : <span className="material-icons mr-2">gavel</span>}
-             {mode === 'GRADER' ? 'Judge My Work' : 'Synthesize Critique'}
+             {loading ? <span className="material-icons animate-spin mr-2">refresh</span> : <span className="material-icons mr-2">{mode === 'SOLVER' ? 'auto_fix_high' : mode === 'GRADER' ? 'gavel' : 'history_edu'}</span>}
+             {mode === 'GRADER' ? 'Judge My Work' : mode === 'SYNTHESIZER' ? 'Synthesize Critique' : 'Write & Judge'}
            </button>
         </div>
 
@@ -141,8 +150,10 @@ export const AssignmentSuite: React.FC = () => {
              </article>
            ) : (
              <div className="flex flex-col items-center justify-center h-full text-[var(--text-secondary)] opacity-50">
-               <span className="material-icons text-6xl mb-4">{mode === 'GRADER' ? 'rule' : 'history_edu'}</span>
-               <p className="italic font-serif text-lg">{mode === 'GRADER' ? 'Verdict pending...' : 'Critique pending...'}</p>
+               <span className="material-icons text-6xl mb-4">{mode === 'GRADER' ? 'rule' : mode === 'SYNTHESIZER' ? 'history_edu' : 'assignment_turned_in'}</span>
+               <p className="italic font-serif text-lg">
+                 {mode === 'GRADER' ? 'Verdict pending...' : mode === 'SYNTHESIZER' ? 'Critique pending...' : 'Solution pending...'}
+               </p>
              </div>
            )}
         </div>

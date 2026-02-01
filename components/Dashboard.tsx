@@ -134,13 +134,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
           rotate={0}
           onClick={() => setView(AppView.CAREER)}
         />
-        <StickyCard 
-          title="Community" 
-          desc="Global scholar network & support."
-          icon="forum"
-          rotate={0}
-          onClick={() => setView(AppView.COMMUNITY)}
-        />
       </div>
     </div>
   );
