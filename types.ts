@@ -12,7 +12,8 @@ export enum AppView {
   NOTIFICATIONS = 'NOTIFICATIONS',
   SETTINGS = 'SETTINGS',
   PROFILE = 'PROFILE',
-  ASSIGNMENT = 'ASSIGNMENT'
+  ASSIGNMENT = 'ASSIGNMENT',
+  COMPRESSOR = 'COMPRESSOR'
 }
 
 export interface ProjectTitle {

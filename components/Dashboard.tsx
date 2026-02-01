@@ -121,6 +121,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
           onClick={() => setView(AppView.DATA_CRUNCHER)}
         />
         <StickyCard 
+          title="File Studio" 
+          desc="Universal file compressor & optimizer."
+          icon="folder_zip"
+          rotate={0}
+          onClick={() => setView(AppView.COMPRESSOR)}
+        />
+        <StickyCard 
           title="Career Studio" 
           desc="CV, Resume & Passport builder."
           icon="work_outline"

@@ -63,6 +63,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
           <NavButton active={currentView === AppView.TECHNICAL_REPORT} onClick={() => { setView(AppView.TECHNICAL_REPORT); setSidebarOpen(false); }} icon="engineering" label="Technical Report" />
           <NavButton active={currentView === AppView.LAB_REPORT} onClick={() => { setView(AppView.LAB_REPORT); setSidebarOpen(false); }} icon="science" label="Lab Report" />
           <NavButton active={currentView === AppView.DATA_CRUNCHER} onClick={() => { setView(AppView.DATA_CRUNCHER); setSidebarOpen(false); }} icon="analytics" label="Data Cruncher" />
+          <NavButton active={currentView === AppView.COMPRESSOR} onClick={() => { setView(AppView.COMPRESSOR); setSidebarOpen(false); }} icon="folder_zip" label="File Studio" />
           <NavButton active={currentView === AppView.CAREER} onClick={() => { setView(AppView.CAREER); setSidebarOpen(false); }} icon="work_outline" label="Career Studio" />
           
           <div className="px-4 mb-2 mt-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider opacity-100">Communication</div>

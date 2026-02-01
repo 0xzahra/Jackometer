@@ -13,6 +13,7 @@ import { Inbox } from './components/Inbox';
 import { Notifications } from './components/Notifications';
 import { DocumentWriter } from './components/DocumentWriter';
 import { AssignmentSuite } from './components/AssignmentSuite';
+import { FileCompressor } from './components/FileCompressor';
 import { Profile } from './components/Profile';
 import { AppView } from './types';
 
@@ -46,6 +47,7 @@ export default function App() {
         {currentView === AppView.COMMUNITY && <Community />}
         {currentView === AppView.SETTINGS && <Settings />}
         {currentView === AppView.DATA_CRUNCHER && <DataCruncher />}
+        {currentView === AppView.COMPRESSOR && <FileCompressor />}
         {currentView === AppView.TECHNICAL_REPORT && <ReportSuite type="TECHNICAL" />}
         {currentView === AppView.LAB_REPORT && <ReportSuite type="LAB" />}
         {currentView === AppView.INBOX && <Inbox />}
