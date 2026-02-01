@@ -1,3 +1,4 @@
+
 export enum AppView {
   DASHBOARD = 'DASHBOARD',
   RESEARCH = 'RESEARCH',
@@ -67,6 +68,7 @@ export interface Citation {
   author: string;
   year: string;
   url?: string;
+  context?: string; // Brief description/preview of the source
 }
 
 export interface Collaborator {

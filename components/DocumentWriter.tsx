@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { generateAcademicDocument, searchYouTubeVideos, generateBibliography, downloadFile, generateImageCaption } from '../services/geminiService';
+import { generateAcademicDocument, searchYouTubeVideos, generateBibliography, downloadFile, generateImageCaption, enrichCitationFromUrl } from '../services/geminiService';
 import { YouTubeVideo, Citation, Collaborator, AppendixItem, UserSearchResult } from '../types';
 import { CollaborationModal } from './CollaborationModal';
 
@@ -25,6 +25,7 @@ export const DocumentWriter: React.FC = () => {
   const [activeId, setActiveId] = useState('1');
   const [loading, setLoading] = useState(false);
   const [citationLoading, setCitationLoading] = useState(false);
+  const [smartImportUrl, setSmartImportUrl] = useState('');
   const [captionLoading, setCaptionLoading] = useState(false);
 
   // Collaboration State
@@ -149,9 +150,35 @@ export const DocumentWriter: React.FC = () => {
     updateDraft('citations', [...activeDraft.citations, newCit]);
   };
 
+  const handleSmartImport = async () => {
+    if(!smartImportUrl.trim()) return;
+    setCitationLoading(true);
+    try {
+      const enriched = await enrichCitationFromUrl(smartImportUrl);
+      const newCit: Citation = {
+        id: Date.now().toString(),
+        type: 'WEBSITE',
+        title: enriched.title || 'Unknown Source',
+        author: enriched.author || 'n.d.',
+        year: enriched.year || 'n.d.',
+        url: smartImportUrl,
+        context: enriched.context || 'Accessed via URL.'
+      };
+      updateDraft('citations', [...activeDraft.citations, newCit]);
+      setSmartImportUrl('');
+    } catch(e) {
+      alert("Could not import URL details.");
+    }
+    setCitationLoading(false);
+  };
+
   const updateCitation = (cid: string, field: keyof Citation, val: string) => {
     const newCits = activeDraft.citations.map(c => c.id === cid ? { ...c, [field]: val } : c);
     updateDraft('citations', newCits);
+  };
+
+  const removeCitation = (cid: string) => {
+    updateDraft('citations', activeDraft.citations.filter(c => c.id !== cid));
   };
 
   const generateBib = async (style: 'APA' | 'MLA' | 'Chicago') => {
@@ -381,20 +408,53 @@ export const DocumentWriter: React.FC = () => {
           <div className="paper-panel p-6 rounded-sm border-t-4 border-[var(--primary)]">
              <h3 className="font-bold text-[var(--text-primary)] mb-4 flex items-center justify-between">
                 <span className="flex items-center gap-2"><span className="material-icons text-sm">format_quote</span> Citation Manager</span>
-                <button onClick={addCitation} className="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded border border-gray-300">+ Add</button>
              </h3>
              
-             <div className="space-y-3 max-h-64 overflow-y-auto mb-4">
-               {activeDraft.citations.length === 0 && <p className="text-xs text-gray-400 italic">No citations added yet.</p>}
+             {/* Smart Import Input */}
+             <div className="flex gap-2 mb-4 bg-gray-50 p-2 rounded border border-gray-200">
+               <input 
+                 className="flex-1 bg-transparent border-none text-xs outline-none" 
+                 placeholder="Paste URL to Smart Import..." 
+                 value={smartImportUrl}
+                 onChange={(e) => setSmartImportUrl(e.target.value)}
+                 onKeyPress={(e) => e.key === 'Enter' && handleSmartImport()}
+               />
+               <button 
+                  onClick={handleSmartImport} 
+                  disabled={citationLoading || !smartImportUrl}
+                  className="text-xs font-bold text-[var(--primary)] hover:underline"
+               >
+                 {citationLoading ? '...' : 'IMPORT'}
+               </button>
+             </div>
+
+             <div className="space-y-3 max-h-64 overflow-y-auto mb-4 custom-scrollbar">
+               {activeDraft.citations.length === 0 && <p className="text-xs text-gray-400 italic text-center">No citations added yet.</p>}
                {activeDraft.citations.map(c => (
-                 <div key={c.id} className="bg-[var(--bg-color)] p-2 rounded border border-[var(--border-color)] text-xs space-y-1">
-                    <input className="w-full bg-transparent border-none p-0 font-bold placeholder-gray-500" placeholder="Title/Source Name" value={c.title} onChange={(e) => updateCitation(c.id, 'title', e.target.value)} />
-                    <div className="flex gap-2">
+                 <div key={c.id} className="bg-[var(--bg-color)] p-2 rounded border border-[var(--border-color)] text-xs relative group">
+                    <button 
+                      onClick={() => removeCitation(c.id)} 
+                      className="absolute top-1 right-1 text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <span className="material-icons text-[10px]">close</span>
+                    </button>
+                    <input className="w-full bg-transparent border-none p-0 font-bold placeholder-gray-500 mb-1" placeholder="Title/Source Name" value={c.title} onChange={(e) => updateCitation(c.id, 'title', e.target.value)} />
+                    <div className="flex gap-2 mb-1">
                       <input className="w-1/2 bg-transparent border-none p-0" placeholder="Author" value={c.author} onChange={(e) => updateCitation(c.id, 'author', e.target.value)} />
                       <input className="w-1/2 bg-transparent border-none p-0" placeholder="Year" value={c.year} onChange={(e) => updateCitation(c.id, 'year', e.target.value)} />
                     </div>
+                    {c.context && (
+                      <div className="text-[10px] text-gray-500 italic border-l-2 border-[var(--accent)] pl-2 mt-1 line-clamp-2">
+                        {c.context}
+                      </div>
+                    )}
+                    <a href={c.url} target="_blank" rel="noreferrer" className="text-[10px] text-blue-500 hover:underline truncate block mt-1">{c.url}</a>
                  </div>
                ))}
+             </div>
+             
+             <div className="flex justify-between items-center mb-2">
+                <button onClick={addCitation} className="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded border border-gray-300 w-full">+ Manual Entry</button>
              </div>
 
              <div className="flex gap-2">

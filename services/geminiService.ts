@@ -254,13 +254,53 @@ export const generateAcademicDocument = async (level: string, course: string, to
     return response.text || "";
 }
 
+// Updated Citation Logic
+export const enrichCitationFromUrl = async (url: string): Promise<Partial<Citation>> => {
+  const ai = getAI();
+  const prompt = `
+    Analyze this URL: ${url}
+    
+    Extract the following metadata:
+    1. Title of the page/article/paper.
+    2. Author (or organization).
+    3. Year of publication (or "n.d." if unknown).
+    4. Context: A 1-sentence summary of what this source is about (useful for bibliography annotations).
+
+    Output JSON.
+  `;
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: prompt,
+    config: {
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          title: { type: Type.STRING },
+          author: { type: Type.STRING },
+          year: { type: Type.STRING },
+          context: { type: Type.STRING }
+        }
+      }
+    }
+  });
+
+  const data = JSON.parse(response.text || '{}');
+  return { ...data, url };
+};
+
 export const generateBibliography = async (citations: Citation[], style: string): Promise<string> => {
   const ai = getAI();
   const prompt = `
-    Format the following citations into a Bibliography using ${style} style.
+    Format the following citations into an Annotated Bibliography using ${style} style.
     Input: ${JSON.stringify(citations)}
-    Return only the formatted bibliography text.
-    Ensure strict adherence to the style guide (italics, punctuation).
+    
+    Requirements:
+    1. STRICT adherence to ${style} formatting for the citation itself (italics, punctuation).
+    2. After each citation, append the "Context" (URL preview) on a new line, indented.
+    3. Ensure the URL is included and clickable (Markdown [Link](url) format).
+    4. Output plain text.
   `;
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview', 
@@ -448,20 +488,52 @@ export const synthesizeCritique = async (sourceMaterial: string): Promise<string
     return response.text || "";
 };
 
-export const solveAssignment = async (question: string): Promise<string> => {
+// NEW: Supervisor Bias Decoder
+export const analyzeSupervisorStyle = async (text: string): Promise<string> => {
   const ai = getAI();
   const prompt = `
-    Task: Solve this academic assignment question with excellence.
-    Question: ${question}
+    Analyze the following academic text (past papers/abstracts) to decode the "Supervisor's Bias".
+    Text: ${text.substring(0, 10000)}
 
-    Requirements:
-    - Write a complete, high-quality, comprehensive academic response.
-    - Style: Human-like, "Old Money" academic, sophisticated but natural.
-    - Avoid robotic transitions.
-    - If factual claims are made, you MUST use Google Search to find real sources and cite them using [Source Title](URL).
-    - At the very end of the response, append a brief "Pre-Grading Verdict" section explaining why this response meets "A-Grade" criteria (already judged).
-    - Include a "URL Context" section at the bottom for references.
+    Identify:
+    1. Preferred Tone (e.g., highly quantitative, qualitative/philosophical, direct vs. passive).
+    2. Favored Authors/Theories (who do they cite often?).
+    3. Pet Peeves (deduce what they avoid).
+    
+    Output a concise summary profile of this supervisor's academic preferences to help a student write to please them.
   `;
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: prompt
+  });
+  return response.text || "Could not analyze style.";
+};
+
+export const solveAssignment = async (question: string, biasProfile: string = "", customFormat: string = ""): Promise<string> => {
+  const ai = getAI();
+  
+  let prompt = `
+    Task: Solve this assignment question.
+    Question: ${question}
+    
+    STYLE & FORMAT RULES:
+    1. This is a general assignment, NOT a thesis or project document. Do NOT write chapters.
+    2. Format: ${customFormat ? customFormat : "Standard academic essay/assignment structure (Introduction, Body Paragraphs, Conclusion)"}.
+    3. OUTPUT FORMAT: PLAIN TEXT ONLY. DO NOT USE MARKDOWN. Do not use **bold**, ## headers, or *italics*. Use natural capitalization and spacing for structure.
+    
+    SUPERVISOR BIAS INTEGRATION:
+    The student's supervisor has these preferences: ${biasProfile || "Standard Academic Standard"}.
+    ADJUST the tone, vocabulary, and citations to align with these preferences.
+    If the supervisor likes specific authors mentioned in the profile, try to include relevant ideas.
+    
+    Requirements:
+    - High-quality, human-like, sophisticated writing.
+    - Avoid robotic transitions.
+    - Use Google Search for facts. Cite them inline as [Source Title](URL).
+    - End with a "References" section listing the URLs.
+  `;
+
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
     contents: prompt,
