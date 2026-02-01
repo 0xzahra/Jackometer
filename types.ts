@@ -73,6 +73,15 @@ export interface Collaborator {
   name: string;
   color: string;
   status: 'ONLINE' | 'EDITING' | 'IDLE';
+  email?: string; // Added for identification
+}
+
+export interface UserSearchResult {
+  id: string;
+  name: string;
+  username: string;
+  email: string;
+  university: string;
 }
 
 export interface Member {

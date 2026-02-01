@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { generateAcademicDocument, searchYouTubeVideos, generateBibliography, downloadFile, generateImageCaption } from '../services/geminiService';
-import { YouTubeVideo, Citation, Collaborator, AppendixItem } from '../types';
+import { YouTubeVideo, Citation, Collaborator, AppendixItem, UserSearchResult } from '../types';
+import { CollaborationModal } from './CollaborationModal';
 
 interface DocDraft {
   id: string;
@@ -26,12 +27,45 @@ export const DocumentWriter: React.FC = () => {
   const [citationLoading, setCitationLoading] = useState(false);
   const [captionLoading, setCaptionLoading] = useState(false);
 
-  // Mock Collaborators
-  const collaborators: Collaborator[] = [
-    { id: '1', name: 'You', color: 'bg-blue-500', status: 'ONLINE' },
-    { id: '2', name: 'Dr. Emily', color: 'bg-green-500', status: 'EDITING' },
-    { id: '3', name: 'Student_02', color: 'bg-purple-500', status: 'IDLE' },
-  ];
+  // Collaboration State
+  const [collaborators, setCollaborators] = useState<Collaborator[]>([
+    { id: 'me', name: 'You', color: 'bg-blue-600', status: 'ONLINE' }
+  ]);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+
+  // Simulate Real-time Activity
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCollaborators(prev => prev.map(c => {
+        if (c.id === 'me') return c;
+        // Randomly toggle status for others to simulate activity
+        const rand = Math.random();
+        let newStatus: 'ONLINE' | 'EDITING' | 'IDLE' = c.status;
+        if (rand > 0.7) newStatus = 'EDITING';
+        else if (rand > 0.4) newStatus = 'ONLINE';
+        else newStatus = 'IDLE';
+        return { ...c, status: newStatus };
+      }));
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleAddCollaborator = (user: UserSearchResult) => {
+    const colors = ['bg-green-500', 'bg-purple-500', 'bg-orange-500', 'bg-pink-500', 'bg-indigo-500'];
+    const randomColor = colors[collaborators.length % colors.length];
+    
+    const newCollab: Collaborator = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      color: randomColor,
+      status: 'ONLINE'
+    };
+    
+    setCollaborators([...collaborators, newCollab]);
+    setIsInviteModalOpen(false);
+    alert(`${user.name} has been invited to the document.`);
+  };
 
   const activeDraft = drafts.find(d => d.id === activeId) || drafts[0];
 
@@ -214,6 +248,13 @@ export const DocumentWriter: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto h-full flex flex-col relative">
+      <CollaborationModal 
+        isOpen={isInviteModalOpen} 
+        onClose={() => setIsInviteModalOpen(false)} 
+        onAdd={handleAddCollaborator}
+        existingIds={collaborators.map(c => c.id)}
+      />
+
       {/* Top Bar */}
       <div className="flex justify-between items-center mb-4 border-b border-[var(--border-color)] pb-2">
          <div className="flex items-center gap-2 overflow-x-auto">
@@ -234,14 +275,25 @@ export const DocumentWriter: React.FC = () => {
 
          <div className="flex items-center gap-4">
             {/* Collaborators */}
-            <div className="flex -space-x-2 cursor-pointer" title="Active Collaborators">
+            <div className="flex items-center -space-x-2 mr-2">
                {collaborators.map(c => (
-                 <div key={c.id} className={`w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-white text-xs ${c.color} relative`}>
+                 <div key={c.id} className={`w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-white text-xs ${c.color} relative group cursor-pointer`}>
                     {c.name[0]}
-                    {c.status === 'EDITING' && <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border border-white"></span>}
+                    <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${c.status === 'EDITING' ? 'bg-orange-400' : c.status === 'ONLINE' ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                    
+                    {/* Tooltip */}
+                    <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-50 pointer-events-none">
+                       {c.name} ({c.status})
+                    </div>
                  </div>
                ))}
-               <div className="w-8 h-8 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-xs text-gray-500 hover:bg-gray-300">+</div>
+               <button 
+                 onClick={() => setIsInviteModalOpen(true)}
+                 className="w-8 h-8 rounded-full bg-gray-100 border-2 border-dashed border-gray-400 flex items-center justify-center text-gray-500 hover:bg-gray-200 hover:text-gray-700 hover:border-gray-500 z-10 transition-colors"
+                 title="Invite Collaborator"
+               >
+                 <span className="material-icons text-sm">person_add</span>
+               </button>
             </div>
             
             {/* Undo/Redo */}

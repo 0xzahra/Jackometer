@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { generateTechnicalReport, generateLabReport, analyzeMicroscopeImage, generateImageCaption, downloadFile } from '../services/geminiService';
-import { AppendixItem, FieldTable } from '../types';
+import { AppendixItem, FieldTable, Collaborator, UserSearchResult } from '../types';
+import { CollaborationModal } from './CollaborationModal';
 
 interface ReportSuiteProps {
   type: 'TECHNICAL' | 'LAB';
@@ -27,11 +28,45 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
   const [analyzingImage, setAnalyzingImage] = useState(false);
   const [captionLoading, setCaptionLoading] = useState(false);
 
-  // Mock Collaborators
-  const collaborators = [
-    { id: '1', name: 'You', color: 'bg-blue-500' },
-    { id: '2', name: 'Lab Partner', color: 'bg-orange-500' }
-  ];
+  // Collaboration State
+  const [collaborators, setCollaborators] = useState<Collaborator[]>([
+    { id: 'me', name: 'You', color: 'bg-blue-600', status: 'ONLINE' }
+  ]);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+
+  // Simulate Real-time Activity
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCollaborators(prev => prev.map(c => {
+        if (c.id === 'me') return c;
+        // Randomly toggle status
+        const rand = Math.random();
+        let newStatus: 'ONLINE' | 'EDITING' | 'IDLE' = c.status;
+        if (rand > 0.8) newStatus = 'EDITING';
+        else if (rand > 0.5) newStatus = 'ONLINE';
+        else newStatus = 'IDLE';
+        return { ...c, status: newStatus };
+      }));
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleAddCollaborator = (user: UserSearchResult) => {
+    const colors = ['bg-green-500', 'bg-purple-500', 'bg-orange-500', 'bg-pink-500', 'bg-indigo-500'];
+    const randomColor = colors[collaborators.length % colors.length];
+    
+    const newCollab: Collaborator = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      color: randomColor,
+      status: 'ONLINE'
+    };
+    
+    setCollaborators([...collaborators, newCollab]);
+    setIsInviteModalOpen(false);
+    alert(`${user.name} has been added to the lab session.`);
+  };
 
   const activeDoc = docs.find(d => d.id === activeDocId) || docs[0];
 
@@ -247,6 +282,13 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
 
   return (
     <div className="max-w-6xl mx-auto h-full flex flex-col">
+       <CollaborationModal 
+         isOpen={isInviteModalOpen} 
+         onClose={() => setIsInviteModalOpen(false)} 
+         onAdd={handleAddCollaborator}
+         existingIds={collaborators.map(c => c.id)}
+       />
+
        <div className="mb-6 flex justify-between items-center">
          <div>
             <h2 className="text-2xl font-bold text-[var(--text-primary)]">
@@ -257,8 +299,24 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
             </p>
          </div>
          <div className="flex items-center gap-4">
-             <div className="flex -space-x-2">
-                 {collaborators.map(c => <div key={c.id} className={`w-8 h-8 rounded-full ${c.color} border-2 border-white flex items-center justify-center text-white text-xs`}>{c.name[0]}</div>)}
+             <div className="flex items-center -space-x-2 mr-2">
+                 {collaborators.map(c => (
+                    <div key={c.id} className={`w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-white text-xs ${c.color} relative group`}>
+                       {c.name[0]}
+                       <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${c.status === 'EDITING' ? 'bg-orange-400' : c.status === 'ONLINE' ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                       {/* Tooltip */}
+                       <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-50 pointer-events-none">
+                          {c.name} ({c.status})
+                       </div>
+                    </div>
+                 ))}
+                 <button 
+                   onClick={() => setIsInviteModalOpen(true)}
+                   className="w-8 h-8 rounded-full bg-gray-100 border-2 border-dashed border-gray-400 flex items-center justify-center text-gray-500 hover:bg-gray-200 hover:text-gray-700 hover:border-gray-500 z-10 transition-colors"
+                   title="Invite Collaborator"
+                 >
+                   <span className="material-icons text-sm">person_add</span>
+                 </button>
              </div>
              <div className="flex gap-1 bg-[var(--surface-color)] p-1 rounded border border-[var(--border-color)]">
                <button onClick={handleUndo} disabled={activeDoc.historyIndex === 0} className="p-2 disabled:opacity-30 hover:bg-gray-100 rounded" title="Undo"><span className="material-icons text-sm">undo</span></button>
