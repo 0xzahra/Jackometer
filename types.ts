@@ -17,6 +17,14 @@ export enum AppView {
   COMPRESSOR = 'COMPRESSOR'
 }
 
+export interface UserProfile {
+  name: string;
+  email: string;
+  institution: string;
+  role: string; // e.g., Student, Researcher
+  avatar?: string;
+}
+
 export interface ProjectTitle {
   title: string;
   description: string;

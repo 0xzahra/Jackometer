@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AppView } from '../types';
+import { AppView, UserProfile } from '../types';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -7,6 +7,8 @@ interface LayoutProps {
   setView: (view: AppView) => void;
   theme: 'light' | 'dark';
   toggleTheme: () => void;
+  user: UserProfile;
+  onLogout: () => void;
 }
 
 const NavButton: React.FC<{ 
@@ -32,7 +34,7 @@ const NavButton: React.FC<{
   );
 };
 
-export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, theme, toggleTheme }) => {
+export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, theme, toggleTheme, user, onLogout }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
@@ -75,14 +77,25 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
           <NavButton active={currentView === AppView.SETTINGS} onClick={() => { setView(AppView.SETTINGS); setSidebarOpen(false); }} icon="settings" label="Settings" />
         </div>
 
-        <div className="px-6 py-4 border-t border-[var(--border-color)] cursor-pointer hover:bg-[var(--shadow-color)]" onClick={() => setView(AppView.PROFILE)}>
-          <div className="flex items-center">
-            <div className="w-8 h-8 rounded-full bg-[var(--accent)] flex items-center justify-center text-white font-bold font-serif">A</div>
-            <div className="ml-3">
-              <p className="text-sm font-bold text-[var(--text-primary)]">Academic User</p>
-              <p className="text-xs text-[var(--text-secondary)]">View Profile</p>
+        <div className="px-6 py-4 border-t border-[var(--border-color)]">
+          <div 
+             className="flex items-center cursor-pointer hover:bg-[var(--shadow-color)] rounded p-2 transition-colors mb-2" 
+             onClick={() => setView(AppView.PROFILE)}
+          >
+            <div className="w-8 h-8 rounded-full bg-[var(--accent)] flex items-center justify-center text-white font-bold font-serif">
+              {user.avatar === 'G' ? <span className="material-icons text-xs">google</span> : user.name[0]}
+            </div>
+            <div className="ml-3 overflow-hidden">
+              <p className="text-sm font-bold text-[var(--text-primary)] truncate">{user.name}</p>
+              <p className="text-xs text-[var(--text-secondary)] truncate">{user.role}</p>
             </div>
           </div>
+          <button 
+             onClick={onLogout}
+             className="w-full text-xs text-red-500 font-bold hover:bg-red-50 p-1 rounded flex items-center justify-center"
+          >
+             <span className="material-icons text-sm mr-1">logout</span> Sign Out
+          </button>
         </div>
       </nav>
 
