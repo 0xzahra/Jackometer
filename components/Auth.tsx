@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { UserProfile } from '../types';
 
 interface AuthProps {
@@ -14,6 +14,13 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     institution: '',
   });
   const [loading, setLoading] = useState(false);
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -25,6 +32,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     
     // Simulate API call
     setTimeout(() => {
+      if (!isMounted.current) return;
       onLogin({
         name: isSignup ? formData.fullName : 'Academic User',
         email: formData.email,
@@ -32,7 +40,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         role: 'Scholar',
         avatar: undefined
       });
-      setLoading(false);
+      // Do not set loading false here as component might unmount immediately after onLogin
     }, 1500);
   };
 
@@ -40,6 +48,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     setLoading(true);
     // Simulate Google Auth
     setTimeout(() => {
+      if (!isMounted.current) return;
       onLogin({
         name: 'Google Scholar',
         email: 'scholar@gmail.com',
