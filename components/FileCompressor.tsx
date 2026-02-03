@@ -118,12 +118,22 @@ export const FileCompressor: React.FC = () => {
 
         canvas.width = width;
         canvas.height = height;
+
+        // Force JPEG for PNGs to ensure compression (unless WebP/other)
+        // Canvas toBlob ignores quality for PNG.
+        const outputType = file.type === 'image/png' ? 'image/jpeg' : file.type;
+
+        if (file.type === 'image/png' && outputType === 'image/jpeg') {
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, width, height);
+        }
+        
         ctx.drawImage(img, 0, 0, width, height);
         
         canvas.toBlob((blob) => {
           if (blob) resolve(blob);
           else reject("Canvas blob error");
-        }, file.type, quality); 
+        }, outputType, quality); 
       };
       
       reader.onerror = reject;

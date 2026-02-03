@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useLiveAPIContext } from '../App'; 
+import React, { useState } from 'react';
+
 // Note: In a real simplified example without full context, we simulate the visual. 
 // However, the instructions ask to integrate Gemini Live.
 // We will build a visual component that *would* hook into the context if fully implemented.
@@ -24,7 +24,7 @@ export const VoiceAssistant: React.FC = () => {
       </button>
 
       {active && (
-        <div className="absolute bottom-20 right-0 w-80 glass-panel p-4 rounded-xl border border-cyan-500 animate-fade-in-up">
+        <div className="absolute bottom-20 right-0 w-80 glass-panel p-4 rounded-xl border border-cyan-500 animate-fade-in-up bg-black/80 backdrop-blur-md">
            <div className="flex items-center justify-between mb-2">
              <span className="text-xs text-cyan-400 font-bold uppercase tracking-widest">Jackometer Live</span>
              <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
