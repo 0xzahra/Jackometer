@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
-import { NotificationItem } from '../types';
+import { NotificationItem, AppView } from '../types';
 
-export const Notifications: React.FC = () => {
+interface NotificationsProps {
+  setView: (view: AppView) => void;
+}
+
+export const Notifications: React.FC<NotificationsProps> = ({ setView }) => {
   const [notifications, setNotifications] = useState<NotificationItem[]>([
-    { id: '1', icon: 'school', title: 'Research Complete', desc: 'Your topic on "Quantum Physics" has been processed successfully. You can now view the generated chapters in the Research Engine.', time: '10 mins ago', read: false, type: 'RESEARCH' },
-    { id: '2', icon: 'update', title: 'System Update', desc: 'Jackometer v2051 patch applied. New features include improved weather estimation and updated APA citation styles.', time: '1 hour ago', read: false, type: 'SYSTEM' },
-    { id: '3', icon: 'forum', title: 'New Comment', desc: 'Dr. Sarah Connor replied to your thread in Global Researchers: "This is a fascinating approach..."', time: '2 hours ago', read: true, type: 'SOCIAL' }
+    { id: '1', icon: 'school', title: 'Research Complete', desc: 'Your topic on "Quantum Physics" has been processed successfully. You can now view the generated chapters in the Research Engine.', time: '10 mins ago', read: false, type: 'RESEARCH', targetView: AppView.RESEARCH },
+    { id: '2', icon: 'update', title: 'System Update', desc: 'Jackometer v2051 patch applied. New features include improved weather estimation and updated APA citation styles.', time: '1 hour ago', read: false, type: 'SYSTEM', targetView: AppView.SETTINGS },
+    { id: '3', icon: 'forum', title: 'New Comment', desc: 'Dr. Sarah Connor replied to your thread in Global Researchers: "This is a fascinating approach..."', time: '2 hours ago', read: true, type: 'SOCIAL', targetView: AppView.COMMUNITY }
   ]);
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -18,6 +22,13 @@ export const Notifications: React.FC = () => {
 
   const markAllRead = () => {
     setNotifications(notifications.map(n => ({ ...n, read: true })));
+  };
+
+  const handleRedirect = (n: NotificationItem, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (n.targetView) {
+      setView(n.targetView);
+    }
   };
 
   return (
@@ -54,9 +65,14 @@ export const Notifications: React.FC = () => {
              </div>
              
              {/* Action Area when expanded */}
-             {expandedId === n.id && (
+             {expandedId === n.id && n.targetView && (
                <div className="px-4 pb-4 pl-18 flex justify-end border-t border-[var(--border-color)] pt-2 bg-[var(--bg-color)]">
-                  <button className="text-xs font-bold text-[var(--accent)] uppercase hover:underline">View Details</button>
+                  <button 
+                    onClick={(e) => handleRedirect(n, e)}
+                    className="text-xs font-bold text-[var(--accent)] uppercase hover:underline flex items-center gap-1"
+                  >
+                    Go to {n.type === 'SOCIAL' ? 'Community' : n.type === 'RESEARCH' ? 'Research' : 'Settings'} <span className="material-icons text-sm">arrow_forward</span>
+                  </button>
                </div>
              )}
           </div>

@@ -47,7 +47,7 @@ export const FileCompressor: React.FC = () => {
 
       if (file.type.startsWith('image/')) {
         // IMAGE COMPRESSION
-        if (targetSizeKB && !isNaN(parseFloat(targetSizeKB))) {
+        if (targetSizeKB && !isNaN(parseFloat(targetSizeKB)) && parseFloat(targetSizeKB) > 0) {
             const targetBytes = parseFloat(targetSizeKB) * 1024;
             // Use robust iterative approach
             resultBlob = await compressImageToTarget(file, targetBytes);
@@ -309,13 +309,14 @@ export const FileCompressor: React.FC = () => {
                <input 
                  type="number"
                  placeholder="e.g. 500"
+                 min="1"
                  value={targetSizeKB}
                  onChange={(e) => setTargetSizeKB(e.target.value)}
                  className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] p-2 rounded text-sm focus:border-[var(--accent)] outline-none"
                />
                <p className="text-[10px] text-[var(--text-secondary)] mt-1">
-                 Auto-resizes & adjusts quality to fit. <br/>
-                 <span className="text-orange-600 font-bold">Note: PNGs may be converted to JPG.</span>
+                 Auto-resizes images to fit strictly. <br/>
+                 <span className="text-orange-600 font-bold">Applies only to Images.</span>
                </p>
             </div>
 
@@ -377,16 +378,19 @@ export const FileCompressor: React.FC = () => {
                     </div>
                     <div className="min-w-0">
                       <p className="font-bold text-sm text-[var(--text-primary)] truncate">{file.originalName}</p>
-                      <p className="text-xs text-[var(--text-secondary)]">
-                        {formatSize(file.originalSize)} 
+                      <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+                        <span>{formatSize(file.originalSize)}</span>
                         {file.status === 'DONE' && (
                           <>
-                             <span className="mx-1">→</span> 
+                             <span className="material-icons text-[10px]">arrow_forward</span> 
                              <span className="font-bold text-green-600">{formatSize(file.compressedSize)}</span>
-                             <span className="ml-2 bg-green-100 text-green-800 px-1 rounded text-[10px]">-{file.savings.toFixed(1)}%</span>
+                             <span className="bg-green-100 text-green-800 px-1 rounded text-[10px]">-{file.savings.toFixed(1)}%</span>
+                             {targetSizeKB && file.compressedSize <= parseFloat(targetSizeKB) * 1024 && (
+                               <span className="bg-blue-100 text-blue-800 px-1 rounded text-[10px] flex items-center" title="Target Met"><span className="material-icons text-[10px] mr-1">gps_fixed</span>Target Met</span>
+                             )}
                           </>
                         )}
-                      </p>
+                      </div>
                     </div>
                  </div>
 

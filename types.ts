@@ -134,6 +134,7 @@ export interface Message {
     sender: string;
     content: string;
   };
+  targetView?: AppView;
 }
 
 export interface NotificationItem {
@@ -144,6 +145,7 @@ export interface NotificationItem {
   time: string;
   read: boolean;
   type: 'SYSTEM' | 'RESEARCH' | 'SOCIAL';
+  targetView?: AppView;
 }
 
 export interface AppendixItem {

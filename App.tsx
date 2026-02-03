@@ -1,4 +1,4 @@
-import React, { useState, createContext, useContext, useEffect } from 'react';
+import React, { useState, createContext, useContext, useEffect, ReactNode, Component } from 'react';
 import { Layout } from './components/Layout';
 import { Dashboard } from './components/Dashboard';
 import { ResearchEngine } from './components/ResearchEngine';
@@ -22,15 +22,21 @@ import { AppView, UserProfile } from './types';
 const LiveAPIContext = createContext<any>(null);
 export const useLiveAPIContext = () => useContext(LiveAPIContext);
 
-class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean}> {
-  state = { hasError: false };
+interface ErrorBoundaryProps {
+  children?: ReactNode;
+}
 
-  constructor(props: {children: React.ReactNode}) {
+interface ErrorBoundaryState {
+  hasError: boolean;
+}
+
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error: any) {
+  static getDerivedStateFromError(error: any): ErrorBoundaryState {
     return { hasError: true };
   }
 
@@ -97,6 +103,13 @@ export default function App() {
     localStorage.setItem('jackometer_user', JSON.stringify(userProfile));
   };
 
+  const handleUpdateUser = (data: Partial<UserProfile>) => {
+    if (!user) return;
+    const updatedUser = { ...user, ...data };
+    setUser(updatedUser);
+    localStorage.setItem('jackometer_user', JSON.stringify(updatedUser));
+  };
+
   const handleLogout = () => {
     setUser(null);
     localStorage.removeItem('jackometer_user');
@@ -125,19 +138,19 @@ export default function App() {
           onLogout={handleLogout}
         >
           {currentView === AppView.DASHBOARD && <Dashboard setView={setCurrentView} />}
-          {currentView === AppView.RESEARCH && <ResearchEngine />}
-          {currentView === AppView.DOCUMENT_WRITER && <DocumentWriter />}
-          {currentView === AppView.ASSIGNMENT && <AssignmentSuite />}
+          {currentView === AppView.RESEARCH && <ResearchEngine userId={user.email} />}
+          {currentView === AppView.DOCUMENT_WRITER && <DocumentWriter userId={user.email} />}
+          {currentView === AppView.ASSIGNMENT && <AssignmentSuite userId={user.email} />}
           {currentView === AppView.FIELD_TRIP && <FieldTripSuite />}
           {currentView === AppView.CAREER && <CareerStudio />}
           {currentView === AppView.COMMUNITY && <Community />}
-          {currentView === AppView.SETTINGS && <Settings />}
+          {currentView === AppView.SETTINGS && <Settings user={user} onUpdateUser={handleUpdateUser} />}
           {currentView === AppView.DATA_CRUNCHER && <DataCruncher />}
           {currentView === AppView.COMPRESSOR && <FileCompressor />}
           {currentView === AppView.TECHNICAL_REPORT && <ReportSuite type="TECHNICAL" />}
           {currentView === AppView.LAB_REPORT && <ReportSuite type="LAB" />}
-          {currentView === AppView.INBOX && <Inbox />}
-          {currentView === AppView.NOTIFICATIONS && <Notifications />}
+          {currentView === AppView.INBOX && <Inbox setView={setCurrentView} />}
+          {currentView === AppView.NOTIFICATIONS && <Notifications setView={setCurrentView} />}
           {currentView === AppView.PROFILE && <Profile user={user} />}
         </Layout>
 

@@ -9,29 +9,35 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
     <style>
       :root {
-        --bg-color: #f0ebe0; /* Warm rough paper */
-        --surface-color: #ffffff;
-        --primary: #1a73e8; /* Google Blue */
-        --accent: #0b57d0; /* Deep Google Blue for Accent */
+        /* Hyper-Realistic Paper Palette */
+        --bg-color: #e6e4dc; /* Stone/Paper base */
+        --surface-color: #fdfbf7; /* Fresh Paper */
+        --panel-bg: #f8f6f1; /* Slightly darker paper for panels */
+        --primary: #1a73e8; /* Retaining Google Blue for identity */
+        --accent: #c0392b; /* Professor's Red Ink */
         --on-primary: #ffffff;
-        --text-primary: #202124;
-        --text-secondary: #5f6368;
-        --border-color: #dadce0;
-        --shadow-sm: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
-        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        --tape-color: rgba(255, 255, 255, 0.6);
+        --text-primary: #202124; /* Ink Black */
+        --text-secondary: #5f6368; /* Pencil Grey */
+        --border-color: #dcdbd5; /* Paper Edge */
+        
+        /* Realistic Depth */
+        --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.1), 0 1px 3px 1px rgba(60,64,67,0.05);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0,0,0,0.02);
+        --shadow-lg: 0 15px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        --paper-edge: 1px solid rgba(0,0,0,0.08);
       }
 
       [data-theme='dark'] {
-        --bg-color: #1a1a1a;
-        --surface-color: #2d2e31;
+        --bg-color: #121212;
+        --surface-color: #1e1e1e;
+        --panel-bg: #252525;
         --primary: #8ab4f8;
-        --accent: #8ab4f8;
-        --on-primary: #202124;
+        --accent: #e74c3c;
+        --on-primary: #121212;
         --text-primary: #e8eaed;
         --text-secondary: #9aa0a6;
-        --border-color: #5f6368;
-        --tape-color: rgba(255, 255, 255, 0.1);
+        --border-color: #444;
+        --paper-edge: 1px solid rgba(255,255,255,0.1);
       }
 
       body {
@@ -46,11 +52,11 @@
         height: 100vh;
         width: 100vw;
         position: relative;
-        z-index: 1; /* Explicitly place app above noise */
+        z-index: 1; /* Explicitly place app above background */
         overflow: hidden;
       }
 
-      /* Crunchy Noise Texture - The "Paper" Feel */
+      /* Crunchy Noise Texture - The "Paper" Feel - Overlay Mode */
       .crunchy-noise {
         position: fixed;
         top: 0;
@@ -58,81 +64,112 @@
         width: 100vw;
         height: 100vh;
         pointer-events: none;
-        z-index: 0; /* Lowered to background */
+        z-index: 9999; /* Top layer for texture */
         opacity: 0.08;
-        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        mix-blend-mode: multiply;
+      }
+      
+      [data-theme='dark'] .crunchy-noise {
+        opacity: 0.05;
+        mix-blend-mode: overlay;
       }
 
-      h1, h2, h3, h4, h5, h6 {
-        font-family: 'Google Sans', sans-serif;
+      /* Typography Overrides for Academic Feel */
+      h1, h2, h3, .font-serif {
+        font-family: 'Cormorant Garamond', serif;
+        letter-spacing: -0.01em;
       }
-
+      
       /* Google-style Card with Paper Texture */
       .paper-panel {
         background: var(--surface-color);
-        border: 1px solid var(--border-color);
+        border: var(--paper-edge);
         box-shadow: var(--shadow-sm);
-        border-radius: 12px; /* Rounded corners like Google Material */
-        transition: box-shadow 0.2s;
+        border-radius: 2px; /* Sharper corners for realism */
+        transition: all 0.2s;
         position: relative;
         z-index: 10;
       }
       .paper-panel:hover {
         box-shadow: var(--shadow-md);
       }
+      
+      /* Add a subtle highlight line to top of panels */
+      .paper-panel::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; height: 1px;
+        background: rgba(255,255,255,0.7);
+        z-index: 11;
+        opacity: 0.5;
+      }
 
       .btn-primary {
         background-color: var(--primary);
         color: var(--on-primary);
-        border-radius: 24px;
+        border-radius: 4px;
         padding: 10px 24px;
         font-weight: 500;
-        transition: box-shadow 0.2s, background-color 0.2s;
+        transition: box-shadow 0.2s, background-color 0.2s, transform 0.1s;
         box-shadow: var(--shadow-sm);
+        border: none;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-size: 0.75rem;
       }
       .btn-primary:hover {
         box-shadow: var(--shadow-md);
         opacity: 0.95;
+        transform: translateY(-1px);
+      }
+      .btn-primary:active {
+        transform: translateY(0);
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
       }
 
       /* Sticky Flashcard */
       .sticky-card {
         background: var(--surface-color);
         box-shadow: var(--shadow-sm);
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
+        border: var(--paper-edge);
+        border-radius: 2px;
         position: relative;
-        transition: transform 0.2s, box-shadow 0.2s;
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s;
         z-index: 10;
       }
       .sticky-card:hover {
-        transform: translateY(-4px); /* Simplified hover effect */
+        transform: translateY(-4px) rotate(1deg) scale(1.02);
         z-index: 20;
-        box-shadow: var(--shadow-md);
+        box-shadow: var(--shadow-lg);
       }
       
-      /* Input fields Google Style */
+      /* Input fields Google Style - Paper Integration */
       input, select, textarea {
-        border-radius: 8px; /* Rounded inputs */
+        border-radius: 4px; 
         border: 1px solid var(--border-color);
+        border-bottom: 2px solid var(--border-color); /* Underline emphasis */
         padding: 12px;
-        background: var(--surface-color);
+        background: rgba(255,255,255,0.6); /* Slightly transparent to show texture */
         color: var(--text-primary);
-        transition: border-color 0.2s;
+        transition: border-color 0.2s, background 0.2s;
+        backdrop-filter: blur(4px);
       }
       input:focus, select:focus, textarea:focus {
         border-color: var(--primary);
+        background: #ffffff;
         outline: none;
-        border-width: 2px;
-        padding: 11px; /* Adjust for border width */
+        border-width: 1px;
+        border-bottom-width: 2px;
       }
 
       /* Handwriting Font Class */
       @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&display=swap');
       .font-handwriting {
         font-family: 'Caveat', cursive;
-        font-size: 1.25rem;
+        font-size: 1.4rem;
         line-height: 1.6;
+        color: #2c3e50;
       }
 
       /* Custom Scrollbar */
@@ -144,11 +181,11 @@
         background: transparent; 
       }
       ::-webkit-scrollbar-thumb {
-        background: #bdc1c6; 
+        background: rgba(0,0,0,0.2); 
         border-radius: 4px;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: #9aa0a6; 
+        background: rgba(0,0,0,0.4); 
       }
     </style>
   <script type="importmap">

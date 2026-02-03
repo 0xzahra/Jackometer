@@ -1,11 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { generateRapidPresentation, generateFieldTripDocument, estimateWeatherConditions } from '../services/geminiService';
+import { generateRapidPresentation, generateFieldTripDocument, estimateWeatherConditions, generateFieldTripGuide } from '../services/geminiService';
 import { SlideDeck, FieldTable } from '../types';
+
+interface ChecklistItem {
+  id: string;
+  text: string;
+  done: boolean;
+}
 
 export const FieldTripSuite: React.FC = () => {
   const [tab, setTab] = useState<'ENVIRONMENT' | 'DATA' | 'SLIDES' | 'DOCUMENT'>('ENVIRONMENT');
   const [loading, setLoading] = useState(false);
+  
+  // Trip Setup State
   const [topic, setTopic] = useState('');
+  const [lecturerReqs, setLecturerReqs] = useState('');
+  const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
+  const [isGuideActive, setIsGuideActive] = useState(false);
+  const [initializing, setInitializing] = useState(false);
+
   const [notes, setNotes] = useState('');
   const [deck, setDeck] = useState<SlideDeck | null>(null);
   const [documentContent, setDocumentContent] = useState('');
@@ -91,16 +104,56 @@ export const FieldTripSuite: React.FC = () => {
     const newTables = [...tables]; newTables[tIdx].rows[rIdx][cIdx] = val; setTables(newTables);
   };
   const addRow = (tIdx: number) => {
-    const newTables = [...tables]; newTables[tIdx].rows.push(new Array(3).fill('')); setTables(newTables);
+    const newTables = [...tables]; newTables[tIdx].rows.push(new Array(newTables[tIdx].headers.length).fill('')); setTables(newTables);
   };
   const toggleTable = (i: number) => {
     const newTables = [...tables]; newTables[i].collapsed = !newTables[i].collapsed; setTables(newTables);
   };
 
+  const handleInitializeGuide = async () => {
+    if (!topic) return;
+    setInitializing(true);
+    try {
+      const guide = await generateFieldTripGuide(topic, lecturerReqs);
+      
+      const newTables = guide.tables.map((t, i) => ({
+        id: Date.now().toString() + i,
+        name: t.name,
+        headers: t.headers,
+        rows: [new Array(t.headers.length).fill('')],
+        collapsed: false
+      }));
+
+      const newChecklist = guide.checklist.map((c, i) => ({
+        id: `check_${i}`,
+        text: c,
+        done: false
+      }));
+
+      setTables(newTables);
+      setChecklist(newChecklist);
+      setIsGuideActive(true);
+      setTab('DATA');
+    } catch (e) {
+      alert("Could not generate guide. Try again.");
+    }
+    setInitializing(false);
+  };
+
+  const toggleCheckItem = (id: string) => {
+    setChecklist(checklist.map(c => c.id === id ? { ...c, done: !c.done } : c));
+  };
+
   const formatData = () => {
     const tableStr = tables.map(t => `Table: ${t.name}\n${t.rows.map(r => r.join('|')).join('\n')}`).join('\n\n');
     const weatherStr = `Weather: ${weather.temp}, ${weather.humidity}, ${weather.conditions}`;
-    return `${weatherStr}\n\n${tableStr}`;
+    
+    // Add checklist info
+    const checklistStr = checklist.length > 0 
+      ? `\n\nChecklist Completion:\n${checklist.map(c => `[${c.done ? 'x' : ' '}] ${c.text}`).join('\n')}` 
+      : '';
+
+    return `${weatherStr}${checklistStr}\n\n${tableStr}`;
   };
 
   const handleGenerateDeck = async () => {
@@ -126,7 +179,7 @@ export const FieldTripSuite: React.FC = () => {
             onClick={() => setTab(t as any)}
             className={`px-4 md:px-6 py-2 font-bold font-serif transition-colors whitespace-nowrap ${tab === t ? 'text-[var(--text-primary)] border-b-2 border-[var(--accent)]' : 'text-[var(--text-secondary)] opacity-60 hover:opacity-100'}`}
           >
-            {t === 'ENVIRONMENT' ? 'Environment Monitor' : t === 'DATA' ? 'Field Input' : t === 'SLIDES' ? 'Presentation' : 'Document'}
+            {t === 'ENVIRONMENT' ? 'Environment Monitor' : t === 'DATA' ? (isGuideActive ? 'Field Input' : 'Trip Setup') : t === 'SLIDES' ? 'Presentation' : 'Document'}
           </button>
         ))}
       </div>
@@ -210,74 +263,139 @@ export const FieldTripSuite: React.FC = () => {
 
       {tab === 'DATA' && (
         <div className="space-y-6 pb-20">
-          <div className="paper-panel p-6 rounded-sm">
-            <h3 className="text-[var(--text-primary)] font-bold mb-4 font-serif">Field Notes</h3>
-            <input 
-              className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded p-3 text-[var(--text-primary)] mb-4 focus:border-[var(--accent)] outline-none" 
-              placeholder="Topic / Location Name"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-            />
-            <textarea 
-              className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded p-3 text-[var(--text-primary)] mb-4 focus:border-[var(--accent)] outline-none resize-none font-mono text-xs h-32" 
-              placeholder="Observations..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            ></textarea>
-          </div>
+          {!isGuideActive ? (
+            <div className="paper-panel p-8 rounded-sm max-w-2xl mx-auto mt-10">
+               <div className="flex flex-col items-center text-center mb-8">
+                  <span className="material-icons text-5xl text-[var(--accent)] mb-4">travel_explore</span>
+                  <h3 className="text-2xl font-serif font-bold text-[var(--text-primary)]">Initialize Field Trip</h3>
+                  <p className="text-sm text-[var(--text-secondary)]">
+                    Configure your research parameters. Jackometer will architect the data collection tables and observation checklist for you.
+                  </p>
+               </div>
 
-          {/* Dynamic Tables */}
-          {tables.map((table, tIdx) => (
-             <div key={table.id} className="paper-panel p-4 rounded-sm">
-                <div className="flex justify-between items-center mb-4 cursor-pointer" onClick={() => toggleTable(tIdx)}>
-                   <h4 className="font-bold text-[var(--text-primary)]">{table.name}</h4>
-                   <span className="material-icons text-[var(--text-secondary)]">{table.collapsed ? 'expand_more' : 'expand_less'}</span>
-                </div>
-                {!table.collapsed && (
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse">
-                      <thead>
-                        <tr>
-                          {table.headers.map((h, i) => (
-                            <th key={i} className="border border-[var(--border-color)] p-2 bg-[var(--bg-color)] text-xs text-left">{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {table.rows.map((row, rIdx) => (
-                          <tr key={rIdx}>
-                            {row.map((cell, cIdx) => (
-                              <td key={cIdx} className="border border-[var(--border-color)] p-1">
-                                <input 
-                                  value={cell} 
-                                  onChange={(e) => updateCell(tIdx, rIdx, cIdx, e.target.value)}
-                                  className="w-full bg-transparent outline-none text-sm"
-                                />
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    <button onClick={() => addRow(tIdx)} className="mt-2 text-xs font-bold text-[var(--accent)]">+ Add Row</button>
+               <div className="space-y-4">
+                  <div>
+                    <label className="text-xs font-bold text-[var(--text-secondary)] uppercase mb-1 block">Trip Title / Topic</label>
+                    <input 
+                      className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] p-3 rounded text-[var(--text-primary)] focus:border-[var(--accent)] outline-none font-bold"
+                      placeholder="e.g. Geological Survey of Zuma Rock"
+                      value={topic}
+                      onChange={(e) => setTopic(e.target.value)}
+                    />
                   </div>
-                )}
-             </div>
-          ))}
+                  
+                  <div>
+                    <label className="text-xs font-bold text-[var(--text-secondary)] uppercase mb-1 block">Lecturer Requirements (Optional)</label>
+                    <textarea 
+                      className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] p-3 rounded text-[var(--text-primary)] focus:border-[var(--accent)] outline-none resize-none h-24"
+                      placeholder="Paste any specific instructions, required measurements, or focus areas provided by your supervisor..."
+                      value={lecturerReqs}
+                      onChange={(e) => setLecturerReqs(e.target.value)}
+                    ></textarea>
+                  </div>
 
-          <div className="flex justify-between items-center">
-             <button onClick={addTable} className="text-sm font-bold border border-[var(--border-color)] px-4 py-2 rounded hover:bg-[var(--bg-color)]">
-               + Add Data Table
-             </button>
-             <div className="space-x-2">
-                <button onClick={handleGenerateDeck} disabled={loading} className="bg-[var(--accent)] text-white font-bold px-6 py-2 rounded shadow text-sm">
-                   {loading ? 'Processing...' : 'Generate Slides'}
-                </button>
-                <button onClick={handleGenerateDoc} disabled={loading} className="bg-[var(--text-secondary)] text-white font-bold px-6 py-2 rounded shadow text-sm">
-                   {loading ? 'Processing...' : 'Write Document'}
-                </button>
-             </div>
-          </div>
+                  <button 
+                    onClick={handleInitializeGuide}
+                    disabled={initializing || !topic}
+                    className="w-full bg-[var(--accent)] text-white font-bold py-4 rounded shadow-lg flex items-center justify-center gap-2 hover:opacity-90 disabled:opacity-50 transition-all"
+                  >
+                    {initializing ? <span className="material-icons animate-spin">refresh</span> : <span className="material-icons">architecture</span>}
+                    {initializing ? 'Analyzing Requirements...' : 'Generate Field Guide'}
+                  </button>
+               </div>
+            </div>
+          ) : (
+            <>
+               <div className="paper-panel p-6 rounded-sm bg-blue-50/30 border border-blue-100 flex justify-between items-start">
+                  <div>
+                    <h3 className="font-bold text-[var(--text-primary)] text-lg">{topic}</h3>
+                    <p className="text-xs text-[var(--text-secondary)]">Active Field Session</p>
+                  </div>
+                  <button onClick={() => setIsGuideActive(false)} className="text-xs text-red-500 hover:underline">End Session</button>
+               </div>
+
+               {checklist.length > 0 && (
+                 <div className="paper-panel p-6 rounded-sm">
+                    <h4 className="font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                       <span className="material-icons text-[var(--accent)]">checklist</span> Required Observations
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                       {checklist.map(c => (
+                          <div key={c.id} onClick={() => toggleCheckItem(c.id)} className={`p-3 rounded border cursor-pointer flex items-start gap-3 transition-colors ${c.done ? 'bg-green-50 border-green-200' : 'bg-[var(--bg-color)] border-[var(--border-color)]'}`}>
+                             <div className={`w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 mt-0.5 ${c.done ? 'bg-green-500 border-green-500 text-white' : 'border-gray-400'}`}>
+                                {c.done && <span className="material-icons text-sm">check</span>}
+                             </div>
+                             <span className={`text-sm ${c.done ? 'text-green-800 line-through opacity-70' : 'text-[var(--text-primary)]'}`}>{c.text}</span>
+                          </div>
+                       ))}
+                    </div>
+                 </div>
+               )}
+
+               {tables.map((table, tIdx) => (
+                   <div key={table.id} className="paper-panel p-4 rounded-sm">
+                      <div className="flex justify-between items-center mb-4 cursor-pointer" onClick={() => toggleTable(tIdx)}>
+                         <h4 className="font-bold text-[var(--text-primary)]">{table.name}</h4>
+                         <span className="material-icons text-[var(--text-secondary)]">{table.collapsed ? 'expand_more' : 'expand_less'}</span>
+                      </div>
+                      {!table.collapsed && (
+                        <div className="overflow-x-auto">
+                          <table className="w-full border-collapse">
+                            <thead>
+                              <tr>
+                                {table.headers.map((h, i) => (
+                                  <th key={i} className="border border-[var(--border-color)] p-2 bg-[var(--bg-color)] text-xs text-left">{h}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {table.rows.map((row, rIdx) => (
+                                <tr key={rIdx}>
+                                  {row.map((cell, cIdx) => (
+                                    <td key={cIdx} className="border border-[var(--border-color)] p-1">
+                                      <input 
+                                        value={cell} 
+                                        onChange={(e) => updateCell(tIdx, rIdx, cIdx, e.target.value)}
+                                        className="w-full bg-transparent outline-none text-sm"
+                                      />
+                                    </td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                          <button onClick={() => addRow(tIdx)} className="mt-2 text-xs font-bold text-[var(--accent)]">+ Add Row</button>
+                        </div>
+                      )}
+                   </div>
+               ))}
+
+               <div className="flex justify-between items-center">
+                   <button onClick={addTable} className="text-sm font-bold border border-[var(--border-color)] px-4 py-2 rounded hover:bg-[var(--bg-color)]">
+                     + Add Data Table
+                   </button>
+               </div>
+
+               <div className="paper-panel p-6 rounded-sm">
+                  <h3 className="text-[var(--text-primary)] font-bold mb-4 font-serif">Additional Field Notes</h3>
+                  <textarea 
+                    className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded p-3 text-[var(--text-primary)] focus:border-[var(--accent)] outline-none resize-none font-mono text-xs h-32" 
+                    placeholder="Observations..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                  ></textarea>
+               </div>
+               
+               <div className="flex justify-end space-x-2">
+                  <button onClick={handleGenerateDeck} disabled={loading} className="bg-[var(--accent)] text-white font-bold px-6 py-2 rounded shadow text-sm">
+                     {loading ? 'Processing...' : 'Generate Slides'}
+                  </button>
+                  <button onClick={handleGenerateDoc} disabled={loading} className="bg-[var(--text-secondary)] text-white font-bold px-6 py-2 rounded shadow text-sm">
+                     {loading ? 'Processing...' : 'Write Document'}
+                  </button>
+               </div>
+            </>
+          )}
         </div>
       )}
 

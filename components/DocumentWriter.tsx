@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { generateAcademicDocument, searchYouTubeVideos, generateBibliography, downloadFile, generateImageCaption, enrichCitationFromUrl } from '../services/geminiService';
 import { YouTubeVideo, Citation, Collaborator, AppendixItem, UserSearchResult } from '../types';
 import { CollaborationModal } from './CollaborationModal';
@@ -19,16 +19,59 @@ interface DocDraft {
   appendix: AppendixItem[];
 }
 
-export const DocumentWriter: React.FC = () => {
-  const [drafts, setDrafts] = useState<DocDraft[]>([
-    { id: '1', level: 'Undergraduate', course: '', topic: '', details: '', output: '', videos: [], citations: [], history: [''], historyIndex: 0, uploadedImages: [], appendix: [] }
-  ]);
-  const [activeId, setActiveId] = useState('1');
+interface DocumentWriterProps {
+  userId: string;
+}
+
+export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
+  const STORAGE_KEY_DRAFTS = `jackometer_docs_${userId}_drafts`;
+  const STORAGE_KEY_ACTIVE = `jackometer_docs_${userId}_active`;
+
+  // Initialize Drafts from LocalStorage
+  const [drafts, setDrafts] = useState<DocDraft[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_DRAFTS);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.error("Failed to load drafts from storage", e);
+    }
+    // Default initial state if no save found
+    return [{ id: '1', level: 'Undergraduate', course: '', topic: '', details: '', output: '', videos: [], citations: [], history: [''], historyIndex: 0, uploadedImages: [], appendix: [] }];
+  });
+
+  // Initialize Active ID from LocalStorage
+  const [activeId, setActiveId] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_ACTIVE);
+      if (saved) return saved;
+    } catch (e) {}
+    // Fallback to the ID of the first draft if available, or '1'
+    return '1';
+  });
+
+  // Persist drafts whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_DRAFTS, JSON.stringify(drafts));
+    } catch (e) {
+      console.error("Storage quota exceeded or error saving drafts", e);
+    }
+  }, [drafts, STORAGE_KEY_DRAFTS]);
+
+  // Persist active ID whenever it changes
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_ACTIVE, activeId);
+  }, [activeId, STORAGE_KEY_ACTIVE]);
+
   const [loading, setLoading] = useState(false);
   const [citationLoading, setCitationLoading] = useState(false);
   const [smartImportUrl, setSmartImportUrl] = useState('');
   const [captionLoading, setCaptionLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const saveTimeoutRef = useRef<any>(null);
 
   // Collaboration State
   const [collaborators, setCollaborators] = useState<Collaborator[]>([
@@ -70,56 +113,102 @@ export const DocumentWriter: React.FC = () => {
     alert(`${user.name} has been invited to the document.`);
   };
 
+  // Ensure activeDraft exists, fallback to first if activeId is stale/invalid
   const activeDraft = drafts.find(d => d.id === activeId) || drafts[0];
+
+  // Safety check to prevent crashing if localstorage corrupted drafts into empty array (though init prevents this)
+  if (!activeDraft) return <div className="p-8 text-center text-red-500">Error: No active document found. Please reset via settings.</div>;
 
   const updateDraft = (field: keyof DocDraft, value: any) => {
     setDrafts(drafts.map(d => d.id === activeId ? { ...d, [field]: value } : d));
   };
 
   const handleManualEdit = (val: string) => {
-    updateDraft('output', val);
+    // 1. Update visual state immediately for responsiveness
+    setDrafts(prev => prev.map(d => d.id === activeId ? { ...d, output: val } : d));
+
+    // 2. Debounce history commit to avoid one entry per keystroke
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    
+    saveTimeoutRef.current = setTimeout(() => {
+      setDrafts(current => current.map(d => {
+        if (d.id === activeId) {
+           const lastHistory = d.history[d.historyIndex];
+           // Only push if content actually changed from last history point
+           if (lastHistory !== val) {
+             const newHistory = d.history.slice(0, d.historyIndex + 1);
+             newHistory.push(val);
+             if (newHistory.length > 50) newHistory.shift();
+             return {
+               ...d,
+               history: newHistory,
+               historyIndex: newHistory.length - 1
+             };
+           }
+        }
+        return d;
+      }));
+    }, 1000); // 1 second debounce
   };
 
   const insertLatex = () => {
     const template = " $$ E = mc^2 $$ ";
-    updateDraft('output', activeDraft.output + template);
+    const newContent = activeDraft.output + template;
+    pushHistory(newContent);
   };
 
   // Undo/Redo Logic
   const pushHistory = (newContent: string) => {
-    if (newContent === activeDraft.output) return;
-    const newHistory = activeDraft.history.slice(0, activeDraft.historyIndex + 1);
-    newHistory.push(newContent);
-    if (newHistory.length > 50) newHistory.shift();
-    
-    setDrafts(drafts.map(d => d.id === activeId ? { 
-      ...d, 
-      output: newContent, 
-      history: newHistory, 
-      historyIndex: newHistory.length - 1 
-    } : d));
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+
+    setDrafts(currDrafts => {
+      const d = currDrafts.find(item => item.id === activeId);
+      if (!d) return currDrafts;
+      if (newContent === d.output) return currDrafts;
+
+      const newHistory = d.history.slice(0, d.historyIndex + 1);
+      newHistory.push(newContent);
+      if (newHistory.length > 50) newHistory.shift();
+      
+      return currDrafts.map(item => item.id === activeId ? { 
+        ...item, 
+        output: newContent, 
+        history: newHistory, 
+        historyIndex: newHistory.length - 1 
+      } : item);
+    });
   };
 
   const handleUndo = () => {
-    if (activeDraft.historyIndex > 0) {
-      const newIndex = activeDraft.historyIndex - 1;
-      setDrafts(drafts.map(d => d.id === activeId ? { 
-        ...d, 
-        output: d.history[newIndex], 
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    
+    setDrafts(currDrafts => {
+      const d = currDrafts.find(item => item.id === activeId);
+      if (!d || d.historyIndex <= 0) return currDrafts;
+
+      const newIndex = d.historyIndex - 1;
+      return currDrafts.map(item => item.id === activeId ? { 
+        ...item, 
+        output: item.history[newIndex], 
         historyIndex: newIndex 
-      } : d));
-    }
+      } : item);
+    });
   };
 
   const handleRedo = () => {
-    if (activeDraft.historyIndex < activeDraft.history.length - 1) {
-      const newIndex = activeDraft.historyIndex + 1;
-      setDrafts(drafts.map(d => d.id === activeId ? { 
-        ...d, 
-        output: d.history[newIndex], 
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+
+    setDrafts(currDrafts => {
+      const d = currDrafts.find(item => item.id === activeId);
+      if (!d || d.historyIndex >= d.history.length - 1) return currDrafts;
+
+      const newIndex = d.historyIndex + 1;
+      return currDrafts.map(item => item.id === activeId ? { 
+        ...item, 
+        output: item.history[newIndex], 
         historyIndex: newIndex 
-      } : d));
-    }
+      } : item);
+    });
   };
 
   const newDraft = () => {

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { generatePassportEdit, generateOptimizedCV, generateResume } from '../services/geminiService';
+import { generatePassportEdit, generateOptimizedCV, generateResume, reviewCareerDocument } from '../services/geminiService';
 import { CVData } from '../types';
 
 export const CareerStudio: React.FC = () => {
-  const [tool, setTool] = useState<'PASSPORT' | 'CV' | 'RESUME'>('PASSPORT');
+  const [tool, setTool] = useState<'PASSPORT' | 'CV' | 'RESUME' | 'REVIEW'>('PASSPORT');
   
   // Passport State
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -21,6 +21,12 @@ export const CareerStudio: React.FC = () => {
     experience: '',
     skills: ''
   });
+
+  // Review State
+  const [reviewInput, setReviewInput] = useState('');
+  const [reviewImage, setReviewImage] = useState<string | null>(null);
+  const [reviewOutput, setReviewOutput] = useState('');
+  const [reviewLoading, setReviewLoading] = useState(false);
 
   // Passport Logic
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,16 +71,46 @@ export const CareerStudio: React.FC = () => {
     setDocLoading(false);
   };
 
+  // Review Logic
+  const handleReviewImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setReviewImage(reader.result as string);
+        setReviewInput(''); // Clear text input if image is selected
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const processReview = async () => {
+    if (!reviewInput && !reviewImage) return;
+    setReviewLoading(true);
+    try {
+      let result = '';
+      if (reviewImage) {
+        result = await reviewCareerDocument({ image: reviewImage.split(',')[1] });
+      } else {
+        result = await reviewCareerDocument({ text: reviewInput });
+      }
+      setReviewOutput(result);
+    } catch (e) {
+      alert("Review failed.");
+    }
+    setReviewLoading(false);
+  };
+
   return (
     <div className="w-full h-full flex flex-col">
-      <div className="flex mb-8 border-b border-[var(--border-color)]">
-        {['PASSPORT', 'CV', 'RESUME'].map((t) => (
+      <div className="flex mb-8 border-b border-[var(--border-color)] overflow-x-auto">
+        {['PASSPORT', 'CV', 'RESUME', 'REVIEW'].map((t) => (
           <button 
             key={t}
-            className={`px-8 py-4 font-serif font-bold text-sm transition-colors ${tool === t ? 'text-[var(--text-primary)] border-b-2 border-[var(--accent)] bg-[var(--panel-bg)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            className={`px-8 py-4 font-serif font-bold text-sm transition-colors whitespace-nowrap ${tool === t ? 'text-[var(--text-primary)] border-b-2 border-[var(--accent)] bg-[var(--panel-bg)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
             onClick={() => setTool(t as any)}
           >
-            {t === 'PASSPORT' ? 'Passport Builder' : t === 'CV' ? 'CV Builder' : 'Resume Builder'}
+            {t === 'PASSPORT' ? 'Passport Builder' : t === 'CV' ? 'CV Builder' : t === 'RESUME' ? 'Resume Builder' : 'Review & Edit'}
           </button>
         ))}
       </div>
@@ -139,6 +175,73 @@ export const CareerStudio: React.FC = () => {
               )}
            </div>
         </div>
+      )}
+
+      {tool === 'REVIEW' && (
+         <div className="grid grid-cols-12 gap-8 h-full">
+            <div className="col-span-12 md:col-span-5 paper-panel p-8 rounded-sm overflow-y-auto">
+               <h3 className="text-xl font-serif font-bold text-[var(--text-primary)] mb-2">Upload Existing</h3>
+               <p className="text-xs text-[var(--text-secondary)] mb-6">Upload a photo of your CV or paste the text directly for an AI critique & rewrite.</p>
+               
+               <div className="space-y-6">
+                  {/* Image Upload */}
+                  <div className={`border-2 border-dashed border-[var(--border-color)] rounded-lg h-40 flex flex-col items-center justify-center relative transition-colors ${reviewImage ? 'bg-blue-50 border-blue-300' : 'bg-[var(--bg-color)] hover:bg-[var(--panel-bg)]'}`}>
+                     {reviewImage ? (
+                        <div className="relative w-full h-full p-2">
+                           <img src={reviewImage} className="w-full h-full object-contain" alt="Preview" />
+                           <button onClick={() => setReviewImage(null)} className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 shadow"><span className="material-icons text-xs">close</span></button>
+                        </div>
+                     ) : (
+                        <>
+                           <span className="material-icons text-3xl text-[var(--text-secondary)] mb-2">add_a_photo</span>
+                           <p className="font-bold text-xs text-[var(--text-primary)]">Upload Photo / Screenshot</p>
+                           <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleReviewImageUpload} accept="image/*" />
+                        </>
+                     )}
+                  </div>
+
+                  <div className="relative flex py-1 items-center">
+                      <div className="flex-grow border-t border-[var(--border-color)]"></div>
+                      <span className="flex-shrink-0 mx-2 text-[var(--text-secondary)] text-[10px] font-bold">OR PASTE TEXT</span>
+                      <div className="flex-grow border-t border-[var(--border-color)]"></div>
+                  </div>
+
+                  {/* Text Input */}
+                  <textarea 
+                     className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] p-4 rounded text-sm text-[var(--text-primary)] outline-none h-40 resize-none font-mono"
+                     placeholder="Paste your existing resume content here..."
+                     value={reviewInput}
+                     onChange={(e) => { setReviewInput(e.target.value); setReviewImage(null); }}
+                     disabled={!!reviewImage}
+                  ></textarea>
+
+                  <button 
+                     onClick={processReview} 
+                     disabled={reviewLoading || (!reviewInput && !reviewImage)} 
+                     className="w-full bg-[var(--accent)] text-white py-4 rounded font-bold shadow-lg flex items-center justify-center gap-2"
+                  >
+                     {reviewLoading ? <span className="material-icons animate-spin">refresh</span> : <span className="material-icons">auto_fix_high</span>}
+                     {reviewLoading ? 'Analyzing...' : 'Proofread & Edit'}
+                  </button>
+               </div>
+            </div>
+
+            <div className="col-span-12 md:col-span-7 paper-panel p-12 rounded-sm overflow-y-auto bg-white border border-[var(--border-color)] shadow-2xl relative min-h-[600px]">
+               {reviewOutput ? (
+                 <article className="prose prose-sm max-w-none">
+                   <div className="whitespace-pre-wrap font-serif text-sm leading-relaxed text-black">
+                     {reviewOutput}
+                   </div>
+                 </article>
+               ) : (
+                 <div className="absolute inset-0 flex flex-col items-center justify-center text-[var(--text-secondary)] opacity-30">
+                   <span className="material-icons text-6xl mb-4">rate_review</span>
+                   <p className="font-serif text-xl">Review Output Canvas</p>
+                   <p className="text-xs mt-2">Improved version will appear here.</p>
+                 </div>
+               )}
+            </div>
+         </div>
       )}
     </div>
   );

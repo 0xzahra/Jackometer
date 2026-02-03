@@ -1,10 +1,21 @@
 import React, { useState, useEffect } from 'react';
+import { UserProfile } from '../types';
 
-export const Settings: React.FC = () => {
+interface SettingsProps {
+  user: UserProfile;
+  onUpdateUser: (data: Partial<UserProfile>) => void;
+}
+
+export const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser }) => {
   const [security, setSecurity] = useState({
     currentPass: '',
     newPass: '',
     confirmPass: ''
+  });
+
+  const [emailForm, setEmailForm] = useState({
+    newEmail: '',
+    currentEmailConfirm: ''
   });
 
   const [fontSize, setFontSize] = useState(16);
@@ -21,6 +32,35 @@ export const Settings: React.FC = () => {
     document.documentElement.style.fontSize = `${newSize}px`;
   };
 
+  const handleUpdatePassword = () => {
+    if (!security.currentPass || !security.newPass || !security.confirmPass) {
+      alert("Please fill in all password fields.");
+      return;
+    }
+    if (security.newPass !== security.confirmPass) {
+      alert("New passwords do not match.");
+      return;
+    }
+    // Simulate API call
+    alert("Password updated successfully.");
+    setSecurity({ currentPass: '', newPass: '', confirmPass: '' });
+  };
+
+  const handleUpdateEmail = () => {
+    if (!emailForm.newEmail) {
+      alert("Please enter a new email address.");
+      return;
+    }
+    if (!emailForm.newEmail.includes('@')) {
+      alert("Please enter a valid email address.");
+      return;
+    }
+    // Logic to verify current email could go here
+    onUpdateUser({ email: emailForm.newEmail });
+    alert(`Email address updated to ${emailForm.newEmail}`);
+    setEmailForm({ newEmail: '', currentEmailConfirm: '' });
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-10">
       <h2 className="text-3xl font-serif font-bold text-[var(--text-primary)] mb-8">System Configuration</h2>
@@ -34,9 +74,10 @@ export const Settings: React.FC = () => {
             <h3 className="text-lg font-bold text-[var(--text-primary)]">Account Security</h3>
           </div>
           
-          <div className="space-y-4">
+          <div className="space-y-6">
+             {/* Change Password */}
              <div>
-               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">Reset Password</label>
+               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">Reset Password</label>
                <input 
                  type="password"
                  placeholder="Current Password"
@@ -54,14 +95,38 @@ export const Settings: React.FC = () => {
                <input 
                  type="password"
                  placeholder="Confirm New Password"
-                 className="w-full"
+                 className="w-full mb-3"
                  value={security.confirmPass}
                  onChange={(e) => setSecurity({...security, confirmPass: e.target.value})}
                />
+               <button 
+                 onClick={handleUpdatePassword}
+                 className="w-full bg-[var(--text-primary)] text-[var(--bg-color)] py-2 rounded font-bold text-sm hover:opacity-90"
+               >
+                 Update Password
+               </button>
              </div>
-             <button className="w-full bg-[var(--text-primary)] text-[var(--bg-color)] py-2 rounded font-bold text-sm hover:opacity-90">
-               Update Password
-             </button>
+
+             <div className="border-t border-[var(--border-color)] pt-4"></div>
+
+             {/* Change Email */}
+             <div>
+               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">Change Email Address</label>
+               <p className="text-xs text-[var(--text-secondary)] mb-2">Current: <strong>{user.email}</strong></p>
+               <input 
+                 type="email"
+                 placeholder="New Email Address"
+                 className="w-full mb-3"
+                 value={emailForm.newEmail}
+                 onChange={(e) => setEmailForm({...emailForm, newEmail: e.target.value})}
+               />
+               <button 
+                 onClick={handleUpdateEmail}
+                 className="w-full bg-transparent border border-[var(--border-color)] text-[var(--text-primary)] py-2 rounded font-bold text-sm hover:bg-[var(--bg-color)]"
+               >
+                 Update Email
+               </button>
+             </div>
           </div>
         </div>
 

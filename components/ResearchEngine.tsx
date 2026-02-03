@@ -1,14 +1,67 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { generateResearchTitles, generateDeepResearch } from '../services/geminiService';
 import { ProjectTitle } from '../types';
 
-export const ResearchEngine: React.FC = () => {
-  const [mode, setMode] = useState<'FORGE' | 'WRITER'>('FORGE');
-  const [topicInput, setTopicInput] = useState('');
+interface ResearchEngineProps {
+  userId?: string;
+}
+
+export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
+  const STORAGE_KEY = userId ? `jackometer_research_${userId}` : 'jackometer_research_local';
+
+  // Load state from local storage
+  const [mode, setMode] = useState<'FORGE' | 'WRITER'>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved).mode : 'FORGE';
+    } catch { return 'FORGE'; }
+  });
+
+  const [topicInput, setTopicInput] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved).topicInput : '';
+    } catch { return ''; }
+  });
+
+  const [titles, setTitles] = useState<ProjectTitle[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved).titles : [];
+    } catch { return []; }
+  });
+
+  const [selectedTitle, setSelectedTitle] = useState<ProjectTitle | null>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved).selectedTitle : null;
+    } catch { return null; }
+  });
+
+  const [generatedContent, setGeneratedContent] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved).generatedContent : '';
+    } catch { return ''; }
+  });
+
+  // Persist State
+  useEffect(() => {
+    const state = {
+      mode,
+      topicInput,
+      titles,
+      selectedTitle,
+      generatedContent
+    };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      console.error("Storage error", e);
+    }
+  }, [mode, topicInput, titles, selectedTitle, generatedContent, STORAGE_KEY]);
+
   const [loading, setLoading] = useState(false);
-  const [titles, setTitles] = useState<ProjectTitle[]>([]);
-  const [selectedTitle, setSelectedTitle] = useState<ProjectTitle | null>(null);
-  const [generatedContent, setGeneratedContent] = useState('');
 
   const handleForge = async () => {
     if (!topicInput) return;

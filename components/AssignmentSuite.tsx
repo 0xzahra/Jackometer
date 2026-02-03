@@ -1,22 +1,85 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { gradeEssay, synthesizeCritique, solveAssignment, analyzeSupervisorStyle } from '../services/geminiService';
 
-export const AssignmentSuite: React.FC = () => {
-  const [mode, setMode] = useState<'GRADER' | 'SYNTHESIZER' | 'SOLVER'>('GRADER');
-  const [input, setInput] = useState('');
-  const [instruction, setInstruction] = useState('');
-  const [output, setOutput] = useState('');
+interface AssignmentSuiteProps {
+  userId?: string;
+}
+
+export const AssignmentSuite: React.FC<AssignmentSuiteProps> = ({ userId }) => {
+  const STORAGE_KEY = userId ? `jackometer_assignment_${userId}` : 'jackometer_assignment_local';
+
+  // State Persistence Initialization
+  const [mode, setMode] = useState<'GRADER' | 'SYNTHESIZER' | 'SOLVER'>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved).mode : 'GRADER';
+    } catch { return 'GRADER'; }
+  });
+
+  const [input, setInput] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved).input : '';
+    } catch { return ''; }
+  });
+
+  const [instruction, setInstruction] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved).instruction : '';
+    } catch { return ''; }
+  });
+
+  const [output, setOutput] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved).output : '';
+    } catch { return ''; }
+  });
+
+  const [biasProfile, setBiasProfile] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved).biasProfile : '';
+    } catch { return ''; }
+  });
+
+  const [supervisorText, setSupervisorText] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved).supervisorText : '';
+    } catch { return ''; }
+  });
+  
+  const [customFormat, setCustomFormat] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved).customFormat : '';
+    } catch { return ''; }
+  });
+
   const [loading, setLoading] = useState(false);
   const [handwritingMode, setHandwritingMode] = useState(false);
-
-  // Supervisor Bias State
   const [showBiasPanel, setShowBiasPanel] = useState(false);
-  const [supervisorText, setSupervisorText] = useState('');
-  const [biasProfile, setBiasProfile] = useState('');
   const [analyzingBias, setAnalyzingBias] = useState(false);
-  
-  // Custom Format State
-  const [customFormat, setCustomFormat] = useState('');
+
+  // Persist State Effect
+  useEffect(() => {
+    const state = {
+      mode,
+      input,
+      instruction,
+      output,
+      biasProfile,
+      supervisorText,
+      customFormat
+    };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      console.error("Storage error", e);
+    }
+  }, [mode, input, instruction, output, biasProfile, supervisorText, customFormat, STORAGE_KEY]);
 
   const handleAction = async () => {
     if (!input.trim()) return;
@@ -88,10 +151,10 @@ export const AssignmentSuite: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-2xl font-serif font-bold text-[var(--text-primary)]">
-            {mode === 'GRADER' ? 'The Tribunal (Grader)' : mode === 'SYNTHESIZER' ? 'Reviewer 2 (Synthesizer)' : 'Assignment Solver'}
+            {mode === 'GRADER' ? 'Essay Grader' : mode === 'SYNTHESIZER' ? 'Literature Review' : 'Assignment Solver'}
           </h2>
           <p className="text-sm text-[var(--text-secondary)]">
-            {mode === 'GRADER' ? 'Strict external examination & bias decoding.' : mode === 'SYNTHESIZER' ? 'Generate critical reviews from sources.' : 'Auto-write assignments with pre-judgment.'}
+            {mode === 'GRADER' ? 'Grade papers and analyze tone.' : mode === 'SYNTHESIZER' ? 'Synthesize academic sources.' : 'Generate assignment solutions.'}
           </p>
         </div>
         <div className="flex bg-[var(--surface-color)] rounded-lg p-1 border border-[var(--border-color)]">
@@ -121,11 +184,11 @@ export const AssignmentSuite: React.FC = () => {
         {/* Left Column: Input */}
         <div className={`col-span-12 ${showBiasPanel ? 'lg:col-span-4' : 'lg:col-span-6'} paper-panel p-6 rounded-sm flex flex-col transition-all duration-300`}>
            <label className="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">
-             {mode === 'GRADER' ? 'Paste Your Essay / Draft' : mode === 'SYNTHESIZER' ? 'Paste Source Link or Abstract' : 'Paste Assignment Question'}
+             {mode === 'GRADER' ? 'Essay Content' : mode === 'SYNTHESIZER' ? 'Source Material' : 'Question / Prompt'}
            </label>
            <textarea 
              className="flex-1 bg-[var(--bg-color)] border border-[var(--border-color)] p-4 rounded outline-none resize-none font-serif text-sm leading-relaxed mb-4"
-             placeholder={mode === 'GRADER' ? "Paste your text here for brutal critique..." : mode === 'SYNTHESIZER' ? "e.g. https://doi.org/10.1038/s41586-023..." : "Paste the question here..."}
+             placeholder={mode === 'GRADER' ? "Paste essay text here..." : mode === 'SYNTHESIZER' ? "Paste text or link..." : "Enter assignment details..."}
              value={input}
              onChange={(e) => setInput(e.target.value)}
            ></textarea>
@@ -150,7 +213,7 @@ export const AssignmentSuite: React.FC = () => {
                  className="flex-1 btn-primary flex items-center justify-center text-sm"
                >
                  {loading ? <span className="material-icons animate-spin mr-2">refresh</span> : <span className="material-icons mr-2">{mode === 'SOLVER' ? 'auto_fix_high' : mode === 'GRADER' ? 'gavel' : 'history_edu'}</span>}
-                 {mode === 'GRADER' ? 'Judge' : mode === 'SYNTHESIZER' ? 'Synthesize' : 'Solve'}
+                 {mode === 'GRADER' ? 'Grade' : mode === 'SYNTHESIZER' ? 'Synthesize' : 'Solve'}
                </button>
                
                {mode === 'SOLVER' && (

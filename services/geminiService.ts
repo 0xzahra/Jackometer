@@ -1,10 +1,8 @@
 import { GoogleGenAI, Type, FunctionDeclaration, Modality, Schema } from "@google/genai";
 import { ProjectTitle, SlideDeck, CVData, AnalysisResult, YouTubeVideo, Citation } from "../types";
 
-// SAFELY ACCESS PROCESS.ENV to prevent crashes
-const API_KEY = (typeof process !== 'undefined' && process.env && process.env.API_KEY) ? process.env.API_KEY : '';
-
-const getAI = () => new GoogleGenAI({ apiKey: API_KEY });
+// Always use process.env.API_KEY directly as per guidelines
+const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 // --- UTILS ---
 export const downloadFile = (content: string, filename: string, mimeType: string) => {
@@ -132,6 +130,55 @@ export const searchYouTubeVideos = async (topic: string): Promise<YouTubeVideo[]
 };
 
 // --- FIELD TRIP & LAB ---
+export const generateFieldTripGuide = async (topic: string, requirements: string): Promise<{ tables: {name: string, headers: string[]}[], checklist: string[] }> => {
+  const ai = getAI();
+  const prompt = `
+    You are an expert academic field researcher.
+    We are preparing for a field trip.
+    Topic: "${topic}"
+    Lecturer/Module Requirements: "${requirements}"
+
+    Task:
+    1. Identify the specific data tables needed to collect data for this topic. Be specific with headers (units in brackets).
+    2. Create a checklist of mandatory observations or tasks.
+
+    Output JSON structure:
+    {
+      "tables": [ {"name": "...", "headers": ["...", "..."]} ],
+      "checklist": ["...", "..."]
+    }
+  `;
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: prompt,
+    config: {
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          tables: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                name: { type: Type.STRING },
+                headers: { type: Type.ARRAY, items: { type: Type.STRING } }
+              }
+            }
+          },
+          checklist: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING }
+          }
+        }
+      }
+    }
+  });
+
+  return JSON.parse(response.text || '{"tables": [], "checklist": []}');
+};
+
 export const generateFieldTripDocument = async (topic: string, tables: string, notes: string): Promise<string> => {
     const ai = getAI();
     const prompt = `
@@ -586,3 +633,48 @@ export const generateResume = async (data: CVData): Promise<string> => {
     const response = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt });
     return response.text || "";
 }
+
+export const reviewCareerDocument = async (docData: { text?: string, image?: string }): Promise<string> => {
+  const ai = getAI();
+  const prompt = `
+    Act as a seasoned Human Resources Manager and Hiring Recruiter with 15+ years of experience.
+    Task: Proofread, edit, and polish this CV/Resume to get the candidate hired.
+    
+    CRITICAL STYLE RULES:
+    1. Do NOT use "AI-sounding" language. Strictly avoid buzzwords like "tapestry", "delving", "orchestrated", "unwavering commitment", "spearheaded", "cutting-edge". 
+    2. Write exactly like a human expert: professional, direct, and impact-oriented.
+    3. Focus on tangible results and clear metrics. Use simple, strong verbs (e.g., "Led", "Created", "Improved", "Managed").
+    4. Keep it concise. No fluff.
+    
+    Instructions:
+    1. Correct grammar, spelling, and awkward phrasing errors.
+    2. Sharpen the bullet points to sound professional but natural. Focus on what was achieved, not just duties.
+    3. Remove fluff and redundant words.
+    4. At the very end, append a "Hiring Manager's Notes" section listing 3 specific critiques or improvements made, speaking directly to the applicant (e.g., "I tightened this section because it was too vague...").
+
+    Output the full improved document text followed by the notes.
+  `;
+
+  const contents: any = {};
+  if (docData.image) {
+    // If image provided, use vision model
+    contents.parts = [
+      { inlineData: { mimeType: 'image/jpeg', data: docData.image } },
+      { text: prompt }
+    ];
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-image',
+      contents: contents
+    });
+    return response.text || "";
+  } else if (docData.text) {
+    // If text provided, use text model
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-preview',
+      contents: `${prompt}\n\nORIGINAL CONTENT:\n${docData.text}`
+    });
+    return response.text || "";
+  }
+  
+  return "";
+};

@@ -14,6 +14,11 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     institution: '',
   });
   const [loading, setLoading] = useState(false);
+  
+  // Google Flow State: IDLE -> ACCOUNTS -> CONSENT -> PROCESSING
+  const [googleStep, setGoogleStep] = useState<'IDLE' | 'ACCOUNTS' | 'CONSENT' | 'PROCESSING'>('IDLE');
+  const [selectedGoogleAccount, setSelectedGoogleAccount] = useState<UserProfile | null>(null);
+
   const isMounted = useRef(true);
 
   useEffect(() => {
@@ -40,25 +45,161 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         role: 'Scholar',
         avatar: undefined
       });
-      // Do not set loading false here as component might unmount immediately after onLogin
     }, 1500);
   };
 
-  const handleGoogleLogin = () => {
+  // 1. Start Flow
+  const handleGoogleLoginStart = () => {
     setLoading(true);
-    // Simulate Google Auth
+    // Simulate initial network request to auth provider
+    setTimeout(() => {
+       if (!isMounted.current) return;
+       setLoading(false);
+       setGoogleStep('ACCOUNTS');
+    }, 800);
+  };
+
+  // 2. Select Account
+  const handleAccountSelect = (account: UserProfile) => {
+    setSelectedGoogleAccount(account);
+    setGoogleStep('CONSENT');
+  };
+
+  // 3. Approve/Grant Permissions
+  const handleConsent = () => {
+    setGoogleStep('PROCESSING');
+    // Simulate token exchange
     setTimeout(() => {
       if (!isMounted.current) return;
-      onLogin({
-        name: 'Google Scholar',
-        email: 'scholar@gmail.com',
-        institution: 'Google Academy',
-        role: 'Researcher',
-        avatar: 'G' // Marker to show Google avatar
-      });
+      if (selectedGoogleAccount) onLogin(selectedGoogleAccount);
     }, 1500);
   };
 
+  const handleCancelGoogle = () => {
+      setGoogleStep('IDLE');
+      setSelectedGoogleAccount(null);
+  };
+
+  // --- SIMULATED GOOGLE OAUTH FLOW ---
+  if (googleStep !== 'IDLE') {
+    return (
+      <div className="min-h-screen w-full bg-white flex flex-col items-center justify-center font-sans text-[#202124] animate-fade-in">
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+        `}</style>
+        
+        {googleStep === 'PROCESSING' ? (
+           <div className="flex flex-col items-center">
+              <div className="w-12 h-12 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin mb-6"></div>
+              <p className="text-base font-medium font-sans">Signing in to Jackometer...</p>
+           </div>
+        ) : (
+          <div className="w-full max-w-[450px] border border-[#dadce0] rounded-[8px] p-10 flex flex-col shadow-sm font-sans">
+             {/* Header */}
+             <div className="flex flex-col items-center mb-8">
+                <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-10 h-10 mb-4" alt="Google" />
+                <h1 className="text-2xl font-medium mb-2 text-center">
+                    {googleStep === 'ACCOUNTS' ? 'Sign in with Google' : 'Jackometer'}
+                </h1>
+                <p className="text-base text-center text-[#5f6368]">
+                    {googleStep === 'ACCOUNTS' ? 'to continue to Jackometer' : 'wants access to your Google Account'}
+                </p>
+             </div>
+             
+             {/* STEP 1: CHOOSE ACCOUNT */}
+             {googleStep === 'ACCOUNTS' && (
+                 <div className="w-full space-y-1">
+                    <div 
+                      onClick={() => handleAccountSelect({
+                        name: 'Scholar User',
+                        email: 'scholar@gmail.com',
+                        institution: 'Independent Researcher',
+                        role: 'Scholar',
+                        avatar: 'G'
+                      })}
+                      className="flex items-center gap-4 p-3 hover:bg-[#f8f9fa] rounded-sm cursor-pointer border-b border-[#f1f3f4] transition-colors"
+                    >
+                       <div className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-sm">S</div>
+                       <div className="flex-1">
+                          <p className="text-sm font-medium text-[#3c4043]">Scholar User</p>
+                          <p className="text-xs text-[#5f6368]">scholar@gmail.com</p>
+                       </div>
+                    </div>
+
+                    <div 
+                      onClick={() => handleAccountSelect({
+                        name: 'Dr. Research Lead',
+                        email: 'lead@university.edu',
+                        institution: 'University of Science',
+                        role: 'Professor',
+                        avatar: 'D'
+                      })}
+                      className="flex items-center gap-4 p-3 hover:bg-[#f8f9fa] rounded-sm cursor-pointer border-b border-[#f1f3f4] transition-colors"
+                    >
+                       <div className="w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center font-bold text-sm">D</div>
+                       <div className="flex-1">
+                          <p className="text-sm font-medium text-[#3c4043]">Dr. Research Lead</p>
+                          <p className="text-xs text-[#5f6368]">lead@university.edu</p>
+                       </div>
+                    </div>
+
+                    <div className="flex items-center gap-4 p-3 hover:bg-[#f8f9fa] rounded-sm cursor-pointer transition-colors mt-2">
+                       <div className="w-8 h-8 rounded-full flex items-center justify-center text-[#5f6368]">
+                          <span className="material-icons text-xl">person_add</span>
+                       </div>
+                       <div className="flex-1">
+                          <p className="text-sm font-medium text-[#3c4043]">Use another account</p>
+                       </div>
+                    </div>
+                 </div>
+             )}
+
+             {/* STEP 2: CONSENT */}
+             {googleStep === 'CONSENT' && selectedGoogleAccount && (
+                 <div className="w-full animate-fade-in">
+                    <div className="border border-[#dadce0] rounded-full px-4 py-1 flex items-center gap-2 w-fit mx-auto mb-6 cursor-pointer hover:bg-[#f8f9fa]" onClick={() => setGoogleStep('ACCOUNTS')}>
+                        <div className="w-5 h-5 rounded-full bg-purple-600 text-white flex items-center justify-center text-xs">{selectedGoogleAccount.name[0]}</div>
+                        <span className="text-sm font-medium text-[#3c4043]">{selectedGoogleAccount.email}</span>
+                        <span className="material-icons text-sm text-[#5f6368]">expand_more</span>
+                    </div>
+
+                    <div className="space-y-6 mb-8">
+                        <div className="flex gap-4 items-start">
+                            <span className="material-icons text-[#1a73e8] mt-1">person</span>
+                            <p className="text-sm text-[#3c4043]">See your personal info, including any personal info you've made publicly available.</p>
+                        </div>
+                        <div className="flex gap-4 items-start">
+                            <span className="material-icons text-[#1a73e8] mt-1">email</span>
+                            <p className="text-sm text-[#3c4043]">See your primary Google Account email address.</p>
+                        </div>
+                        <div className="flex gap-4 items-start">
+                             <span className="material-icons text-[#5f6368] mt-1">info</span>
+                             <p className="text-xs text-[#5f6368]">Jackometer will use this to create your account and personalization.</p>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3 mt-8">
+                        <button onClick={handleCancelGoogle} className="px-6 py-2 text-sm font-bold text-[#1a73e8] hover:bg-[#f6fafe] rounded transition-colors">Cancel</button>
+                        <button onClick={handleConsent} className="px-6 py-2 text-sm font-bold text-white bg-[#1a73e8] hover:bg-[#1669d6] rounded shadow-sm transition-colors">Allow</button>
+                    </div>
+                 </div>
+             )}
+
+             <div className="mt-10 text-xs text-[#5f6368] w-full flex justify-between">
+                <span>English (United States)</span>
+                <div className="space-x-4">
+                  <span>Help</span>
+                  <span>Privacy</span>
+                  <span>Terms</span>
+                </div>
+             </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // --- MAIN APP LOGIN PAGE ---
   return (
     <div className="min-h-screen w-full flex overflow-hidden bg-[var(--bg-color)]">
       {/* Left Side - Motivation */}
@@ -122,11 +263,11 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
 
             {/* Google Button */}
             <button 
-              onClick={handleGoogleLogin}
+              onClick={handleGoogleLoginStart}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-3 px-4 rounded-lg transition-colors mb-6 shadow-sm"
+              className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-3 px-4 rounded-lg transition-colors mb-6 shadow-sm group"
             >
-              <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
+              <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5 group-hover:scale-110 transition-transform" alt="Google" />
               <span>{loading ? 'Connecting...' : 'Continue with Google'}</span>
             </button>
 
