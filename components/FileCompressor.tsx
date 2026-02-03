@@ -15,6 +15,7 @@ export const FileCompressor: React.FC = () => {
   const [files, setFiles] = useState<CompressedFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [compressionLevel, setCompressionLevel] = useState(0.6); // For images
+  const [targetSizeKB, setTargetSizeKB] = useState<string>(''); // Target size input
 
   const formatSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -42,15 +43,18 @@ export const FileCompressor: React.FC = () => {
     setFiles(prev => [newFileEntry, ...prev]);
 
     try {
-      if (file.size < 5120) { // < 5KB warning but still process
-        // Just passthrough or minimal processing
-      }
-
       let resultBlob: Blob;
 
       if (file.type.startsWith('image/')) {
-        // IMAGE COMPRESSION via Canvas
-        resultBlob = await compressImage(file, compressionLevel);
+        // IMAGE COMPRESSION
+        if (targetSizeKB && !isNaN(parseFloat(targetSizeKB))) {
+            const targetBytes = parseFloat(targetSizeKB) * 1024;
+            // Use robust iterative approach
+            resultBlob = await compressImageToTarget(file, targetBytes);
+        } else {
+            // Use simple slider approach
+            resultBlob = await compressImage(file, compressionLevel);
+        }
       } else {
         // GENERIC GZIP COMPRESSION
         resultBlob = await compressGeneric(file);
@@ -63,6 +67,7 @@ export const FileCompressor: React.FC = () => {
             ...f,
             compressedSize: resultBlob.size,
             blob: resultBlob,
+            type: resultBlob.type, // Update type in case of format change (PNG -> JPEG)
             status: 'DONE',
             savings: savings > 0 ? savings : 0
           };
@@ -77,7 +82,6 @@ export const FileCompressor: React.FC = () => {
   };
 
   const compressGeneric = async (file: File): Promise<Blob> => {
-    // Use native CompressionStream
     if ('CompressionStream' in window) {
       const stream = file.stream().pipeThrough(new CompressionStream('gzip'));
       const response = new Response(stream);
@@ -87,6 +91,7 @@ export const FileCompressor: React.FC = () => {
     }
   };
 
+  // Standard compression using slider value
   const compressImage = async (file: File, quality: number): Promise<Blob> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -101,7 +106,7 @@ export const FileCompressor: React.FC = () => {
         const ctx = canvas.getContext('2d');
         if (!ctx) { reject("No Canvas Context"); return; }
         
-        // Resize logic (optional, keeping aspect ratio)
+        // Resize logic
         let width = img.width;
         let height = img.height;
         const MAX_WIDTH = 1920; 
@@ -118,7 +123,111 @@ export const FileCompressor: React.FC = () => {
         canvas.toBlob((blob) => {
           if (blob) resolve(blob);
           else reject("Canvas blob error");
-        }, file.type, quality); // quality 0-1
+        }, file.type, quality); 
+      };
+      
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  /**
+   * ROBUST COMPRESSION ALGORITHM
+   * 1. Binary searches quality (0.01 - 1.0)
+   * 2. If quality reduction isn't enough, strictly scales down dimensions (resolution)
+   * 3. Converts PNG to JPEG to ensure compression settings actually work
+   */
+  const compressImageToTarget = async (file: File, targetBytes: number): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        img.src = e.target?.result as string;
+      };
+      
+      img.onload = async () => {
+        let width = img.width;
+        let height = img.height;
+        
+        // Output format: prefer jpeg for compression ratio control.
+        // If file is PNG, we switch to JPEG because canvas.toBlob ignores quality param for PNGs.
+        const outputType = file.type === 'image/webp' ? 'image/webp' : 'image/jpeg';
+
+        // Helper to draw and compress
+        const attemptCompression = async (w: number, h: number, q: number): Promise<Blob> => {
+             const canvas = document.createElement('canvas');
+             canvas.width = w;
+             canvas.height = h;
+             const ctx = canvas.getContext('2d');
+             if (!ctx) throw new Error("No context");
+             
+             // If converting PNG to JPEG, fill background white to avoid black transparency
+             if (file.type === 'image/png' && outputType === 'image/jpeg') {
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, w, h);
+             }
+
+             ctx.drawImage(img, 0, 0, w, h);
+             return new Promise(res => canvas.toBlob(b => res(b!), outputType, q));
+        };
+
+        // 1. Initial max dimension cap (Optimization)
+        const MAX_WIDTH = 2500; 
+        if (width > MAX_WIDTH) {
+          height = Math.round((height * MAX_WIDTH) / width);
+          width = MAX_WIDTH;
+        }
+
+        // Optimization Loop
+        // Limit iterations to prevent freezing, but allow enough to shrink huge images
+        for (let step = 0; step < 15; step++) {
+            
+            // Phase A: Binary Search Quality for Current Resolution
+            let minQ = 0.01;
+            let maxQ = 1.0;
+            let bestBlob: Blob | null = null;
+
+            for (let i = 0; i < 6; i++) { // 6 steps gives ~1.5% precision on quality
+                const midQ = (minQ + maxQ) / 2;
+                const blob = await attemptCompression(width, height, midQ);
+                
+                if (blob.size <= targetBytes) {
+                    bestBlob = blob;
+                    minQ = midQ; // It fits! Try to get higher quality
+                } else {
+                    maxQ = midQ; // Too big, need lower quality
+                }
+            }
+
+            // If we found a fit in this dimension (even at low quality), return it
+            if (bestBlob) {
+                resolve(bestBlob);
+                return;
+            }
+
+            // Phase B: If quality reduction failed, try absolute minimum quality
+            const minBlob = await attemptCompression(width, height, 0.01);
+            if (minBlob.size <= targetBytes) {
+                resolve(minBlob);
+                return;
+            }
+
+            // Phase C: Still too big? Reduce dimensions and loop
+            // Reduce by ~30% area each step
+            width = Math.floor(width * 0.85);
+            height = Math.floor(height * 0.85);
+
+            // Safety break for tiny images
+            if (width < 50 || height < 50) {
+                resolve(minBlob); // Return whatever we have, can't go smaller practically
+                return;
+            }
+        }
+        
+        // Fallback
+        const fallback = await attemptCompression(width, height, 0.5);
+        resolve(fallback);
       };
       
       reader.onerror = reject;
@@ -132,7 +241,7 @@ export const FileCompressor: React.FC = () => {
     if (e.dataTransfer.files) {
       Array.from(e.dataTransfer.files).forEach(processFile);
     }
-  }, [compressionLevel]);
+  }, [compressionLevel, targetSizeKB]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -144,8 +253,24 @@ export const FileCompressor: React.FC = () => {
     const url = URL.createObjectURL(file.blob);
     const a = document.createElement('a');
     a.href = url;
-    // If it's generic gzip, append .gz, otherwise keep original name (for images)
-    a.download = file.type.startsWith('image/') ? `min_${file.originalName}` : `${file.originalName}.gz`;
+    
+    // Determine extension based on ACTUAL output type
+    let ext = '';
+    if (file.type === 'image/jpeg') ext = '.jpg';
+    else if (file.type === 'image/png') ext = '.png';
+    else if (file.type === 'image/webp') ext = '.webp';
+    else ext = '.gz'; 
+
+    let downloadName = file.originalName;
+    if (file.type.startsWith('image/')) {
+       // Remove original extension
+       const namePart = downloadName.substring(0, downloadName.lastIndexOf('.')) || downloadName;
+       downloadName = `min_${namePart}${ext}`;
+    } else {
+       downloadName = `${file.originalName}.gz`;
+    }
+
+    a.download = downloadName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -168,7 +293,23 @@ export const FileCompressor: React.FC = () => {
               <span className="material-icons text-[var(--accent)]">tune</span> Settings
             </h3>
             
-            <div className="mb-4">
+            {/* Target Size Input */}
+            <div className="mb-6 pb-6 border-b border-[var(--border-color)]">
+               <label className="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2 block">Target File Size (KB)</label>
+               <input 
+                 type="number"
+                 placeholder="e.g. 500"
+                 value={targetSizeKB}
+                 onChange={(e) => setTargetSizeKB(e.target.value)}
+                 className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] p-2 rounded text-sm focus:border-[var(--accent)] outline-none"
+               />
+               <p className="text-[10px] text-[var(--text-secondary)] mt-1">
+                 Auto-resizes & adjusts quality to fit. <br/>
+                 <span className="text-orange-600 font-bold">Note: PNGs may be converted to JPG.</span>
+               </p>
+            </div>
+
+            <div className={`mb-4 transition-opacity ${targetSizeKB ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
                <label className="text-xs font-bold text-[var(--text-secondary)] uppercase mb-1 block">Image Quality (Lossy)</label>
                <input 
                  type="range" 
@@ -189,9 +330,8 @@ export const FileCompressor: React.FC = () => {
             <div className="bg-blue-50 p-3 rounded border border-blue-100 text-xs text-blue-800">
                <p className="font-bold mb-1"><span className="material-icons text-xs align-middle">info</span> How it works:</p>
                <ul className="list-disc pl-4 space-y-1">
-                 <li><strong>Images:</strong> Intelligently resized & re-encoded.</li>
+                 <li><strong>Strict Target:</strong> Compresses aggressively by reducing dimensions if needed.</li>
                  <li><strong>Docs/Videos:</strong> GZIP archived (.gz) for efficient transfer.</li>
-                 <li><strong>Size:</strong> Supports > 5KB to GBs (Streaming).</li>
                </ul>
             </div>
           </div>
@@ -245,7 +385,7 @@ export const FileCompressor: React.FC = () => {
                      onClick={() => downloadFile(file)}
                      className="ml-4 bg-[var(--text-primary)] text-[var(--bg-color)] px-3 py-1 rounded text-xs font-bold hover:opacity-80 whitespace-nowrap"
                    >
-                     Download {file.type.startsWith('image/') ? '' : '.gz'}
+                     Download {file.type.includes('image') ? '' : '.gz'}
                    </button>
                  )}
                  {file.status === 'PROCESSING' && (
