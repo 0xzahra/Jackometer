@@ -1,4 +1,4 @@
-import React, { useState, createContext, useContext, useEffect, ReactNode, Component } from 'react';
+import React, { useState, createContext, useContext, useEffect, ReactNode } from 'react';
 import { Layout } from './components/Layout';
 import { Dashboard } from './components/Dashboard';
 import { ResearchEngine } from './components/ResearchEngine';
@@ -30,7 +30,7 @@ interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   state: ErrorBoundaryState = {
     hasError: false
   };
@@ -62,7 +62,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
         </div>
       );
     }
-    return this.props.children;
+    return (this.props as any).children;
   }
 }
 

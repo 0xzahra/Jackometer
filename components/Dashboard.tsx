@@ -50,8 +50,6 @@ const StickyCard: React.FC<{
 export const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
   const [greeting, setGreeting] = useState('');
   const [quote, setQuote] = useState({ text: '', author: '' });
-  const [showTour, setShowTour] = useState(false);
-  const [tourStep, setTourStep] = useState(0);
 
   const quotes = [
     { text: "Research is creating new knowledge.", author: "Neil Armstrong" },
@@ -70,43 +68,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
 
     const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
     setQuote(randomQuote);
-
-    // Check for first time visitor
-    if (!localStorage.getItem('jackometer_tour_done')) {
-      setShowTour(true);
-    }
   }, []);
-
-  const completeTour = () => {
-    localStorage.setItem('jackometer_tour_done', 'true');
-    setShowTour(false);
-  };
-
-  const tourSteps = [
-    {
-      title: "Welcome to Jackometer",
-      text: "Your AI-powered academic fortress. Stop writing from scratch. We architect your research.",
-      icon: "waving_hand",
-    },
-    {
-      title: "Deep Draft",
-      text: "Generate entire 20-page dissertations with real citations. Just input your topic in the Research Engine.",
-      icon: "school",
-      highlight: AppView.RESEARCH
-    },
-    {
-      title: "Ecological Lens",
-      text: "Going on a field trip? The Field Trip module tracks GPS, weather, and builds your report on the go.",
-      icon: "landscape",
-      highlight: AppView.FIELD_TRIP
-    },
-    {
-      title: "Data Cruncher",
-      text: "Statistical analysis without the headache. Feed it raw data, get bio-systematic results instantly. This is a tool, not a scrapbook.",
-      icon: "analytics",
-      highlight: AppView.DATA_CRUNCHER
-    }
-  ];
 
   return (
     <div className="max-w-7xl mx-auto pb-10 relative">
@@ -178,53 +140,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
           onClick={() => setView(AppView.CAREER)}
         />
       </div>
-
-      {/* Onboarding Modal */}
-      {showTour && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white max-w-md w-full rounded-lg shadow-2xl p-8 relative animate-fade-in-up border-t-4 border-[var(--accent)]">
-            <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-6 text-[var(--accent)]">
-                 <span className="material-icons text-3xl">{tourSteps[tourStep].icon}</span>
-              </div>
-              <h3 className="text-2xl font-serif font-bold text-[var(--text-primary)] mb-2">{tourSteps[tourStep].title}</h3>
-              <p className="text-[var(--text-secondary)] mb-8 leading-relaxed">
-                {tourSteps[tourStep].text}
-              </p>
-              
-              <div className="flex gap-2 w-full">
-                {tourStep > 0 && (
-                  <button 
-                    onClick={() => setTourStep(tourStep - 1)}
-                    className="flex-1 bg-gray-100 text-[var(--text-secondary)] py-3 rounded font-bold text-sm hover:bg-gray-200"
-                  >
-                    Back
-                  </button>
-                )}
-                <button 
-                  onClick={() => {
-                    if (tourStep < tourSteps.length - 1) setTourStep(tourStep + 1);
-                    else completeTour();
-                  }}
-                  className="flex-1 bg-[var(--accent)] text-white py-3 rounded font-bold text-sm hover:opacity-90"
-                >
-                  {tourStep < tourSteps.length - 1 ? 'Next' : 'Get Started'}
-                </button>
-              </div>
-
-              <div className="flex gap-2 mt-6">
-                {tourSteps.map((_, i) => (
-                  <div key={i} className={`w-2 h-2 rounded-full transition-colors ${i === tourStep ? 'bg-[var(--accent)]' : 'bg-gray-200'}`}></div>
-                ))}
-              </div>
-            </div>
-            
-            <button onClick={completeTour} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
-              <span className="material-icons text-sm">close</span>
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

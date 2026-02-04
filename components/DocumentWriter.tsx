@@ -73,10 +73,16 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
   const [isEditing, setIsEditing] = useState(false);
   const saveTimeoutRef = useRef<any>(null);
 
-  // Verification & Quotes State
+  // Verification & Contextual Sourcing State
   const [verifying, setVerifying] = useState(false);
   const [verificationResults, setVerificationResults] = useState<any[]>([]);
-  const [quotingId, setQuotingId] = useState<string | null>(null);
+  
+  // Contextual Modal State
+  const [showContextModal, setShowContextModal] = useState(false);
+  const [selectedCitationForContext, setSelectedCitationForContext] = useState<Citation | null>(null);
+  const [targetParagraph, setTargetParagraph] = useState('');
+  const [contextQuotes, setContextQuotes] = useState<string[]>([]);
+  const [contextLoading, setContextLoading] = useState(false);
 
   // Collaboration State
   const [collaborators, setCollaborators] = useState<Collaborator[]>([
@@ -297,15 +303,29 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
      setVerifying(false);
   };
 
-  const handleGetQuotes = async (citation: Citation) => {
-     setQuotingId(citation.id);
-     try {
-       const quotes = await getContextualQuotes(citation, activeDraft.output);
-       // Append quotes to context for user to use
-       const newContext = citation.context ? citation.context + "\nSUGGESTED QUOTES:\n" + quotes.join('\n') : "SUGGESTED QUOTES:\n" + quotes.join('\n');
-       updateCitation(citation.id, 'context', newContext);
-     } catch(e) { alert("Could not fetch quotes."); }
-     setQuotingId(null);
+  // --- Contextual Sourcing Logic ---
+  const openContextModal = (cit: Citation) => {
+    setSelectedCitationForContext(cit);
+    setTargetParagraph(''); // Reset paragraph input
+    setContextQuotes([]);
+    setShowContextModal(true);
+  };
+
+  const handleAnalyzeContext = async () => {
+    if (!selectedCitationForContext || !targetParagraph.trim()) return;
+    setContextLoading(true);
+    try {
+      const quotes = await getContextualQuotes(selectedCitationForContext, targetParagraph);
+      setContextQuotes(quotes);
+    } catch (e) {
+      alert("Could not find quotes.");
+    }
+    setContextLoading(false);
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    alert("Copied to clipboard!");
   };
 
   const generateBib = async (style: 'APA' | 'MLA' | 'Chicago') => {
@@ -620,20 +640,14 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
                         <input className="w-1/2 bg-transparent border-none p-0" placeholder="Year" value={c.year} onChange={(e) => updateCitation(c.id, 'year', e.target.value)} />
                       </div>
                       
-                      {c.context && (
-                        <div className="text-[10px] text-gray-500 italic border-l-2 border-[var(--accent)] pl-2 mt-1 line-clamp-2">
-                          {c.context}
-                        </div>
-                      )}
-                      
-                      <div className="flex justify-between items-center mt-1">
+                      {/* Contextual Sourcing Trigger */}
+                      <div className="flex justify-between items-center mt-1 border-t border-[var(--border-color)] pt-1">
                          <a href={c.url} target="_blank" rel="noreferrer" className="text-[10px] text-blue-500 hover:underline truncate block w-2/3">{c.url}</a>
                          <button 
-                           onClick={() => handleGetQuotes(c)} 
-                           disabled={!!quotingId} 
-                           className="text-[9px] font-bold text-[var(--accent)] hover:underline"
+                           onClick={() => openContextModal(c)} 
+                           className="text-[9px] font-bold text-[var(--accent)] hover:underline flex items-center"
                          >
-                           {quotingId === c.id ? 'Thinking...' : 'Get Quotes'}
+                           <span className="material-icons text-[10px] mr-1">push_pin</span> Contextualize
                          </button>
                       </div>
                    </div>
@@ -707,6 +721,60 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
            </div>
         </div>
       </div>
+
+      {/* Contextual Sourcing Modal */}
+      {showContextModal && selectedCitationForContext && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+           <div className="bg-white max-w-lg w-full rounded-lg shadow-2xl p-6 relative animate-fade-in-up flex flex-col max-h-[80vh]">
+              <div className="flex justify-between items-start mb-4">
+                 <div>
+                    <h3 className="text-lg font-serif font-bold text-[var(--text-primary)] flex items-center gap-2">
+                       <span className="material-icons text-[var(--accent)]">push_pin</span> Contextual Sourcing
+                    </h3>
+                    <p className="text-xs text-[var(--text-secondary)]">Pin source <strong>{selectedCitationForContext.title.substring(0, 30)}...</strong> to a paragraph.</p>
+                 </div>
+                 <button onClick={() => setShowContextModal(false)} className="text-gray-400 hover:text-gray-600"><span className="material-icons text-sm">close</span></button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto pr-2">
+                 <div className="mb-4">
+                    <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase mb-2 block">Target Paragraph</label>
+                    <textarea 
+                       className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] p-3 rounded text-sm text-[var(--text-primary)] outline-none resize-none h-32"
+                       placeholder="Paste the paragraph you want to strengthen here..."
+                       value={targetParagraph}
+                       onChange={(e) => setTargetParagraph(e.target.value)}
+                    ></textarea>
+                 </div>
+
+                 {contextQuotes.length > 0 && (
+                    <div className="space-y-3 mb-4">
+                       <label className="text-[10px] font-bold text-green-600 uppercase block">Suggested Quotes & Paraphrases</label>
+                       {contextQuotes.map((q, i) => (
+                          <div key={i} className="bg-green-50 p-3 rounded border border-green-100 flex gap-2 group">
+                             <p className="text-sm text-green-900 flex-1 italic">"{q}"</p>
+                             <button onClick={() => copyToClipboard(q)} className="text-green-700 hover:text-green-900 opacity-0 group-hover:opacity-100 transition-opacity" title="Copy">
+                                <span className="material-icons text-sm">content_copy</span>
+                             </button>
+                          </div>
+                       ))}
+                    </div>
+                 )}
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-[var(--border-color)] flex justify-end">
+                 <button 
+                    onClick={handleAnalyzeContext}
+                    disabled={contextLoading || !targetParagraph}
+                    className="bg-[var(--accent)] text-white px-4 py-2 rounded font-bold text-sm shadow hover:opacity-90 flex items-center gap-2 disabled:opacity-50"
+                 >
+                    {contextLoading ? <span className="material-icons animate-spin text-sm">refresh</span> : <span className="material-icons text-sm">manage_search</span>}
+                    {contextLoading ? 'Analyzing Source...' : 'Find Supporting Quotes'}
+                 </button>
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   );
 };

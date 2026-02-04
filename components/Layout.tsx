@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppView, UserProfile } from '../types';
 
 interface LayoutProps {
@@ -36,6 +36,66 @@ const NavButton: React.FC<{
 
 export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, theme, toggleTheme, user, onLogout }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  // Tour State
+  const [tourOpen, setTourOpen] = useState(false);
+  const [tourStep, setTourStep] = useState(0);
+
+  useEffect(() => {
+    // Check local storage for first time visit
+    if (!localStorage.getItem('jackometer_tour_done')) {
+      setTourOpen(true);
+    }
+  }, []);
+
+  const completeTour = () => {
+    localStorage.setItem('jackometer_tour_done', 'true');
+    setTourOpen(false);
+    setTourStep(0);
+  };
+
+  const toggleTour = () => {
+    setTourOpen(!tourOpen);
+    if (!tourOpen) setTourStep(0);
+  };
+
+  const tourSteps = [
+    {
+      title: "Welcome to Jackometer",
+      text: "Your AI-powered academic fortress. Stop writing from scratch. We architect your research.",
+      icon: "waving_hand",
+    },
+    {
+      title: "Deep Draft",
+      text: "Generate entire 20-page dissertations with real citations. Just input your topic in the Research Engine.",
+      icon: "school",
+      highlight: AppView.RESEARCH
+    },
+    {
+      title: "Ecological Lens",
+      text: "Going on a field trip? The Field Trip module tracks GPS, weather, and builds your report on the go.",
+      icon: "landscape",
+      highlight: AppView.FIELD_TRIP
+    },
+    {
+      title: "Data Cruncher",
+      text: "Statistical analysis without the headache. Feed it raw data, get bio-systematic results instantly.",
+      icon: "analytics",
+      highlight: AppView.DATA_CRUNCHER
+    }
+  ];
+
+  const handleNextStep = () => {
+    if (tourStep < tourSteps.length - 1) {
+      const nextStep = tourStep + 1;
+      setTourStep(nextStep);
+      if (tourSteps[nextStep].highlight) {
+        setView(tourSteps[nextStep].highlight!);
+      }
+    } else {
+      completeTour();
+    }
+  };
 
   return (
     <div className="flex h-screen w-full overflow-hidden">
@@ -107,7 +167,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
         {/* Header */}
         <header className="h-16 flex items-center justify-between px-6 border-b border-[var(--border-color)] bg-[var(--panel-bg)] z-30">
           <div className="flex items-center">
-            <button onClick={() => setSidebarOpen(true)} className="mr-4 text-[var(--text-primary)] hover:text-[var(--accent)]">
+            <button onClick={() => setSidebarOpen(true)} className="mr-8 text-[var(--text-primary)] hover:text-[var(--accent)]">
               <span className="material-icons text-2xl">menu</span>
             </button>
             <h2 className="text-xl font-serif font-bold text-[var(--text-primary)] capitalize truncate">
@@ -128,8 +188,21 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
                </button>
              )}
 
-             <button onClick={toggleTheme} className="text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors p-2" title="Toggle Theme">
+             <button 
+                onClick={toggleTheme} 
+                className="text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors p-2" 
+                title="Toggle Theme"
+             >
                <span className="material-icons">{theme === 'light' ? 'dark_mode' : 'light_mode'}</span>
+             </button>
+
+             <button 
+                onClick={toggleTour}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${tourOpen ? 'bg-[var(--accent)] text-white' : 'bg-gray-100 text-[var(--text-secondary)]'}`}
+                title="Interactive Tour"
+             >
+                <span className="material-icons text-sm">help_outline</span>
+                <span className="hidden sm:inline">{tourOpen ? 'Tour On' : 'Tour Off'}</span>
              </button>
 
              <div className="h-6 w-px bg-[var(--border-color)] mx-2"></div>
@@ -157,6 +230,50 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
            <span className="font-bold opacity-70">Vibe coded by arewa.base.eth</span>
         </footer>
       </main>
+
+      {/* Interactive Tour Modal */}
+      {tourOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white max-w-md w-full rounded-lg shadow-2xl p-8 relative animate-fade-in-up border-t-4 border-[var(--accent)]">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-6 text-[var(--accent)]">
+                 <span className="material-icons text-3xl">{tourSteps[tourStep].icon}</span>
+              </div>
+              <h3 className="text-2xl font-serif font-bold text-[var(--text-primary)] mb-2">{tourSteps[tourStep].title}</h3>
+              <p className="text-[var(--text-secondary)] mb-8 leading-relaxed">
+                {tourSteps[tourStep].text}
+              </p>
+              
+              <div className="flex gap-2 w-full">
+                {tourStep > 0 && (
+                  <button 
+                    onClick={() => setTourStep(tourStep - 1)}
+                    className="flex-1 bg-gray-100 text-[var(--text-secondary)] py-3 rounded font-bold text-sm hover:bg-gray-200"
+                  >
+                    Back
+                  </button>
+                )}
+                <button 
+                  onClick={handleNextStep}
+                  className="flex-1 bg-[var(--accent)] text-white py-3 rounded font-bold text-sm hover:opacity-90"
+                >
+                  {tourStep < tourSteps.length - 1 ? 'Next' : 'Finish'}
+                </button>
+              </div>
+
+              <div className="flex gap-2 mt-6">
+                {tourSteps.map((_, i) => (
+                  <div key={i} className={`w-2 h-2 rounded-full transition-colors ${i === tourStep ? 'bg-[var(--accent)]' : 'bg-gray-200'}`}></div>
+                ))}
+              </div>
+            </div>
+            
+            <button onClick={completeTour} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+              <span className="material-icons text-sm">close</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
