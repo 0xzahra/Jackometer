@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { generateAcademicDocument, searchYouTubeVideos, generateBibliography, downloadFile, generateImageCaption, enrichCitationFromUrl } from '../services/geminiService';
+import { generateAcademicDocument, searchYouTubeVideos, generateBibliography, downloadFile, generateImageCaption, enrichCitationFromUrl, verifyCitations, getContextualQuotes } from '../services/geminiService';
 import { YouTubeVideo, Citation, Collaborator, AppendixItem, UserSearchResult } from '../types';
 import { CollaborationModal } from './CollaborationModal';
 import katex from 'katex';
@@ -72,6 +72,11 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
   const [captionLoading, setCaptionLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const saveTimeoutRef = useRef<any>(null);
+
+  // Verification & Quotes State
+  const [verifying, setVerifying] = useState(false);
+  const [verificationResults, setVerificationResults] = useState<any[]>([]);
+  const [quotingId, setQuotingId] = useState<string | null>(null);
 
   // Collaboration State
   const [collaborators, setCollaborators] = useState<Collaborator[]>([
@@ -279,6 +284,28 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
 
   const removeCitation = (cid: string) => {
     updateDraft('citations', activeDraft.citations.filter(c => c.id !== cid));
+  };
+
+  const handleVerifyCitations = async () => {
+     if (activeDraft.citations.length === 0) return;
+     setVerifying(true);
+     setVerificationResults([]);
+     try {
+       const results = await verifyCitations(activeDraft.citations);
+       setVerificationResults(results);
+     } catch(e) { alert("Verification failed."); }
+     setVerifying(false);
+  };
+
+  const handleGetQuotes = async (citation: Citation) => {
+     setQuotingId(citation.id);
+     try {
+       const quotes = await getContextualQuotes(citation, activeDraft.output);
+       // Append quotes to context for user to use
+       const newContext = citation.context ? citation.context + "\nSUGGESTED QUOTES:\n" + quotes.join('\n') : "SUGGESTED QUOTES:\n" + quotes.join('\n');
+       updateCitation(citation.id, 'context', newContext);
+     } catch(e) { alert("Could not fetch quotes."); }
+     setQuotingId(null);
   };
 
   const generateBib = async (style: 'APA' | 'MLA' | 'Chicago') => {
@@ -535,9 +562,20 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
 
           {/* Citation Manager */}
           <div className="paper-panel p-6 rounded-sm border-t-4 border-[var(--primary)]">
-             <h3 className="font-bold text-[var(--text-primary)] mb-4 flex items-center justify-between">
-                <span className="flex items-center gap-2"><span className="material-icons text-sm">format_quote</span> Citation Manager</span>
-             </h3>
+             <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-[var(--text-primary)] flex items-center gap-2">
+                  <span className="material-icons text-sm">format_quote</span> Citation Manager
+                </h3>
+                {activeDraft.citations.length > 0 && (
+                  <button 
+                    onClick={handleVerifyCitations} 
+                    disabled={verifying}
+                    className="text-[10px] bg-green-100 text-green-700 px-2 py-1 rounded font-bold hover:bg-green-200"
+                  >
+                    {verifying ? 'Verifying...' : 'Verify Sources'}
+                  </button>
+                )}
+             </div>
              
              {/* Smart Import Input */}
              <div className="flex gap-2 mb-4 bg-gray-50 p-2 rounded border border-gray-200">
@@ -559,27 +597,48 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
 
              <div className="space-y-3 max-h-64 overflow-y-auto mb-4 custom-scrollbar">
                {activeDraft.citations.length === 0 && <p className="text-xs text-gray-400 italic text-center">No citations added yet.</p>}
-               {activeDraft.citations.map(c => (
-                 <div key={c.id} className="bg-[var(--bg-color)] p-2 rounded border border-[var(--border-color)] text-xs relative group">
-                    <button 
-                      onClick={() => removeCitation(c.id)} 
-                      className="absolute top-1 right-1 text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <span className="material-icons text-[10px]">close</span>
-                    </button>
-                    <input className="w-full bg-transparent border-none p-0 font-bold placeholder-gray-500 mb-1" placeholder="Title/Source Name" value={c.title} onChange={(e) => updateCitation(c.id, 'title', e.target.value)} />
-                    <div className="flex gap-2 mb-1">
-                      <input className="w-1/2 bg-transparent border-none p-0" placeholder="Author" value={c.author} onChange={(e) => updateCitation(c.id, 'author', e.target.value)} />
-                      <input className="w-1/2 bg-transparent border-none p-0" placeholder="Year" value={c.year} onChange={(e) => updateCitation(c.id, 'year', e.target.value)} />
-                    </div>
-                    {c.context && (
-                      <div className="text-[10px] text-gray-500 italic border-l-2 border-[var(--accent)] pl-2 mt-1 line-clamp-2">
-                        {c.context}
+               {activeDraft.citations.map(c => {
+                 const verifyResult = verificationResults.find(r => r.id === c.id);
+                 return (
+                   <div key={c.id} className={`bg-[var(--bg-color)] p-2 rounded border text-xs relative group ${verifyResult?.status === 'SUSPICIOUS' ? 'border-red-400 bg-red-50' : verifyResult?.status === 'VALID' ? 'border-green-400 bg-green-50' : 'border-[var(--border-color)]'}`}>
+                      <button 
+                        onClick={() => removeCitation(c.id)} 
+                        className="absolute top-1 right-1 text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <span className="material-icons text-[10px]">close</span>
+                      </button>
+                      
+                      <div className="flex gap-1 mb-1">
+                         <input className="w-full bg-transparent border-none p-0 font-bold placeholder-gray-500" placeholder="Title/Source Name" value={c.title} onChange={(e) => updateCitation(c.id, 'title', e.target.value)} />
+                         {verifyResult && (
+                           <span className="material-icons text-xs" title={verifyResult.note}>{verifyResult.status === 'VALID' ? 'check_circle' : 'warning'}</span>
+                         )}
                       </div>
-                    )}
-                    <a href={c.url} target="_blank" rel="noreferrer" className="text-[10px] text-blue-500 hover:underline truncate block mt-1">{c.url}</a>
-                 </div>
-               ))}
+
+                      <div className="flex gap-2 mb-1">
+                        <input className="w-1/2 bg-transparent border-none p-0" placeholder="Author" value={c.author} onChange={(e) => updateCitation(c.id, 'author', e.target.value)} />
+                        <input className="w-1/2 bg-transparent border-none p-0" placeholder="Year" value={c.year} onChange={(e) => updateCitation(c.id, 'year', e.target.value)} />
+                      </div>
+                      
+                      {c.context && (
+                        <div className="text-[10px] text-gray-500 italic border-l-2 border-[var(--accent)] pl-2 mt-1 line-clamp-2">
+                          {c.context}
+                        </div>
+                      )}
+                      
+                      <div className="flex justify-between items-center mt-1">
+                         <a href={c.url} target="_blank" rel="noreferrer" className="text-[10px] text-blue-500 hover:underline truncate block w-2/3">{c.url}</a>
+                         <button 
+                           onClick={() => handleGetQuotes(c)} 
+                           disabled={!!quotingId} 
+                           className="text-[9px] font-bold text-[var(--accent)] hover:underline"
+                         >
+                           {quotingId === c.id ? 'Thinking...' : 'Get Quotes'}
+                         </button>
+                      </div>
+                   </div>
+                 );
+               })}
              </div>
              
              <div className="flex justify-between items-center mb-2">

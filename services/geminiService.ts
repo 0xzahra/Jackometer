@@ -337,6 +337,69 @@ export const enrichCitationFromUrl = async (url: string): Promise<Partial<Citati
   return { ...data, url };
 };
 
+export const verifyCitations = async (citations: Citation[]): Promise<{id: string, status: 'VALID' | 'SUSPICIOUS', note: string}[]> => {
+  const ai = getAI();
+  const prompt = `
+    Act as a strict academic librarian.
+    Verify the plausibility of the following citations. Check if they look like real, existing academic papers or sources.
+    
+    Input: ${JSON.stringify(citations)}
+    
+    Output JSON array of objects with:
+    - id: string (from input)
+    - status: 'VALID' or 'SUSPICIOUS'
+    - note: A brief reason.
+  `;
+  
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: prompt,
+    config: {
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: Type.ARRAY,
+        items: {
+           type: Type.OBJECT,
+           properties: {
+             id: { type: Type.STRING },
+             status: { type: Type.STRING, enum: ['VALID', 'SUSPICIOUS'] },
+             note: { type: Type.STRING }
+           }
+        }
+      }
+    }
+  });
+
+  return JSON.parse(response.text || '[]');
+};
+
+export const getContextualQuotes = async (citation: Citation, userContext: string): Promise<string[]> => {
+  const ai = getAI();
+  const prompt = `
+    Based on the following source: ${citation.title} by ${citation.author} (${citation.url})
+    And the user's current writing context: "${userContext.substring(0, 300)}..."
+    
+    Suggest 3 short, relevant, high-impact quotes or paraphrased points that this source likely contains which would strengthen the user's argument.
+    Note: Since you cannot browse the live full text, infer the most likely key findings of this specific work.
+    
+    Output JSON string array.
+  `;
+  
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: prompt,
+    config: {
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: Type.ARRAY,
+        items: { type: Type.STRING }
+      }
+    }
+  });
+
+  return JSON.parse(response.text || '[]');
+};
+
 export const generateBibliography = async (citations: Citation[], style: string): Promise<string> => {
   const ai = getAI();
   const prompt = `
@@ -487,19 +550,21 @@ export const analyzeData = async (dataInput: string, tableData: string): Promise
 export const gradeEssay = async (essay: string, instruction: string): Promise<string> => {
     const ai = getAI();
     const prompt = `
-      Act as "Reviewer 2": A strict, expert academic external examiner.
-      Task: Grade and critique the following student essay.
+      Act as "Reviewer 2": A strict, expert academic external examiner with 25 years of tenure. You have seen it all and are not easily impressed.
+      
+      Task: Ruthlessly critique the following student essay.
       Additional Instructions: ${instruction}
       
       Essay Content:
       ${essay}
       
       Output Structure:
-      1. Letter Grade (e.g. A, B-, F)
-      2. Brutal Critique (Point out weak arguments, passive voice, lack of evidence).
-      3. Reference Check (Identify missing or weak citations).
-      4. "Bias Decoder" (Suggestions to improve tone for a specific lecturer archetype).
-      5. Corrected Snippet (Rewrite the weakest paragraph to be perfect).
+      1. Letter Grade (e.g. A-, C, F). Be realistic.
+      2. The "Professor's Verdict": A witty, direct, and slightly cynical summary of the work's quality.
+      3. Weak Arguments: Point out logical fallacies or unsupported claims.
+      4. Reference Check: Identify missing or weak citations.
+      5. "Bias Decoder": Suggestions to improve tone for a specific lecturer archetype.
+      6. Corrected Snippet: Rewrite the weakest paragraph to be perfect.
       
       Hyperlink any resources you suggest using [Resource Name](URL).
     `;

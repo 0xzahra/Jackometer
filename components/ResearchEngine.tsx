@@ -45,6 +45,18 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
     } catch { return ''; }
   });
 
+  // Adaptive Structure State
+  const [chapters, setChapters] = useState<string[]>(() => {
+    try {
+       const saved = localStorage.getItem(STORAGE_KEY);
+       return saved && JSON.parse(saved).chapters ? JSON.parse(saved).chapters : ['Chapter One: Introduction', 'Chapter Two: Literature Review', 'Chapter Three: Methodology', 'Chapter Four: Analysis', 'Chapter Five: Conclusion'];
+    } catch {
+       return ['Chapter One: Introduction', 'Chapter Two: Literature Review', 'Chapter Three: Methodology', 'Chapter Four: Analysis', 'Chapter Five: Conclusion'];
+    }
+  });
+  const [editingStructure, setEditingStructure] = useState(false);
+  const [newChapterName, setNewChapterName] = useState('');
+
   // Persist State
   useEffect(() => {
     const state = {
@@ -52,14 +64,15 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
       topicInput,
       titles,
       selectedTitle,
-      generatedContent
+      generatedContent,
+      chapters
     };
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch (e) {
       console.error("Storage error", e);
     }
-  }, [mode, topicInput, titles, selectedTitle, generatedContent, STORAGE_KEY]);
+  }, [mode, topicInput, titles, selectedTitle, generatedContent, chapters, STORAGE_KEY]);
 
   const [loading, setLoading] = useState(false);
 
@@ -95,6 +108,19 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
       alert("Failed to generate content.");
     }
     setLoading(false);
+  };
+
+  const addChapter = () => {
+    if (newChapterName.trim()) {
+      setChapters([...chapters, newChapterName]);
+      setNewChapterName('');
+    }
+  };
+
+  const removeChapter = (index: number) => {
+    const newCh = [...chapters];
+    newCh.splice(index, 1);
+    setChapters(newCh);
   };
 
   // Enhanced Render: Rich Link Tooltips
@@ -194,19 +220,43 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
           <div className="grid grid-cols-12 gap-8 h-full">
             {/* Outline Sidebar */}
             <div className="col-span-3 paper-panel rounded-sm overflow-hidden flex flex-col h-[70vh]">
-              <div className="bg-[var(--bg-color)] p-4 border-b border-[var(--border-color)]">
+              <div className="bg-[var(--bg-color)] p-4 border-b border-[var(--border-color)] flex justify-between items-center">
                 <h3 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Table of Contents</h3>
+                <button onClick={() => setEditingStructure(!editingStructure)} className="text-[var(--accent)] hover:underline text-[10px] font-bold">
+                  {editingStructure ? 'DONE' : 'EDIT'}
+                </button>
               </div>
+              
               <div className="overflow-y-auto p-2 flex-1">
-                {['Chapter One: Introduction', 'Chapter Two: Literature Review', 'Chapter Three: Methodology', 'Chapter Four: Analysis', 'Chapter Five: Conclusion'].map((chapter, i) => (
-                  <button 
-                    key={i}
-                    onClick={() => handleGenerateChapter(chapter)}
-                    className="w-full text-left p-3 mb-1 rounded hover:bg-[var(--bg-color)] text-xs font-serif text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors border-l-2 border-transparent hover:border-[var(--accent)]"
-                  >
-                    {chapter}
-                  </button>
-                ))}
+                {editingStructure ? (
+                   <div className="space-y-2">
+                      {chapters.map((ch, i) => (
+                         <div key={i} className="flex gap-1 items-center">
+                            <input disabled value={ch} className="text-xs w-full bg-gray-100 p-1 rounded" />
+                            <button onClick={() => removeChapter(i)} className="text-red-500"><span className="material-icons text-sm">remove_circle</span></button>
+                         </div>
+                      ))}
+                      <div className="flex gap-1 mt-2">
+                         <input 
+                           className="text-xs w-full p-1 border border-gray-300 rounded" 
+                           placeholder="New Chapter Name..."
+                           value={newChapterName}
+                           onChange={(e) => setNewChapterName(e.target.value)}
+                         />
+                         <button onClick={addChapter} className="text-green-600"><span className="material-icons text-sm">add_circle</span></button>
+                      </div>
+                   </div>
+                ) : (
+                  chapters.map((chapter, i) => (
+                    <button 
+                      key={i}
+                      onClick={() => handleGenerateChapter(chapter)}
+                      className="w-full text-left p-3 mb-1 rounded hover:bg-[var(--bg-color)] text-xs font-serif text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors border-l-2 border-transparent hover:border-[var(--accent)]"
+                    >
+                      {chapter}
+                    </button>
+                  ))
+                )}
               </div>
             </div>
 

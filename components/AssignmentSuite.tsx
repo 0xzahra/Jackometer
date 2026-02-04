@@ -151,10 +151,10 @@ export const AssignmentSuite: React.FC<AssignmentSuiteProps> = ({ userId }) => {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-2xl font-serif font-bold text-[var(--text-primary)]">
-            {mode === 'GRADER' ? 'Essay Grader' : mode === 'SYNTHESIZER' ? 'Literature Review' : 'Assignment Solver'}
+            {mode === 'GRADER' ? "Professor's Review" : mode === 'SYNTHESIZER' ? 'Literature Review' : 'Assignment Solver'}
           </h2>
           <p className="text-sm text-[var(--text-secondary)]">
-            {mode === 'GRADER' ? 'Grade papers and analyze tone.' : mode === 'SYNTHESIZER' ? 'Synthesize academic sources.' : 'Generate assignment solutions.'}
+            {mode === 'GRADER' ? 'Ruthless critique from a tenured expert.' : mode === 'SYNTHESIZER' ? 'Synthesize academic sources.' : 'Generate assignment solutions.'}
           </p>
         </div>
         <div className="flex bg-[var(--surface-color)] rounded-lg p-1 border border-[var(--border-color)]">
@@ -162,13 +162,13 @@ export const AssignmentSuite: React.FC<AssignmentSuiteProps> = ({ userId }) => {
              onClick={() => setMode('GRADER')}
              className={`px-4 py-2 rounded text-sm font-bold transition-colors ${mode === 'GRADER' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-color)]'}`}
            >
-             Grader
+             Critique
            </button>
            <button 
              onClick={() => setMode('SYNTHESIZER')}
              className={`px-4 py-2 rounded text-sm font-bold transition-colors ${mode === 'SYNTHESIZER' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-color)]'}`}
            >
-             Synthesizer
+             Synthesize
            </button>
            <button 
              onClick={() => setMode('SOLVER')}
@@ -184,11 +184,11 @@ export const AssignmentSuite: React.FC<AssignmentSuiteProps> = ({ userId }) => {
         {/* Left Column: Input */}
         <div className={`col-span-12 ${showBiasPanel ? 'lg:col-span-4' : 'lg:col-span-6'} paper-panel p-6 rounded-sm flex flex-col transition-all duration-300`}>
            <label className="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">
-             {mode === 'GRADER' ? 'Essay Content' : mode === 'SYNTHESIZER' ? 'Source Material' : 'Question / Prompt'}
+             {mode === 'GRADER' ? 'Submit Work for Review' : mode === 'SYNTHESIZER' ? 'Source Material' : 'Question / Prompt'}
            </label>
            <textarea 
              className="flex-1 bg-[var(--bg-color)] border border-[var(--border-color)] p-4 rounded outline-none resize-none font-serif text-sm leading-relaxed mb-4"
-             placeholder={mode === 'GRADER' ? "Paste essay text here..." : mode === 'SYNTHESIZER' ? "Paste text or link..." : "Enter assignment details..."}
+             placeholder={mode === 'GRADER' ? "Paste your essay draft here. Be warned, the grading is strict..." : mode === 'SYNTHESIZER' ? "Paste text or link..." : "Enter assignment details..."}
              value={input}
              onChange={(e) => setInput(e.target.value)}
            ></textarea>
@@ -213,7 +213,7 @@ export const AssignmentSuite: React.FC<AssignmentSuiteProps> = ({ userId }) => {
                  className="flex-1 btn-primary flex items-center justify-center text-sm"
                >
                  {loading ? <span className="material-icons animate-spin mr-2">refresh</span> : <span className="material-icons mr-2">{mode === 'SOLVER' ? 'auto_fix_high' : mode === 'GRADER' ? 'gavel' : 'history_edu'}</span>}
-                 {mode === 'GRADER' ? 'Grade' : mode === 'SYNTHESIZER' ? 'Synthesize' : 'Solve'}
+                 {mode === 'GRADER' ? 'Grade & Critique' : mode === 'SYNTHESIZER' ? 'Synthesize' : 'Solve'}
                </button>
                
                {mode === 'SOLVER' && (
@@ -301,9 +301,9 @@ export const AssignmentSuite: React.FC<AssignmentSuiteProps> = ({ userId }) => {
              </div>
            ) : (
              <div className="flex flex-col items-center justify-center h-full text-[var(--text-secondary)] opacity-50">
-               <span className="material-icons text-6xl mb-4">assignment</span>
+               <span className="material-icons text-6xl mb-4">rate_review</span>
                <p className="italic font-serif text-lg">
-                 Ready to write.
+                 Ready to review.
                </p>
              </div>
            )}
