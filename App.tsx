@@ -1,4 +1,4 @@
-import React, { useState, createContext, useContext, useEffect, Component, ReactNode } from 'react';
+import React, { useState, createContext, useContext, useEffect, ReactNode, Component } from 'react';
 import { Layout } from './components/Layout';
 import { Dashboard } from './components/Dashboard';
 import { ResearchEngine } from './components/ResearchEngine';
@@ -31,10 +31,7 @@ interface ErrorBoundaryState {
 }
 
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = { hasError: false };
-  }
+  state: ErrorBoundaryState = { hasError: false };
 
   static getDerivedStateFromError(error: any): ErrorBoundaryState {
     return { hasError: true };

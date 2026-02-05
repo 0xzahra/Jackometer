@@ -9,6 +9,8 @@ interface ResearchEngineProps {
 export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
   const STORAGE_KEY = userId ? `jackometer_research_${userId}` : 'jackometer_research_local';
 
+  const DEFAULT_CHAPTERS = ['Chapter One: Introduction', 'Chapter Two: Literature Review', 'Chapter Three: Methodology', 'Chapter Four: Analysis', 'Chapter Five: Conclusion'];
+
   // Load state from local storage
   const [mode, setMode] = useState<'FORGE' | 'WRITER'>(() => {
     try {
@@ -45,15 +47,20 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
     } catch { return ''; }
   });
 
-  // Adaptive Structure State
+  // Adaptive Structure State (Fixed Fallback)
   const [chapters, setChapters] = useState<string[]>(() => {
     try {
        const saved = localStorage.getItem(STORAGE_KEY);
-       return saved && JSON.parse(saved).chapters ? JSON.parse(saved).chapters : ['Chapter One: Introduction', 'Chapter Two: Literature Review', 'Chapter Three: Methodology', 'Chapter Four: Analysis', 'Chapter Five: Conclusion'];
+       const parsed = saved ? JSON.parse(saved) : null;
+       if (parsed && Array.isArray(parsed.chapters) && parsed.chapters.length > 0) {
+         return parsed.chapters;
+       }
+       return DEFAULT_CHAPTERS;
     } catch {
-       return ['Chapter One: Introduction', 'Chapter Two: Literature Review', 'Chapter Three: Methodology', 'Chapter Four: Analysis', 'Chapter Five: Conclusion'];
+       return DEFAULT_CHAPTERS;
     }
   });
+  
   const [editingStructure, setEditingStructure] = useState(false);
   const [newChapterName, setNewChapterName] = useState('');
   
@@ -130,6 +137,13 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
     const newCh = [...chapters];
     newCh.splice(index, 1);
     setChapters(newCh);
+  };
+
+  const resetStructure = () => {
+    if (window.confirm("Reset chapters to default structure?")) {
+      setChapters(DEFAULT_CHAPTERS);
+      setEditingStructure(false);
+    }
   };
 
   // Enhanced Render: Rich Link Tooltips
@@ -239,6 +253,7 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
               <div className="overflow-y-auto p-2 flex-1">
                 {editingStructure ? (
                    <div className="space-y-2">
+                      <button onClick={resetStructure} className="w-full text-center text-xs text-red-500 border border-red-200 mb-2 p-1 rounded">Reset Default Structure</button>
                       {chapters.map((ch, i) => (
                          <div key={i} className="flex gap-1 items-center">
                             <input disabled value={ch} className="text-xs w-full bg-gray-100 p-1 rounded" />
@@ -256,15 +271,19 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
                       </div>
                    </div>
                 ) : (
-                  chapters.map((chapter, i) => (
-                    <button 
-                      key={i}
-                      onClick={() => handleGenerateChapter(chapter)}
-                      className="w-full text-left p-3 mb-1 rounded hover:bg-[var(--bg-color)] text-xs font-serif text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors border-l-2 border-transparent hover:border-[var(--accent)]"
-                    >
-                      {chapter}
-                    </button>
-                  ))
+                  <>
+                    {chapters.length === 0 && <p className="text-xs text-center text-gray-400 p-4">No chapters found. Click 'EDIT' to restore.</p>}
+                    {chapters.map((chapter, i) => (
+                      <button 
+                        key={i}
+                        onClick={() => handleGenerateChapter(chapter)}
+                        className="w-full text-left p-3 mb-1 rounded hover:bg-[var(--bg-color)] text-xs font-serif text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors border-l-2 border-transparent hover:border-[var(--accent)] flex justify-between items-center"
+                      >
+                        {chapter}
+                        <span className="material-icons text-[10px] opacity-30">chevron_right</span>
+                      </button>
+                    ))}
+                  </>
                 )}
               </div>
             </div>

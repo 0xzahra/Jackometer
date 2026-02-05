@@ -30,6 +30,30 @@ const cleanAndParseJSON = (text: string | undefined, defaultVal: any) => {
   }
 };
 
+// --- HELPER: EXTRACT GROUNDING CITATIONS ---
+const extractGroundingCitations = (response: any): Citation[] => {
+  const citations: Citation[] = [];
+  try {
+    const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+    chunks.forEach((chunk: any, index: number) => {
+      if (chunk.web) {
+        citations.push({
+          id: `auto_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+          type: 'WEBSITE',
+          title: chunk.web.title || 'Web Source',
+          url: chunk.web.uri,
+          author: 'Google Search Result',
+          year: new Date().getFullYear().toString(),
+          context: 'Automatically sourced via Google Search grounding.'
+        });
+      }
+    });
+  } catch (e) {
+    console.warn("Failed to extract grounding citations", e);
+  }
+  return citations;
+};
+
 // --- UTILS ---
 export const downloadFile = (content: string, filename: string, mimeType: string) => {
   let blobContent = content;
@@ -104,16 +128,15 @@ export const generateDeepResearch = async (title: string, chapter: string, conte
     
     CRITICAL CITATION RULES:
     1. You MUST use Google Search to find real sources.
-    2. Every factual claim must be immediately followed by a citation link in this format: [Short Source Title](URL).
-    3. Do NOT use footnotes or [1]. Use the [Title](URL) format inline.
-    4. At the very end of the response, create a section called "URL Context References". In this section, list every URL used and provide a 1-sentence "Preview" of what that link contains.
+    2. Every factual claim must be cited inline using (Author, Year) or [Source Title] format.
+    3. At the very end of the response, create a section called "REFERENCES". In this section, list every source used in full APA format, including the URL.
 
     Use high-level vocabulary.
-    Do NOT use markdown symbols for headers like **, ##. Format as plain, beautifully written text, but keep the links.
+    Do NOT use markdown symbols for headers like **, ## inside the body text. Format as plain, beautifully written text.
   `;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview', // Switched to Flash for speed
+    model: 'gemini-3-flash-preview',
     contents: prompt,
     config: {
       tools: [{ googleSearch: {} }] 
@@ -218,14 +241,14 @@ export const generateFieldTripDocument = async (topic: string, tables: string, n
       3. Results (incorporate the table data textually)
       4. Discussion
       5. Conclusion
-      6. References & URL Context
+      6. References
       
       Tone: Academic, Formal.
       
       CITATION REQUIREMENT:
       - Use Google Search to back up ecological/geological facts.
-      - Cite sources inline using Markdown links: [Source Name](URL).
-      - Add a "URL Context References" section at the end describing each link.
+      - Cite sources inline.
+      - Generate a complete REFERENCES section at the end of the document in APA format with URLs.
     `;
     const response = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt, config: { tools: [{ googleSearch: {} }] } });
     return response.text || "";
@@ -298,32 +321,87 @@ export const estimateWeatherConditions = async (lat: number, lng: number): Promi
 };
 
 // --- DOCUMENT WRITER ---
-export const generateAcademicDocument = async (level: string, course: string, topic: string, details: string, appendixData: string): Promise<string> => {
+
+// NEW: Section-Specific Generation
+export const generateSectionContent = async (
+  sectionTitle: string,
+  sectionType: string,
+  projectTopic: string,
+  course: string,
+  details: string,
+  previousContext: string,
+  appendixData: string
+): Promise<{ content: string; citations: Citation[] }> => {
+  const ai = getAI();
+  
+  // Construct a prompt that enforces continuity
+  const prompt = `
+    You are Jackometer, writing a specific section of a larger academic document.
+    
+    Project Topic: ${projectTopic}
+    Course: ${course}
+    User Details: ${details}
+    
+    Current Task: Write the content for the section titled: "${sectionTitle}" (${sectionType}).
+    
+    CONTEXT FROM PREVIOUS SECTIONS (Continuity is Key):
+    ${previousContext.substring(0, 10000)}... [Truncated for brevity]
+    
+    Appendix Items Available: ${appendixData}
+    
+    Requirements:
+    1. STRICT ACADEMIC TONE (Old Money, Tenured Professor).
+    2. If this is a Chapter, ensure it flows logically from the context provided.
+    3. If this is a Preliminary Page (e.g., Abstract, Dedication), format it strictly according to standard academic guidelines.
+    4. Use Google Search to find REAL facts/citations if needed for this specific section.
+    5. Cite sources inline (Author, Year).
+    6. Return ONLY the content for this section. Do not wrap in "Here is the chapter".
+    7. End with a "REFERENCES" section if specific new sources were used in this generation.
+  `;
+
+  const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview', 
+      contents: prompt,
+      config: {
+          tools: [{ googleSearch: {} }]
+      }
+  });
+
+  const content = response.text || "";
+  const citations = extractGroundingCitations(response);
+
+  return { content, citations };
+};
+
+// Legacy single-shot generator (kept for backward compatibility or simple use cases)
+export const generateAcademicDocument = async (level: string, course: string, topic: string, details: string, appendixData: string): Promise<{ content: string; citations: Citation[] }> => {
     const ai = getAI();
     const prompt = `
       Write a full academic document.
-      Level: ${level} (e.g. Undergraduate, PhD)
-      Course of Study: ${course}
+      Level: ${level}
+      Course: ${course}
       Topic: ${topic}
-      Specific Details: ${details}
-      Appendix Items (Images & Captions): ${appendixData}
+      Details: ${details}
+      Appendix: ${appendixData}
       
       Requirements:
-      - Thoroughly researched content using Google Search.
-      - Genuine, REAL citations with URLs.
-      - STRICT CITATION FORMAT: Use inline Markdown links for every fact: [Source Title](URL).
-      - No "As an AI" disclaimers.
-      - Tone: "Old Money" Academic Expert.
-      - Include a "URL Context References" section at the end. List every URL used and a 1-sentence preview of the site content.
+      - Use Google Search for facts.
+      - Inline citations (Author, Year).
+      - Tone: Academic Expert.
+      - **MANDATORY**: End with "REFERENCES" section in APA format listing all URLs found.
     `;
     const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview', // Switched for speed
+        model: 'gemini-3-flash-preview', 
         contents: prompt,
         config: {
             tools: [{ googleSearch: {} }]
         }
     });
-    return response.text || "";
+
+    const content = response.text || "";
+    const citations = extractGroundingCitations(response);
+
+    return { content, citations };
 }
 
 // Updated Citation Logic
@@ -336,7 +414,7 @@ export const enrichCitationFromUrl = async (url: string): Promise<Partial<Citati
     1. Title of the page/article/paper.
     2. Author (or organization).
     3. Year of publication (or "n.d." if unknown).
-    4. Context: A 1-sentence summary of what this source is about (useful for bibliography annotations).
+    4. Context: A 1-sentence summary.
 
     Output JSON.
   `;
@@ -455,11 +533,11 @@ export const generateTechnicalReport = async (topic: string, details: string, ta
     Structure: Introduction, Experience Gained, Technical Procedures, Challenges, Conclusion, References.
     Tone: Professional, Experienced, Academic.
     
-    CITATIONS: Use Google Search. Hyperlink every external fact using [Source](URL). 
-    Add a "URL Context" section at the end with descriptions of the links.
+    CITATIONS: Use Google Search. Hyperlink every external fact using [Source](URL) or (Author, Year).
+    **CRITICAL**: Include a "REFERENCES" section at the end listing all sources found.
   `;
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview', // Switched for speed
+    model: 'gemini-3-flash-preview',
     contents: prompt,
     config: { tools: [{ googleSearch: {} }] }
   });
@@ -477,11 +555,11 @@ export const generateLabReport = async (experiment: string, observations: string
     Structure: Title, Aim, Apparatus, Procedure, Results (Tabulated), Calculation, Discussion (Biological & Chemical analysis), Conclusion, References.
     Focus on biological and chemical observations inferred from the data.
     
-    CITATIONS: Use Google Search to back up scientific claims. Hyperlink sources inline: [Source](URL).
-    Add a "URL Context" section at the end with descriptions of the links.
+    CITATIONS: Use Google Search to back up scientific claims. Hyperlink sources inline.
+    **CRITICAL**: Include a "REFERENCES" section at the end listing all sources found.
   `;
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview', // Switched for speed
+    model: 'gemini-3-flash-preview', 
     contents: prompt,
     config: { tools: [{ googleSearch: {} }] }
   });
@@ -614,7 +692,7 @@ export const synthesizeCritique = async (sourceMaterial: string): Promise<string
       - Tone: High-level academic discourse.
       - Use Google Search to cross-reference facts. 
       - CITE every external fact with an inline link: [Source](URL).
-      - End with a "URL Context" section describing the sources.
+      - End with a "REFERENCES" section describing the sources.
     `;
     const response = await ai.models.generateContent({ 
         model: 'gemini-3-flash-preview', // Switched for speed
@@ -666,7 +744,7 @@ export const solveAssignment = async (question: string, biasProfile: string = ""
     Requirements:
     - High-quality, human-like, sophisticated writing.
     - Avoid robotic transitions.
-    - Use Google Search for facts. Cite them inline as [Source Title](URL).
+    - Use Google Search for facts. Cite them inline.
     - End with a "References" section listing the URLs.
   `;
 
