@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { generateSectionContent, searchYouTubeVideos, generateBibliography, downloadFile, generateImageCaption, enrichCitationFromUrl, verifyCitations, getContextualQuotes } from '../services/geminiService';
+import { generateSectionContent, searchYouTubeVideos, downloadFile, generateImageCaption, enrichCitationFromUrl } from '../services/geminiService';
 import { YouTubeVideo, Citation, Collaborator, AppendixItem, UserSearchResult } from '../types';
 import { CollaborationModal } from './CollaborationModal';
-import katex from 'katex';
 
 interface DocSection {
   id: string;
@@ -18,8 +17,6 @@ interface DocDraft {
   topic: string;
   details: string;
   sections: DocSection[];
-  // Legacy support field (will be migrated to section content if exists)
-  output?: string;
   videos: YouTubeVideo[];
   citations: Citation[];
   history: string[]; 
@@ -53,30 +50,32 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Migration logic: Ensure 'sections' exists
           return parsed.map((d: any) => {
-             if (!d.sections || d.sections.length === 0) {
-               return { ...d, sections: createDefaultSections() };
-             }
-             return d;
+             const sections = (!d.sections || d.sections.length === 0) ? createDefaultSections() : d.sections;
+             const history = (d.history && d.history.length > 0) ? d.history : [JSON.stringify(sections)];
+             return { 
+               ...d, 
+               sections,
+               history,
+               historyIndex: d.historyIndex !== undefined ? d.historyIndex : 0
+             };
           });
         }
       }
     } catch (e) {
       console.error("Failed to load drafts from storage", e);
     }
-    // Default initial state
+    const defaultSections = createDefaultSections();
     return [{ 
       id: '1', 
       level: 'Undergraduate', 
       course: '', 
       topic: '', 
       details: '', 
-      output: '', 
-      sections: createDefaultSections(),
+      sections: defaultSections,
       videos: [], 
       citations: [], 
-      history: [''], 
+      history: [JSON.stringify(defaultSections)], 
       historyIndex: 0, 
       uploadedImages: [], 
       appendix: [] 
@@ -109,7 +108,7 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
   
   // Section Management State
   const [activeSectionId, setActiveSectionId] = useState<string>(activeDraft.sections[0]?.id || 'prelim_1');
-  const [isOutlineOpen, setIsOutlineOpen] = useState(true); // For toggle on/off sidebar
+  const [isOutlineOpen, setIsOutlineOpen] = useState(true);
   const [newSectionTitle, setNewSectionTitle] = useState('');
 
   // Sync active section when draft changes
@@ -122,12 +121,7 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
   const activeSection = activeDraft.sections.find(s => s.id === activeSectionId) || activeDraft.sections[0];
 
   const [loading, setLoading] = useState(false);
-  const [backgroundLoading, setBackgroundLoading] = useState(false);
-  const [citationLoading, setCitationLoading] = useState(false);
-  const [smartImportUrl, setSmartImportUrl] = useState('');
-  const [captionLoading, setCaptionLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const saveTimeoutRef = useRef<any>(null);
   const editorRef = useRef<HTMLDivElement>(null);
 
   // Archive & Search State
@@ -135,22 +129,62 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
   const [archiveQuery, setArchiveQuery] = useState('');
   const [archiveResults, setArchiveResults] = useState<DocDraft[]>([]);
 
-  // Contextual Modal State
-  const [showContextModal, setShowContextModal] = useState(false);
-  const [selectedCitationForContext, setSelectedCitationForContext] = useState<Citation | null>(null);
-  const [targetParagraph, setTargetParagraph] = useState('');
-  const [contextQuotes, setContextQuotes] = useState<string[]>([]);
-  const [contextLoading, setContextLoading] = useState(false);
-
-  // Verification
-  const [verifying, setVerifying] = useState(false);
-  const [verificationResults, setVerificationResults] = useState<any[]>([]);
-
   // Collaboration State
   const [collaborators, setCollaborators] = useState<Collaborator[]>([
     { id: 'me', name: 'You', color: 'bg-blue-600', status: 'ONLINE' }
   ]);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+
+  // --- HISTORY MANAGEMENT ---
+  const saveToHistory = (newSections: DocSection[]) => {
+    const currentDraft = activeDraft;
+    const snapshot = JSON.stringify(newSections);
+    
+    if (currentDraft.history[currentDraft.historyIndex] === snapshot) return;
+
+    const newHistory = currentDraft.history.slice(0, currentDraft.historyIndex + 1);
+    newHistory.push(snapshot);
+
+    if (newHistory.length > 30) {
+      newHistory.shift();
+    }
+
+    setDrafts(drafts.map(d => 
+      d.id === activeId ? { 
+        ...d, 
+        sections: newSections, 
+        history: newHistory, 
+        historyIndex: newHistory.length - 1 
+      } : d
+    ));
+  };
+
+  const handleUndo = () => {
+    const d = activeDraft;
+    if (d.historyIndex > 0) {
+      const newIndex = d.historyIndex - 1;
+      const restoredSections = JSON.parse(d.history[newIndex]);
+      
+      setDrafts(drafts.map(dr => 
+        dr.id === activeId ? { ...dr, sections: restoredSections, historyIndex: newIndex } : dr
+      ));
+
+      if (!restoredSections.find((s: DocSection) => s.id === activeSectionId)) {
+        setActiveSectionId(restoredSections[0]?.id || '');
+      }
+    }
+  };
+
+  const handleRedo = () => {
+    const d = activeDraft;
+    if (d.historyIndex < d.history.length - 1) {
+      const newIndex = d.historyIndex + 1;
+      const restoredSections = JSON.parse(d.history[newIndex]);
+      setDrafts(drafts.map(dr => 
+        dr.id === activeId ? { ...dr, sections: restoredSections, historyIndex: newIndex } : dr
+      ));
+    }
+  };
 
   const updateDraft = (field: keyof DocDraft, value: any) => {
     setDrafts(drafts.map(d => d.id === activeId ? { ...d, [field]: value } : d));
@@ -162,6 +196,8 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
       s.id === activeSectionId ? { ...s, content: val } : s
     );
     updateDraft('sections', updatedSections);
+    // Note: For real-time typing, we don't push to history on every keystroke.
+    // Ideally, use a debounce or onBlur to saveToHistory.
   };
 
   const addSection = (type: 'PRELIM' | 'CHAPTER') => {
@@ -173,20 +209,28 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
       type,
       content: ''
     };
-    updateDraft('sections', [...activeDraft.sections, newSection]);
+    const newSections = [...activeDraft.sections, newSection];
+    saveToHistory(newSections);
     setNewSectionTitle('');
     setActiveSectionId(newId);
   };
 
   const deleteSection = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if(activeDraft.sections.length <= 1) return;
+    if (activeDraft.sections.length <= 1) {
+      alert("Document must have at least one section.");
+      return;
+    }
     const filtered = activeDraft.sections.filter(s => s.id !== id);
-    updateDraft('sections', filtered);
-    if(activeSectionId === id) setActiveSectionId(filtered[0].id);
+    saveToHistory(filtered);
+    
+    // If we deleted the active section, switch to another one
+    if(activeSectionId === id) {
+      setActiveSectionId(filtered[0].id);
+    }
   };
 
-  // --- GENERATION LOGIC (Context Aware) ---
+  // --- GENERATION LOGIC ---
   const handleGenerate = async () => {
     if (!activeDraft.topic || !activeDraft.course) {
       alert("Please enter a Topic and Course.");
@@ -197,9 +241,6 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
     
     try {
       const appendixStr = activeDraft.appendix.map((a, i) => `Figure ${i+1}: ${a.caption}`).join('\n');
-      
-      // CONTEXT BUILDER: Gather text from previous sections
-      // We take the last 10,000 chars of combined previous text to fit context window
       const currentIndex = activeDraft.sections.findIndex(s => s.id === activeSectionId);
       const previousText = activeDraft.sections
         .slice(0, currentIndex)
@@ -216,10 +257,11 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
         appendixStr
       );
       
-      // Update Active Section Text
-      handleSectionContentEdit(docResult.content);
+      const updatedSections = activeDraft.sections.map(s => 
+        s.id === activeSectionId ? { ...s, content: docResult.content } : s
+      );
+      saveToHistory(updatedSections);
       
-      // Merge Citations
       const mergedCitations = [...activeDraft.citations];
       docResult.citations.forEach(cit => {
         if (!mergedCitations.some(existing => existing.url === cit.url)) {
@@ -230,17 +272,10 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
 
       setLoading(false);
 
-      // Background Video Search
-      setBackgroundLoading(true);
       searchYouTubeVideos(activeDraft.topic).then(videos => {
         setDrafts(current => current.map(d => d.id === activeId ? { ...d, videos } : d));
-        setBackgroundLoading(false);
-      }).catch(err => {
-        console.warn("Video fetch failed silently", err);
-        setBackgroundLoading(false);
-      });
+      }).catch(err => {});
       
-      // Auto-scroll
       setTimeout(() => {
         if (editorRef.current) {
            editorRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -251,11 +286,10 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
       console.error(e);
       alert("Generation failed. Please check your connection.");
       setLoading(false);
-      setBackgroundLoading(false);
     }
   };
 
-  // --- Standard Handlers (Imported from previous version) ---
+  // --- HANDLERS ---
   const handleAddCollaborator = (user: UserSearchResult) => {
     const newCollab: Collaborator = {
       id: user.id, name: user.name, email: user.email, color: 'bg-green-500', status: 'ONLINE'
@@ -266,10 +300,14 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
 
   const newDraft = () => {
     const id = Date.now().toString();
+    const defaultSecs = createDefaultSections();
     const newDoc: DocDraft = { 
-      id, level: 'Undergraduate', course: '', topic: '', details: '', output: '', 
-      sections: createDefaultSections(),
-      videos: [], citations: [], history: [''], historyIndex: 0, uploadedImages: [], appendix: []
+      id, level: 'Undergraduate', course: '', topic: '', details: '', 
+      sections: defaultSecs,
+      videos: [], citations: [], 
+      history: [JSON.stringify(defaultSecs)], 
+      historyIndex: 0, 
+      uploadedImages: [], appendix: []
     };
     setDrafts(prev => [...prev, newDoc]);
     setActiveId(id);
@@ -285,55 +323,6 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
     }
   };
 
-  // Citation Handlers
-  const addCitation = () => {
-    const newCit: Citation = { id: Date.now().toString(), type: 'WEBSITE', title: '', author: '', year: new Date().getFullYear().toString() };
-    updateDraft('citations', [...activeDraft.citations, newCit]);
-  };
-  const updateCitation = (cid: string, field: keyof Citation, val: string) => {
-    updateDraft('citations', activeDraft.citations.map(c => c.id === cid ? { ...c, [field]: val } : c));
-  };
-  const removeCitation = (cid: string) => {
-    updateDraft('citations', activeDraft.citations.filter(c => c.id !== cid));
-  };
-  const handleSmartImport = async () => {
-    if(!smartImportUrl.trim()) return;
-    setCitationLoading(true);
-    try {
-      const enriched = await enrichCitationFromUrl(smartImportUrl);
-      const newCit: Citation = { id: Date.now().toString(), type: 'WEBSITE', title: enriched.title||'Unknown', author: enriched.author||'n.d.', year: enriched.year||'n.d.', url: smartImportUrl, context: enriched.context };
-      updateDraft('citations', [...activeDraft.citations, newCit]);
-      setSmartImportUrl('');
-    } catch(e) { alert("Import failed."); }
-    setCitationLoading(false);
-  };
-  
-  // Appendix Logic
-  const handleAppendixUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      setCaptionLoading(true);
-      const newItems: AppendixItem[] = [];
-      for (const file of Array.from(files) as File[]) {
-        await new Promise<void>((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = async () => {
-             const base64 = reader.result as string;
-             const caption = await generateImageCaption(base64.split(',')[1]);
-             newItems.push({ id: Date.now() + Math.random().toString(), image: base64, caption: caption });
-             resolve();
-          };
-          reader.readAsDataURL(file);
-        });
-      }
-      updateDraft('appendix', [...activeDraft.appendix, ...newItems]);
-      setCaptionLoading(false);
-    }
-  };
-  const updateCaption = (id: string, text: string) => updateDraft('appendix', activeDraft.appendix.map(a => a.id === id ? { ...a, caption: text } : a));
-  const removeAppendix = (id: string) => updateDraft('appendix', activeDraft.appendix.filter(a => a.id !== id));
-
-  // Export (Combines all sections)
   const handleExport = (format: 'PDF' | 'DOCX' | 'RTF' | 'TXT') => {
     const fullContent = activeDraft.sections.map(s => `${s.title.toUpperCase()}\n\n${s.content}\n\n`).join('***\n\n');
     const filename = `${activeDraft.topic || 'Document'}.${format.toLowerCase()}`;
@@ -344,7 +333,6 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
   };
 
   const renderContent = (text: string) => {
-    // Basic Markdown Link Renderer
     const parts = text.split(/(\[.*?\]\(.*?\))/g);
     return parts.map((part, index) => {
       const match = part.match(/\[(.*?)\]\((.*?)\)/);
@@ -355,13 +343,13 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
     });
   };
 
-  // --- RENDER ---
   return (
     <div className="max-w-7xl mx-auto h-full flex flex-col relative">
       <CollaborationModal isOpen={isInviteModalOpen} onClose={() => setIsInviteModalOpen(false)} onAdd={handleAddCollaborator} existingIds={collaborators.map(c => c.id)} />
 
       {/* Top Bar */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b border-[var(--border-color)] pb-2 flex-shrink-0 gap-4">
+         {/* Draft Tabs */}
          <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 custom-scrollbar whitespace-nowrap">
             {drafts.map(d => (
               <div key={d.id} onClick={() => setActiveId(d.id)} className={`px-4 py-2 cursor-pointer text-sm font-medium border-b-2 flex items-center transition-colors shrink-0 ${activeId === d.id ? 'border-[var(--primary)] text-[var(--primary)] bg-[var(--surface-color)] rounded-t' : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--surface-color)]'}`}>
@@ -371,8 +359,28 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
             ))}
             <button onClick={newDraft} className="p-2 text-[var(--text-secondary)] hover:text-[var(--primary)] bg-gray-50 rounded-full shadow-sm ml-2"><span className="material-icons text-xl">add</span></button>
          </div>
+
+         {/* Toolbar Right: Undo/Redo, Collab, Export */}
          <div className="flex items-center gap-4 w-full md:w-auto justify-end">
+             {/* Undo / Redo */}
+             <div className="flex bg-[var(--surface-color)] rounded border border-[var(--border-color)]">
+                <button onClick={handleUndo} disabled={activeDraft.historyIndex === 0} className="p-1.5 hover:bg-gray-100 disabled:opacity-30 border-r border-[var(--border-color)]"><span className="material-icons text-sm">undo</span></button>
+                <button onClick={handleRedo} disabled={activeDraft.historyIndex === activeDraft.history.length - 1} className="p-1.5 hover:bg-gray-100 disabled:opacity-30"><span className="material-icons text-sm">redo</span></button>
+             </div>
+
+             {/* Collaborators */}
+             <div className="flex items-center -space-x-2">
+                 {collaborators.map(c => (
+                    <div key={c.id} className={`w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-white text-xs ${c.color} relative group`}>
+                       {c.name[0]}
+                       <div className="absolute top-full mt-1 bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">{c.name}</div>
+                    </div>
+                 ))}
+                 <button onClick={() => setIsInviteModalOpen(true)} className="w-8 h-8 rounded-full bg-gray-100 border-2 border-dashed border-gray-400 flex items-center justify-center hover:bg-gray-200 z-10"><span className="material-icons text-sm text-gray-500">person_add</span></button>
+             </div>
+
             <button onClick={() => { setShowArchiveSearch(true); setArchiveQuery(''); setArchiveResults(drafts); }} className="p-2 text-[var(--text-secondary)] hover:text-[var(--accent)] border border-transparent hover:border-[var(--border-color)] rounded"><span className="material-icons">manage_search</span></button>
+            
             <div className="relative group z-20">
               <button className="flex items-center gap-1 bg-[var(--accent)] text-white px-3 py-1.5 rounded text-sm font-bold shadow-sm">Export <span className="material-icons text-sm">expand_more</span></button>
               <div className="absolute right-0 mt-2 w-48 bg-white border border-[var(--border-color)] shadow-xl rounded-lg hidden group-hover:block z-50">
@@ -417,7 +425,13 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
                           <span className="material-icons text-[10px] opacity-70">{section.type === 'PRELIM' ? 'article' : 'book'}</span>
                           <span className="truncate">{section.title}</span>
                        </div>
-                       <button onClick={(e) => deleteSection(section.id, e)} className={`opacity-0 group-hover:opacity-100 hover:text-red-500 ${activeSectionId === section.id ? 'text-white' : ''}`}><span className="material-icons text-[10px]">close</span></button>
+                       <button 
+                         onClick={(e) => deleteSection(section.id, e)} 
+                         className={`hover:bg-red-500 hover:text-white rounded p-0.5 ${activeSectionId === section.id ? 'text-white opacity-100' : 'text-red-400 opacity-0 group-hover:opacity-100'}`}
+                         title="Delete Section"
+                       >
+                         <span className="material-icons text-[12px]">close</span>
+                       </button>
                     </div>
                  ))}
               </div>
@@ -502,10 +516,16 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
                  <h3 className="text-lg font-bold">Search Archives</h3>
                  <button onClick={() => setShowArchiveSearch(false)}><span className="material-icons">close</span></button>
               </div>
-              {/* Implementation similar to previous, just ensuring modal structure exists */}
               <div className="flex-1 overflow-y-auto">
                  <p className="text-center text-gray-400 p-4">Archive search allows you to pull content from previous drafts.</p>
-                 {/* Logic handles rendering results */}
+                 <div className="space-y-2">
+                   {archiveResults.map(d => (
+                     <div key={d.id} className="p-3 border rounded hover:bg-gray-50 cursor-pointer" onClick={() => { setActiveId(d.id); setShowArchiveSearch(false); }}>
+                       <div className="font-bold text-sm">{d.topic || 'Untitled'}</div>
+                       <div className="text-xs text-gray-500">{d.course} • {d.sections.length} Sections</div>
+                     </div>
+                   ))}
+                 </div>
               </div>
            </div>
         </div>
