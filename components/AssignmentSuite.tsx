@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { gradeEssay, synthesizeCritique, solveAssignment, analyzeSupervisorStyle } from '../services/geminiService';
 
 interface AssignmentSuiteProps {
@@ -62,6 +62,8 @@ export const AssignmentSuite: React.FC<AssignmentSuiteProps> = ({ userId }) => {
   const [handwritingMode, setHandwritingMode] = useState(false);
   const [showBiasPanel, setShowBiasPanel] = useState(false);
   const [analyzingBias, setAnalyzingBias] = useState(false);
+  
+  const resultRef = useRef<HTMLDivElement>(null);
 
   // Persist State Effect
   useEffect(() => {
@@ -85,17 +87,21 @@ export const AssignmentSuite: React.FC<AssignmentSuiteProps> = ({ userId }) => {
     if (!input.trim()) return;
     setLoading(true);
     try {
+      let res = '';
       if (mode === 'GRADER') {
-        const res = await gradeEssay(input, instruction);
-        setOutput(res);
+        res = await gradeEssay(input, instruction);
       } else if (mode === 'SYNTHESIZER') {
-        const res = await synthesizeCritique(input);
-        setOutput(res);
+        res = await synthesizeCritique(input);
       } else {
         // SOLVER Mode
-        const res = await solveAssignment(input, biasProfile, customFormat);
-        setOutput(res);
+        res = await solveAssignment(input, biasProfile, customFormat);
       }
+      setOutput(res);
+      setTimeout(() => {
+        if (resultRef.current) {
+          resultRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 300);
     } catch (e) {
       alert("Operation failed.");
     }
@@ -277,7 +283,7 @@ export const AssignmentSuite: React.FC<AssignmentSuiteProps> = ({ userId }) => {
         )}
 
         {/* Right Column: Output */}
-        <div className={`col-span-12 ${showBiasPanel ? 'lg:col-span-4' : 'lg:col-span-6'} paper-panel p-8 rounded-sm overflow-y-auto bg-white border border-[var(--border-color)] relative`}>
+        <div ref={resultRef} className={`col-span-12 ${showBiasPanel ? 'lg:col-span-4' : 'lg:col-span-6'} paper-panel p-8 rounded-sm overflow-y-auto bg-white border border-[var(--border-color)] relative`}>
            <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
               <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Human Hand</span>
               <button 

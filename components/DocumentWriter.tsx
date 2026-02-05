@@ -72,6 +72,7 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
   const [captionLoading, setCaptionLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const saveTimeoutRef = useRef<any>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
 
   // Verification & Contextual Sourcing State
   const [verifying, setVerifying] = useState(false);
@@ -168,7 +169,7 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
     pushHistory(newContent);
   };
 
-  // Undo/Redo Logic
+  // Logic to push new history entry immediately (skipping debounce)
   const pushHistory = (newContent: string) => {
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
 
@@ -191,11 +192,33 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
   };
 
   const handleUndo = () => {
+    // Clear any pending autosave to prevent race conditions
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     
     setDrafts(currDrafts => {
       const d = currDrafts.find(item => item.id === activeId);
-      if (!d || d.historyIndex <= 0) return currDrafts;
+      if (!d) return currDrafts;
+
+      // Robust Undo: Check for uncommitted typing
+      // If output differs from current history snapshot, we commit the typing first
+      // then revert output to the snapshot. This effectively "Undoes the typing"
+      // while saving it in the Redo stack so it isn't lost.
+      if (d.output !== d.history[d.historyIndex]) {
+         const newHistory = d.history.slice(0, d.historyIndex + 1);
+         newHistory.push(d.output);
+         if (newHistory.length > 50) newHistory.shift();
+
+         return currDrafts.map(item => item.id === activeId ? {
+           ...item,
+           history: newHistory,
+           // Keep historyIndex same (pointing to 'before' typing)
+           // Revert output to that snapshot
+           output: item.history[d.historyIndex]
+         } : item);
+      }
+
+      // Standard Undo behavior
+      if (d.historyIndex <= 0) return currDrafts;
 
       const newIndex = d.historyIndex - 1;
       return currDrafts.map(item => item.id === activeId ? { 
@@ -211,7 +234,12 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
 
     setDrafts(currDrafts => {
       const d = currDrafts.find(item => item.id === activeId);
-      if (!d || d.historyIndex >= d.history.length - 1) return currDrafts;
+      if (!d) return currDrafts;
+
+      // Block Redo if there are uncommitted changes (typing creates a new branch)
+      if (d.output !== d.history[d.historyIndex]) return currDrafts;
+
+      if (d.historyIndex >= d.history.length - 1) return currDrafts;
 
       const newIndex = d.historyIndex + 1;
       return currDrafts.map(item => item.id === activeId ? { 
@@ -221,6 +249,28 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
       } : item);
     });
   };
+
+  // Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Support Ctrl+Z (Undo) and Ctrl+Y or Ctrl+Shift+Z (Redo)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          handleRedo();
+        } else {
+          handleUndo();
+        }
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeId]); // Re-bind when active document changes
 
   const newDraft = () => {
     const id = Date.now().toString();
@@ -239,18 +289,36 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
   };
 
   const handleGenerate = async () => {
-    if (!activeDraft.topic || !activeDraft.course) return;
+    if (!activeDraft.topic || !activeDraft.course) {
+      alert("Please enter a Topic and Course.");
+      return;
+    }
     setLoading(true);
     try {
       const appendixStr = activeDraft.appendix.map((a, i) => `Figure ${i+1}: ${a.caption}`).join('\n');
-      const [docText, fetchedVideos] = await Promise.all([
-        generateAcademicDocument(activeDraft.level, activeDraft.course, activeDraft.topic, activeDraft.details, appendixStr),
-        searchYouTubeVideos(activeDraft.topic)
-      ]);
+      
+      // Robust Handling: Run promises separately so video search failure doesn't block document
+      const docPromise = generateAcademicDocument(activeDraft.level, activeDraft.course, activeDraft.topic, activeDraft.details, appendixStr);
+      const videoPromise = searchYouTubeVideos(activeDraft.topic).catch(e => {
+        console.warn("Video search failed", e);
+        return [];
+      });
+
+      const [docText, fetchedVideos] = await Promise.all([docPromise, videoPromise]);
+      
       pushHistory(docText);
       updateDraft('videos', fetchedVideos);
+      
+      // Auto-scroll to editor on mobile
+      setTimeout(() => {
+        if (editorRef.current) {
+           editorRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 300);
+      
     } catch (e) {
-      alert("Generation failed.");
+      console.error(e);
+      alert("Generation failed. Please try again.");
     }
     setLoading(false);
   };
@@ -334,6 +402,11 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
       const bib = await generateBibliography(activeDraft.citations, style);
       const newContent = activeDraft.output + `\n\nBIBLIOGRAPHY (${style})\n\n` + bib;
       pushHistory(newContent);
+      setTimeout(() => {
+        if (editorRef.current) {
+          editorRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+      }, 300);
     } catch (e) {
       alert("Bibliography generation failed");
     }
@@ -459,7 +532,7 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
       />
 
       {/* Top Bar */}
-      <div className="flex justify-between items-center mb-4 border-b border-[var(--border-color)] pb-2">
+      <div className="flex justify-between items-center mb-4 border-b border-[var(--border-color)] pb-2 flex-shrink-0">
          <div className="flex items-center gap-2 overflow-x-auto">
             {drafts.map(d => (
               <div 
@@ -478,7 +551,7 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
 
          <div className="flex items-center gap-4">
             {/* Collaborators */}
-            <div className="flex items-center -space-x-2 mr-2">
+            <div className="hidden md:flex items-center -space-x-2 mr-2">
                {collaborators.map(c => (
                  <div key={c.id} className={`w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-white text-xs ${c.color} relative group cursor-pointer`}>
                     {c.name[0]}
@@ -501,8 +574,24 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
             
             {/* Undo/Redo */}
             <div className="flex gap-1 bg-[var(--surface-color)] rounded p-1 border border-[var(--border-color)]">
-              <button onClick={handleUndo} disabled={activeDraft.historyIndex === 0} className="p-1 disabled:opacity-30 hover:bg-gray-100 rounded" title="Undo"><span className="material-icons text-sm">undo</span></button>
-              <button onClick={handleRedo} disabled={activeDraft.historyIndex === activeDraft.history.length - 1} className="p-1 disabled:opacity-30 hover:bg-gray-100 rounded" title="Redo"><span className="material-icons text-sm">redo</span></button>
+              {/* Enable Undo if we have uncommitted changes OR index > 0 */}
+              <button 
+                onClick={handleUndo} 
+                disabled={activeDraft.historyIndex === 0 && activeDraft.output === activeDraft.history[0]} 
+                className="p-1 disabled:opacity-30 hover:bg-gray-100 rounded" 
+                title="Undo (Ctrl+Z)"
+              >
+                <span className="material-icons text-sm">undo</span>
+              </button>
+              {/* Disable Redo if uncommitted changes exist */}
+              <button 
+                onClick={handleRedo} 
+                disabled={activeDraft.historyIndex === activeDraft.history.length - 1 || activeDraft.output !== activeDraft.history[activeDraft.historyIndex]} 
+                className="p-1 disabled:opacity-30 hover:bg-gray-100 rounded" 
+                title="Redo (Ctrl+Y)"
+              >
+                <span className="material-icons text-sm">redo</span>
+              </button>
             </div>
 
             {/* Export */}
@@ -521,9 +610,9 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
          </div>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-6 flex-1 overflow-hidden">
+      <div className="flex flex-col md:flex-row gap-6 flex-1 h-full min-h-0 md:overflow-hidden pb-20 md:pb-0">
         {/* Left Sidebar */}
-        <div className="w-full md:w-1/3 space-y-6 overflow-y-auto pb-10 pr-2 custom-scrollbar">
+        <div className="w-full md:w-1/3 space-y-6 md:overflow-y-auto pb-10 pr-2 custom-scrollbar h-auto md:h-full">
           
           <div className="paper-panel p-6 rounded-sm">
             <h3 className="font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
@@ -576,7 +665,7 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
 
             <button onClick={handleGenerate} disabled={loading} className="w-full btn-primary mt-4 flex items-center justify-center gap-2">
               {loading ? <span className="animate-spin material-icons">refresh</span> : <span className="material-icons">auto_awesome</span>}
-              {loading ? 'Writing...' : 'Generate Document'}
+              {loading ? 'Writing (Flash AI)...' : 'Generate Document'}
             </button>
           </div>
 
@@ -675,7 +764,7 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
         </div>
 
         {/* Editor Area */}
-        <div className="w-full md:w-2/3 paper-panel rounded-sm overflow-hidden bg-white border border-[var(--border-color)] shadow-inner relative flex flex-col">
+        <div ref={editorRef} className="w-full md:w-2/3 paper-panel rounded-sm overflow-hidden bg-white border border-[var(--border-color)] shadow-inner relative flex flex-col md:h-full min-h-[500px]">
            {/* Editor Toolbar */}
            <div className="h-10 bg-[var(--surface-color)] border-b border-[var(--border-color)] flex items-center justify-between px-4">
               <div className="flex items-center gap-2">
@@ -695,7 +784,7 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
               <span className="text-[10px] text-[var(--text-secondary)] uppercase font-bold tracking-widest">{isEditing ? 'Raw Editor' : 'Rendered View'}</span>
            </div>
 
-           <div className="flex-1 overflow-y-auto relative p-10">
+           <div className="flex-1 overflow-y-auto relative p-6 md:p-10">
               {activeDraft.output || isEditing ? (
                  isEditing ? (
                    <textarea 

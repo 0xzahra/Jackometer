@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { generateResearchTitles, generateDeepResearch } from '../services/geminiService';
 import { ProjectTitle } from '../types';
 
@@ -56,6 +56,8 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
   });
   const [editingStructure, setEditingStructure] = useState(false);
   const [newChapterName, setNewChapterName] = useState('');
+  
+  const resultRef = useRef<HTMLDivElement>(null);
 
   // Persist State
   useEffect(() => {
@@ -104,6 +106,13 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
         selectedTitle.description
       );
       setGeneratedContent(prev => prev + `\n\n${chapter.toUpperCase()}\n\n` + content);
+      
+      setTimeout(() => {
+        if (resultRef.current) {
+          resultRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+      }, 300);
+      
     } catch (e) {
       alert("Failed to generate content.");
     }
@@ -156,12 +165,12 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto">
+    <div className="w-full max-w-6xl mx-auto h-full flex flex-col">
       {mode === 'FORGE' && (
-        <div className="flex flex-col items-center justify-center min-h-[60vh]">
-           <div className="w-full max-w-2xl paper-panel p-10 rounded-sm relative overflow-hidden text-center">
+        <div className="flex flex-col items-center justify-center min-h-[60vh] p-4">
+           <div className="w-full max-w-2xl paper-panel p-6 md:p-10 rounded-sm relative overflow-hidden text-center">
              <div className="absolute top-0 left-0 w-full h-1 bg-slate-800"></div>
-             <h2 className="text-4xl font-serif font-bold text-[var(--text-primary)] mb-2">Topic Forge</h2>
+             <h2 className="text-3xl md:text-4xl font-serif font-bold text-[var(--text-primary)] mb-2">Topic Forge</h2>
              <p className="text-[var(--text-secondary)] mb-8 italic font-serif">"Enter a concept. We will build the thesis."</p>
              
              <div className="relative mb-8">
@@ -169,8 +178,8 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
                 type="text"
                 value={topicInput}
                 onChange={(e) => setTopicInput(e.target.value)}
-                placeholder="e.g. 'Sustainable Architecture' or 'Parasites'"
-                className="w-full bg-[var(--bg-color)] border-b-2 border-[var(--border-color)] text-[var(--text-primary)] p-4 text-2xl text-center focus:outline-none focus:border-[var(--accent)] placeholder-[var(--text-secondary)] font-serif"
+                placeholder="e.g. 'Sustainable Architecture'"
+                className="w-full bg-[var(--bg-color)] border-b-2 border-[var(--border-color)] text-[var(--text-primary)] p-4 text-xl md:text-2xl text-center focus:outline-none focus:border-[var(--accent)] placeholder-[var(--text-secondary)] font-serif"
                />
              </div>
 
@@ -191,7 +200,7 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
            </div>
 
            {/* Results */}
-           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-12 w-full">
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-12 w-full pb-10">
              {titles.map((t, idx) => (
                <div key={idx} className="paper-card p-6 rounded-sm cursor-pointer group hover:border-[var(--accent)]" onClick={() => handleSelectTitle(t)}>
                  <h3 className="text-lg font-bold text-[var(--text-primary)] mb-3 font-serif leading-tight group-hover:text-[var(--accent)]">{t.title}</h3>
@@ -206,20 +215,20 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
       )}
 
       {mode === 'WRITER' && selectedTitle && (
-        <div className="flex flex-col h-full">
-          <div className="paper-panel p-6 rounded-sm mb-6 flex justify-between items-center sticky top-0 z-20 shadow-sm">
+        <div className="flex flex-col flex-1 h-full min-h-0">
+          <div className="paper-panel p-6 rounded-sm mb-6 flex flex-col md:flex-row justify-between items-start md:items-center sticky top-0 z-20 shadow-sm gap-4">
             <div>
-              <h2 className="text-xl font-bold font-serif text-[var(--text-primary)] truncate max-w-lg">{selectedTitle.title}</h2>
+              <h2 className="text-lg md:text-xl font-bold font-serif text-[var(--text-primary)] truncate max-w-lg">{selectedTitle.title}</h2>
               <p className="text-xs text-[var(--text-secondary)] uppercase tracking-widest mt-1">Dissertation Builder Active</p>
             </div>
-            <button className="text-xs border border-red-200 text-red-700 px-4 py-2 rounded hover:bg-red-50 transition-colors uppercase tracking-widest font-bold" onClick={() => setMode('FORGE')}>
+            <button className="text-xs border border-red-200 text-red-700 px-4 py-2 rounded hover:bg-red-50 transition-colors uppercase tracking-widest font-bold self-end md:self-auto" onClick={() => setMode('FORGE')}>
               Exit
             </button>
           </div>
 
-          <div className="grid grid-cols-12 gap-8 h-full">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 flex-1 h-full min-h-0 md:overflow-hidden">
             {/* Outline Sidebar */}
-            <div className="col-span-3 paper-panel rounded-sm overflow-hidden flex flex-col h-[70vh]">
+            <div className="col-span-1 md:col-span-3 paper-panel rounded-sm overflow-hidden flex flex-col md:h-full max-h-[400px] md:max-h-none">
               <div className="bg-[var(--bg-color)] p-4 border-b border-[var(--border-color)] flex justify-between items-center">
                 <h3 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Table of Contents</h3>
                 <button onClick={() => setEditingStructure(!editingStructure)} className="text-[var(--accent)] hover:underline text-[10px] font-bold">
@@ -261,7 +270,7 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
             </div>
 
             {/* Editor Area */}
-            <div className="col-span-9 paper-panel rounded-sm p-12 overflow-y-auto relative h-[70vh] bg-white shadow-inner">
+            <div ref={resultRef} className="col-span-1 md:col-span-9 paper-panel rounded-sm p-6 md:p-12 overflow-y-auto relative bg-white shadow-inner md:h-full min-h-[500px]">
                {loading && (
                  <div className="absolute inset-0 bg-white/80 z-20 flex items-center justify-center backdrop-blur-sm">
                    <div className="text-center">
@@ -271,7 +280,7 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
                  </div>
                )}
                {generatedContent ? (
-                 <article className="prose prose-slate max-w-none">
+                 <article className="prose prose-slate max-w-none pb-20">
                    <div className="whitespace-pre-wrap font-serif text-base leading-relaxed text-[var(--text-primary)]">
                      {renderContent(generatedContent)}
                    </div>
@@ -279,13 +288,13 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
                ) : (
                  <div className="h-full flex flex-col items-center justify-center text-[var(--text-secondary)] opacity-50">
                    <span className="material-icons text-6xl mb-4">library_books</span>
-                   <p className="font-serif text-xl italic">Select a chapter to begin writing.</p>
+                   <p className="font-serif text-xl italic text-center">Select a chapter to begin writing.</p>
                  </div>
                )}
             </div>
           </div>
           
-          <div className="mt-6 flex justify-end space-x-4">
+          <div className="mt-6 flex justify-end space-x-4 pb-6">
              <button className="bg-white border border-[var(--border-color)] hover:bg-[var(--bg-color)] text-[var(--text-primary)] px-6 py-3 rounded-sm flex items-center text-sm font-bold shadow-sm">
                <span className="material-icons mr-2 text-sm">picture_as_pdf</span>
                PDF

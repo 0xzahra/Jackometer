@@ -4,6 +4,32 @@ import { ProjectTitle, SlideDeck, CVData, AnalysisResult, YouTubeVideo, Citation
 // Always use process.env.API_KEY directly as per guidelines
 const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+// --- HELPER: ROBUST JSON PARSER ---
+const cleanAndParseJSON = (text: string | undefined, defaultVal: any) => {
+  if (!text) return defaultVal;
+  try {
+    // Remove markdown code blocks (```json ... ```)
+    const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    return JSON.parse(cleaned);
+  } catch (e) {
+    console.warn("JSON Parse Warning, attempting soft fix:", e);
+    // Fallback: sometimes models return just the array or object without markdown but with trailing chars
+    try {
+        const start = text.indexOf('{');
+        const end = text.lastIndexOf('}') + 1;
+        if (start !== -1 && end > start) {
+            return JSON.parse(text.substring(start, end));
+        }
+        const startArr = text.indexOf('[');
+        const endArr = text.lastIndexOf(']') + 1;
+        if (startArr !== -1 && endArr > startArr) {
+            return JSON.parse(text.substring(startArr, endArr));
+        }
+    } catch (e2) {}
+    return defaultVal;
+  }
+};
+
 // --- UTILS ---
 export const downloadFile = (content: string, filename: string, mimeType: string) => {
   let blobContent = content;
@@ -62,7 +88,7 @@ export const generateResearchTitles = async (topic: string): Promise<ProjectTitl
     }
   });
 
-  return JSON.parse(response.text || '[]');
+  return cleanAndParseJSON(response.text, []);
 };
 
 export const generateDeepResearch = async (title: string, chapter: string, context: string) => {
@@ -87,15 +113,14 @@ export const generateDeepResearch = async (title: string, chapter: string, conte
   `;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+    model: 'gemini-3-flash-preview', // Switched to Flash for speed
     contents: prompt,
     config: {
-      thinkingConfig: { thinkingBudget: 1024 },
       tools: [{ googleSearch: {} }] 
     }
   });
   
-  return response.text;
+  return response.text || "No content generated. Please try again.";
 };
 
 export const searchYouTubeVideos = async (topic: string): Promise<YouTubeVideo[]> => {
@@ -107,7 +132,7 @@ export const searchYouTubeVideos = async (topic: string): Promise<YouTubeVideo[]
   `;
   
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+    model: 'gemini-3-flash-preview',
     contents: prompt,
     config: {
       tools: [{ googleSearch: {} }],
@@ -126,7 +151,7 @@ export const searchYouTubeVideos = async (topic: string): Promise<YouTubeVideo[]
     }
   });
 
-  return JSON.parse(response.text || '[]');
+  return cleanAndParseJSON(response.text, []);
 };
 
 // --- FIELD TRIP & LAB ---
@@ -176,7 +201,7 @@ export const generateFieldTripGuide = async (topic: string, requirements: string
     }
   });
 
-  return JSON.parse(response.text || '{"tables": [], "checklist": []}');
+  return cleanAndParseJSON(response.text, {tables: [], checklist: []});
 };
 
 export const generateFieldTripDocument = async (topic: string, tables: string, notes: string): Promise<string> => {
@@ -202,7 +227,7 @@ export const generateFieldTripDocument = async (topic: string, tables: string, n
       - Cite sources inline using Markdown links: [Source Name](URL).
       - Add a "URL Context References" section at the end describing each link.
     `;
-    const response = await ai.models.generateContent({ model: 'gemini-3-pro-preview', contents: prompt, config: { tools: [{ googleSearch: {} }] } });
+    const response = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt, config: { tools: [{ googleSearch: {} }] } });
     return response.text || "";
 }
 
@@ -242,7 +267,7 @@ export const generateRapidPresentation = async (topic: string, rawData: string):
     }
   });
 
-  return JSON.parse(response.text || '{}');
+  return cleanAndParseJSON(response.text, {});
 };
 
 export const estimateWeatherConditions = async (lat: number, lng: number): Promise<{temp: string, humidity: string, conditions: string}> => {
@@ -269,7 +294,7 @@ export const estimateWeatherConditions = async (lat: number, lng: number): Promi
     }
   });
 
-  return JSON.parse(response.text || '{"temp": "--", "humidity": "--", "conditions": "--"}');
+  return cleanAndParseJSON(response.text, {temp: "--", humidity: "--", conditions: "--"});
 };
 
 // --- DOCUMENT WRITER ---
@@ -292,7 +317,7 @@ export const generateAcademicDocument = async (level: string, course: string, to
       - Include a "URL Context References" section at the end. List every URL used and a 1-sentence preview of the site content.
     `;
     const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-3-flash-preview', // Switched for speed
         contents: prompt,
         config: {
             tools: [{ googleSearch: {} }]
@@ -333,7 +358,7 @@ export const enrichCitationFromUrl = async (url: string): Promise<Partial<Citati
     }
   });
 
-  const data = JSON.parse(response.text || '{}');
+  const data = cleanAndParseJSON(response.text, {});
   return { ...data, url };
 };
 
@@ -370,7 +395,7 @@ export const verifyCitations = async (citations: Citation[]): Promise<{id: strin
     }
   });
 
-  return JSON.parse(response.text || '[]');
+  return cleanAndParseJSON(response.text, []);
 };
 
 export const getContextualQuotes = async (citation: Citation, userContext: string): Promise<string[]> => {
@@ -397,7 +422,7 @@ export const getContextualQuotes = async (citation: Citation, userContext: strin
     }
   });
 
-  return JSON.parse(response.text || '[]');
+  return cleanAndParseJSON(response.text, []);
 };
 
 export const generateBibliography = async (citations: Citation[], style: string): Promise<string> => {
@@ -434,7 +459,7 @@ export const generateTechnicalReport = async (topic: string, details: string, ta
     Add a "URL Context" section at the end with descriptions of the links.
   `;
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+    model: 'gemini-3-flash-preview', // Switched for speed
     contents: prompt,
     config: { tools: [{ googleSearch: {} }] }
   });
@@ -456,7 +481,7 @@ export const generateLabReport = async (experiment: string, observations: string
     Add a "URL Context" section at the end with descriptions of the links.
   `;
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+    model: 'gemini-3-flash-preview', // Switched for speed
     contents: prompt,
     config: { tools: [{ googleSearch: {} }] }
   });
@@ -527,11 +552,10 @@ export const analyzeData = async (dataInput: string, tableData: string): Promise
   `;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview', // Pro model for maximum accuracy
+    model: 'gemini-3-flash-preview', // Switched for speed/consistency
     contents: prompt,
     config: {
       responseMimeType: 'application/json',
-      thinkingConfig: { thinkingBudget: 2048 }, // Allow thinking for precision
       responseSchema: {
         type: Type.OBJECT,
         properties: {
@@ -543,7 +567,7 @@ export const analyzeData = async (dataInput: string, tableData: string): Promise
     }
   });
 
-  return JSON.parse(response.text || '{}');
+  return cleanAndParseJSON(response.text, {});
 };
 
 // --- ASSIGNMENT SUITE (Reviewer 2) ---
@@ -569,7 +593,7 @@ export const gradeEssay = async (essay: string, instruction: string): Promise<st
       Hyperlink any resources you suggest using [Resource Name](URL).
     `;
     const response = await ai.models.generateContent({ 
-        model: 'gemini-3-pro-preview', 
+        model: 'gemini-3-flash-preview', // Switched for speed
         contents: prompt,
         config: { tools: [{ googleSearch: {} }] }
     });
@@ -593,7 +617,7 @@ export const synthesizeCritique = async (sourceMaterial: string): Promise<string
       - End with a "URL Context" section describing the sources.
     `;
     const response = await ai.models.generateContent({ 
-        model: 'gemini-3-pro-preview', 
+        model: 'gemini-3-flash-preview', // Switched for speed
         contents: prompt,
         config: { tools: [{ googleSearch: {} }] }
     });
@@ -647,7 +671,7 @@ export const solveAssignment = async (question: string, biasProfile: string = ""
   `;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+    model: 'gemini-3-flash-preview', // Switched for speed
     contents: prompt,
     config: { tools: [{ googleSearch: {} }] }
   });
@@ -735,7 +759,7 @@ export const reviewCareerDocument = async (docData: { text?: string, image?: str
   } else if (docData.text) {
     // If text provided, use text model
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
+      model: 'gemini-3-flash-preview', // Switched for speed
       contents: `${prompt}\n\nORIGINAL CONTENT:\n${docData.text}`
     });
     return response.text || "";

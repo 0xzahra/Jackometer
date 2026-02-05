@@ -1,4 +1,4 @@
-import React, { useState, createContext, useContext, useEffect, ReactNode } from 'react';
+import React, { useState, createContext, useContext, useEffect, Component, ReactNode } from 'react';
 import { Layout } from './components/Layout';
 import { Dashboard } from './components/Dashboard';
 import { ResearchEngine } from './components/ResearchEngine';
@@ -30,10 +30,11 @@ interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  state: ErrorBoundaryState = {
-    hasError: false
-  };
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
 
   static getDerivedStateFromError(error: any): ErrorBoundaryState {
     return { hasError: true };
@@ -62,7 +63,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         </div>
       );
     }
-    return (this.props as any).children;
+    return this.props.children;
   }
 }
 
@@ -70,6 +71,10 @@ export default function App() {
   const [currentView, setCurrentView] = useState<AppView>(AppView.DASHBOARD);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [user, setUser] = useState<UserProfile | null>(null);
+  
+  // Multitasking State: Track which views have been visited to keep them alive
+  // Initialize with DASHBOARD to ensure it renders immediately on load
+  const [visitedViews, setVisitedViews] = useState<Set<AppView>>(new Set([AppView.DASHBOARD]));
 
   const toggleTheme = () => {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
@@ -79,7 +84,17 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
-  // Check for persisted session (Mock)
+  // Unified Navigation Handler: Synchronously updates visited views to prevent blank screens
+  const handleSetView = (view: AppView) => {
+    setVisitedViews(prev => {
+      const newSet = new Set(prev);
+      newSet.add(view);
+      return newSet;
+    });
+    setCurrentView(view);
+  };
+
+  // Check for persisted session
   useEffect(() => {
     try {
       const storedUser = localStorage.getItem('jackometer_user');
@@ -112,7 +127,25 @@ export default function App() {
   const handleLogout = () => {
     setUser(null);
     localStorage.removeItem('jackometer_user');
-    setCurrentView(AppView.DASHBOARD); // Reset view on logout
+    // Clear visited views to free memory on logout
+    setVisitedViews(new Set([AppView.DASHBOARD]));
+    setCurrentView(AppView.DASHBOARD);
+  };
+
+  // Helper to render views with persistence (Hidden vs Unmounted)
+  const renderPersistentView = (view: AppView, Component: ReactNode) => {
+    // Optimization: Don't render if never visited (startup performance)
+    if (!visitedViews.has(view)) return null;
+
+    return (
+      <div 
+        key={view} 
+        style={{ display: currentView === view ? 'block' : 'none', height: '100%' }}
+        className="animate-fade-in"
+      >
+        {Component}
+      </div>
+    );
   };
 
   if (!user) {
@@ -130,27 +163,27 @@ export default function App() {
       <ErrorBoundary>
         <Layout 
           currentView={currentView} 
-          setView={setCurrentView} 
+          setView={handleSetView} 
           theme={theme} 
           toggleTheme={toggleTheme}
           user={user}
           onLogout={handleLogout}
         >
-          {currentView === AppView.DASHBOARD && <Dashboard setView={setCurrentView} />}
-          {currentView === AppView.RESEARCH && <ResearchEngine userId={user.email} />}
-          {currentView === AppView.DOCUMENT_WRITER && <DocumentWriter userId={user.email} />}
-          {currentView === AppView.ASSIGNMENT && <AssignmentSuite userId={user.email} />}
-          {currentView === AppView.FIELD_TRIP && <FieldTripSuite />}
-          {currentView === AppView.CAREER && <CareerStudio />}
-          {currentView === AppView.COMMUNITY && <Community />}
-          {currentView === AppView.SETTINGS && <Settings user={user} onUpdateUser={handleUpdateUser} />}
-          {currentView === AppView.DATA_CRUNCHER && <DataCruncher />}
-          {currentView === AppView.COMPRESSOR && <FileCompressor />}
-          {currentView === AppView.TECHNICAL_REPORT && <ReportSuite type="TECHNICAL" />}
-          {currentView === AppView.LAB_REPORT && <ReportSuite type="LAB" />}
-          {currentView === AppView.INBOX && <Inbox setView={setCurrentView} />}
-          {currentView === AppView.NOTIFICATIONS && <Notifications setView={setCurrentView} />}
-          {currentView === AppView.PROFILE && <Profile user={user} />}
+          {renderPersistentView(AppView.DASHBOARD, <Dashboard setView={handleSetView} />)}
+          {renderPersistentView(AppView.RESEARCH, <ResearchEngine userId={user.email} />)}
+          {renderPersistentView(AppView.DOCUMENT_WRITER, <DocumentWriter userId={user.email} />)}
+          {renderPersistentView(AppView.ASSIGNMENT, <AssignmentSuite userId={user.email} />)}
+          {renderPersistentView(AppView.FIELD_TRIP, <FieldTripSuite />)}
+          {renderPersistentView(AppView.CAREER, <CareerStudio />)}
+          {renderPersistentView(AppView.COMMUNITY, <Community />)}
+          {renderPersistentView(AppView.SETTINGS, <Settings user={user} onUpdateUser={handleUpdateUser} />)}
+          {renderPersistentView(AppView.DATA_CRUNCHER, <DataCruncher />)}
+          {renderPersistentView(AppView.COMPRESSOR, <FileCompressor />)}
+          {renderPersistentView(AppView.TECHNICAL_REPORT, <ReportSuite type="TECHNICAL" />)}
+          {renderPersistentView(AppView.LAB_REPORT, <ReportSuite type="LAB" />)}
+          {renderPersistentView(AppView.INBOX, <Inbox setView={handleSetView} />)}
+          {renderPersistentView(AppView.NOTIFICATIONS, <Notifications setView={handleSetView} />)}
+          {renderPersistentView(AppView.PROFILE, <Profile user={user} />)}
         </Layout>
 
         <VoiceAssistant />

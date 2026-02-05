@@ -52,6 +52,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
     localStorage.setItem('jackometer_tour_done', 'true');
     setTourOpen(false);
     setTourStep(0);
+    setView(AppView.DASHBOARD);
   };
 
   const toggleTour = () => {
@@ -165,26 +166,26 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
       {/* Main Content */}
       <main className="relative z-10 flex-1 flex flex-col h-full overflow-hidden bg-transparent">
         {/* Header */}
-        <header className="h-16 flex items-center justify-between px-6 border-b border-[var(--border-color)] bg-[var(--panel-bg)] z-30">
+        <header className="h-16 flex items-center justify-between px-6 border-b border-[var(--border-color)] bg-[var(--panel-bg)] z-30 flex-shrink-0">
           <div className="flex items-center">
-            <button onClick={() => setSidebarOpen(true)} className="mr-8 text-[var(--text-primary)] hover:text-[var(--accent)]">
+            <button onClick={() => setSidebarOpen(true)} className="mr-8 text-[var(--text-primary)] hover:text-[var(--accent)] flex-shrink-0">
               <span className="material-icons text-2xl">menu</span>
             </button>
-            <h2 className="text-xl font-serif font-bold text-[var(--text-primary)] capitalize truncate">
+            <h2 className="text-xl font-serif font-bold text-[var(--text-primary)] capitalize truncate ml-2">
               {currentView.replace(/_/g, ' ').toLowerCase()}
             </h2>
           </div>
           
-          <div className="flex items-center space-x-2 md:space-x-4">
-             {/* Back to Dashboard Navigation (RHS) */}
+          <div className="flex items-center space-x-2 md:space-x-4 flex-shrink-0">
+             {/* Back to Dashboard Navigation (RHS) - Hidden on Mobile */}
              {currentView !== AppView.DASHBOARD && (
                <button
                  onClick={() => setView(AppView.DASHBOARD)}
-                 className="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-[var(--text-primary)] px-3 py-1.5 rounded-full text-xs font-bold transition-colors mr-2 border border-[var(--border-color)]"
+                 className="hidden md:flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-[var(--text-primary)] px-3 py-1.5 rounded-full text-xs font-bold transition-colors mr-2 border border-[var(--border-color)]"
                  title="Back to Dashboard"
                >
                   <span className="material-icons text-sm">grid_view</span>
-                  <span className="hidden md:inline">Dashboard</span>
+                  <span>Dashboard</span>
                </button>
              )}
 
@@ -205,7 +206,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
                 <span className="hidden sm:inline">{tourOpen ? 'Tour On' : 'Tour Off'}</span>
              </button>
 
-             <div className="h-6 w-px bg-[var(--border-color)] mx-2"></div>
+             <div className="h-6 w-px bg-[var(--border-color)] mx-2 hidden sm:block"></div>
 
              <button onClick={() => setView(AppView.INBOX)} className="relative text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors p-2" title="Inbox">
                <span className="material-icons">mail</span>
@@ -225,7 +226,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
         </div>
 
         {/* Footer */}
-        <footer className="h-10 border-t border-[var(--border-color)] bg-[var(--panel-bg)] flex items-center justify-between px-8 text-xs font-serif text-[var(--text-secondary)]">
+        <footer className="h-10 border-t border-[var(--border-color)] bg-[var(--panel-bg)] flex items-center justify-between px-8 text-xs font-serif text-[var(--text-secondary)] flex-shrink-0">
            <span>Jackometer v2050</span>
            <span className="font-bold opacity-70">Vibe coded by arewa.base.eth</span>
         </footer>

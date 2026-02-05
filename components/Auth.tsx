@@ -22,6 +22,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const isMounted = useRef(true);
 
   useEffect(() => {
+    isMounted.current = true;
     return () => {
       isMounted.current = false;
     };
@@ -35,8 +36,17 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     e.preventDefault();
     setLoading(true);
     
+    // Safety Timeout: Prevent infinite loading freeze
+    const safetyTimer = setTimeout(() => {
+        if(isMounted.current && loading) {
+            setLoading(false);
+            alert("Connection timed out. Please try again.");
+        }
+    }, 8000);
+    
     // Simulate API call
     setTimeout(() => {
+      clearTimeout(safetyTimer);
       if (!isMounted.current) return;
       onLogin({
         name: isSignup ? formData.fullName : 'Academic User',
@@ -68,8 +78,17 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   // 3. Approve/Grant Permissions
   const handleConsent = () => {
     setGoogleStep('PROCESSING');
+    
+    const safetyTimer = setTimeout(() => {
+        if(isMounted.current && googleStep === 'PROCESSING') {
+            setGoogleStep('IDLE');
+            alert("Google sign-in timed out. Please try again.");
+        }
+    }, 8000);
+
     // Simulate token exchange
     setTimeout(() => {
+      clearTimeout(safetyTimer);
       if (!isMounted.current) return;
       if (selectedGoogleAccount) onLogin(selectedGoogleAccount);
     }, 1500);
@@ -251,12 +270,38 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       {/* Right Side - Auth Form */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 sm:px-20 relative">
         <div className="max-w-md w-full mx-auto">
-          <div className="text-center mb-10">
-            <h2 className="text-4xl font-serif font-bold text-[var(--text-primary)] mb-2">Jackometer</h2>
-            <p className="text-[var(--text-secondary)] uppercase tracking-widest text-xs font-bold">Academic Intelligence Suite</p>
+          <div className="text-center mb-10 relative">
+            {/* Skills Submerging Symbols Animation */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-[400px] -z-10 pointer-events-none">
+                <style>{`
+                  @keyframes submergeFloat {
+                    0% { transform: translateY(15px) scale(0.9); opacity: 0; }
+                    50% { opacity: 0.12; }
+                    100% { transform: translateY(-25px) scale(1.1); opacity: 0; }
+                  }
+                  .skill-symbol {
+                    position: absolute;
+                    animation: submergeFloat 6s infinite ease-in-out;
+                    color: var(--accent);
+                    opacity: 0;
+                    user-select: none;
+                  }
+                `}</style>
+                <span className="material-icons skill-symbol" style={{ left: '5%', top: '60%', animationDelay: '0s', fontSize: '24px' }}>school</span>
+                <span className="material-icons skill-symbol" style={{ right: '5%', top: '20%', animationDelay: '1s', fontSize: '28px' }}>science</span>
+                <span className="material-icons skill-symbol" style={{ left: '15%', top: '10%', animationDelay: '2s', fontSize: '20px' }}>psychology</span>
+                <span className="material-icons skill-symbol" style={{ right: '15%', top: '80%', animationDelay: '3s', fontSize: '26px' }}>functions</span>
+                <span className="material-icons skill-symbol" style={{ left: '50%', top: '-20%', animationDelay: '4s', fontSize: '22px' }}>history_edu</span>
+                <span className="material-icons skill-symbol" style={{ left: '50%', bottom: '-20%', animationDelay: '2.5s', fontSize: '22px' }}>gavel</span>
+                <span className="material-icons skill-symbol" style={{ left: '80%', top: '50%', animationDelay: '3.5s', fontSize: '30px' }}>biotech</span>
+                <span className="material-icons skill-symbol" style={{ left: '10%', top: '40%', animationDelay: '1.5s', fontSize: '18px' }}>calculate</span>
+            </div>
+
+            <h2 className="text-4xl font-serif font-bold text-[var(--text-primary)] mb-2 relative z-10">Jackometer</h2>
+            <p className="text-[var(--text-secondary)] uppercase tracking-widest text-xs font-bold relative z-10">Academic Intelligence Suite</p>
           </div>
 
-          <div className="paper-panel p-8 rounded-xl shadow-xl bg-white">
+          <div className="paper-panel p-8 rounded-xl shadow-xl bg-white relative z-10">
             <h3 className="text-2xl font-bold text-[var(--text-primary)] mb-6 text-center">
               {isSignup ? 'Start Your Research Journey' : 'Welcome Back, Scholar'}
             </h3>
