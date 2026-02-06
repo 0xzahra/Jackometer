@@ -33,6 +33,10 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
   // View State
   const [viewMode, setViewMode] = useState<'REPORT' | 'SLIDES'>('REPORT');
 
+  // Slide History
+  const [slideHistory, setSlideHistory] = useState<SlideDeck[]>([]);
+  const [slideHistoryIndex, setSlideHistoryIndex] = useState(-1);
+
   // Collaboration State
   const [collaborators, setCollaborators] = useState<Collaborator[]>([
     { id: 'me', name: 'You', color: 'bg-blue-600', status: 'ONLINE' }
@@ -55,6 +59,12 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
     }, 4000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+      // Reset slide history on doc switch
+      setSlideHistory([]);
+      setSlideHistoryIndex(-1);
+  }, [activeDocId]);
 
   const handleAddCollaborator = (user: UserSearchResult) => {
     const colors = ['bg-green-500', 'bg-purple-500', 'bg-orange-500', 'bg-pink-500', 'bg-indigo-500'];
@@ -228,6 +238,15 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
     setLoading(false);
   };
 
+  // --- SLIDE GENERATION ---
+  const updateSlideHistory = (newDeck: SlideDeck) => {
+    const newHistory = slideHistory.slice(0, slideHistoryIndex + 1);
+    newHistory.push(newDeck);
+    setSlideHistory(newHistory);
+    setSlideHistoryIndex(newHistory.length - 1);
+    updateDoc('slides', newDeck);
+  };
+
   const handleGenerateSlides = async () => {
      if (!activeDoc.report) {
          alert("Please generate or write a report first.");
@@ -236,12 +255,53 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
      setLoading(true);
      try {
          const deck = await generateRapidPresentation(activeDoc.topic || "Technical Report", activeDoc.report);
-         updateDoc('slides', deck);
+         updateSlideHistory(deck);
          setViewMode('SLIDES');
      } catch (e) {
          alert("Slide generation failed.");
      }
      setLoading(false);
+  };
+
+  const handleSlideUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        setLoading(true);
+        try {
+          const text = ev.target?.result as string;
+          const result = await generateRapidPresentation(activeDoc.topic || "Report Presentation", text);
+          updateSlideHistory(result);
+        } catch (e) {
+          alert("Failed to generate slides from document.");
+        }
+        setLoading(false);
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const handleSlideUndo = () => {
+    if (slideHistoryIndex > 0) {
+      const newIndex = slideHistoryIndex - 1;
+      setSlideHistoryIndex(newIndex);
+      updateDoc('slides', slideHistory[newIndex]);
+    }
+  };
+
+  const handleSlideRedo = () => {
+    if (slideHistoryIndex < slideHistory.length - 1) {
+      const newIndex = slideHistoryIndex + 1;
+      setSlideHistoryIndex(newIndex);
+      updateDoc('slides', slideHistory[newIndex]);
+    }
+  };
+
+  const exportSlides = () => {
+    if (!activeDoc.slides) return;
+    const content = activeDoc.slides.slides.map(s => `SLIDE: ${s.header}\n\nPOINTS:\n${s.content.join('\n')}\n\nVISUAL: ${s.visualCue || 'N/A'}`).join('\n\n-------------------\n\n');
+    downloadFile(content, `${activeDoc.topic || 'Report'}_slides.txt`, 'text/plain');
   };
 
   const handleImportDocument = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -573,9 +633,31 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
          </div>
        ) : (
           /* SLIDES VIEW */
-          <div className="flex-1 bg-slate-200/50 rounded-lg border-2 border-dashed border-slate-300 p-4 relative overflow-hidden">
+          <div className="flex-1 bg-slate-200/50 rounded-lg border-2 border-dashed border-slate-300 p-4 relative overflow-hidden flex flex-col">
+             {/* Slide Controls */}
+             <div className="flex justify-between items-center mb-4 px-2">
+                <div className="flex items-center gap-2">
+                   <h3 className="font-bold text-[var(--text-primary)] flex items-center gap-2">
+                      <span className="material-icons text-[var(--accent)]">slideshow</span> Presentation
+                   </h3>
+                </div>
+                <div className="flex gap-2">
+                   <label className="bg-[var(--surface-color)] border border-[var(--border-color)] text-[var(--text-primary)] px-3 py-1.5 rounded text-xs font-bold cursor-pointer hover:bg-[var(--bg-color)] flex items-center gap-2 shadow-sm">
+                      <span className="material-icons text-sm">cloud_upload</span> Upload Bulky Doc
+                      <input type="file" accept=".txt,.md,.json" className="hidden" onChange={handleSlideUpload} />
+                   </label>
+                   <div className="flex bg-white rounded border border-gray-300">
+                      <button onClick={handleSlideUndo} disabled={slideHistoryIndex <= 0} className="px-2 py-1 hover:bg-gray-100 disabled:opacity-30"><span className="material-icons text-sm">undo</span></button>
+                      <button onClick={handleSlideRedo} disabled={slideHistoryIndex >= slideHistory.length - 1} className="px-2 py-1 hover:bg-gray-100 disabled:opacity-30"><span className="material-icons text-sm">redo</span></button>
+                   </div>
+                   <button onClick={exportSlides} disabled={!activeDoc.slides} className="bg-[var(--primary)] text-white px-3 py-1.5 rounded text-xs font-bold hover:opacity-90 flex items-center gap-1 shadow-sm">
+                      <span className="material-icons text-sm">download</span> Export PPTX
+                   </button>
+                </div>
+             </div>
+
              {!activeDoc.slides ? (
-               <div className="absolute inset-0 flex items-center justify-center text-slate-400">
+               <div className="absolute inset-0 flex items-center justify-center text-slate-400 z-0">
                  <div className="text-center">
                     <span className="material-icons text-5xl mb-2">slideshow</span>
                     <p>No presentation generated yet.</p>
@@ -583,7 +665,7 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
                  </div>
                </div>
              ) : (
-               <div className="w-full h-full overflow-x-auto snap-x snap-mandatory flex gap-8 p-4 items-center">
+               <div className="w-full h-full overflow-x-auto snap-x snap-mandatory flex gap-8 p-4 items-center z-10">
                  {activeDoc.slides.slides.map((slide, idx) => (
                    <div key={idx} className="flex-shrink-0 w-[85vw] md:w-[800px] h-[50vh] md:h-[450px] bg-white text-slate-900 rounded-2xl shadow-2xl p-8 md:p-12 flex flex-col relative snap-center border border-slate-200">
                       <h2 className="text-2xl md:text-4xl font-bold mb-4 md:mb-8 text-slate-900 border-b-4 border-slate-800 pb-4 inline-block self-start z-10">{slide.header}</h2>
@@ -592,6 +674,15 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
                    </div>
                  ))}
                </div>
+             )}
+             
+             {loading && (
+                <div className="absolute inset-0 bg-white/80 z-50 flex items-center justify-center backdrop-blur-sm">
+                   <div className="flex flex-col items-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-[var(--accent)] mb-4"></div>
+                      <p className="font-bold text-[var(--text-primary)]">Generating Slides...</p>
+                   </div>
+                </div>
              )}
           </div>
        )}

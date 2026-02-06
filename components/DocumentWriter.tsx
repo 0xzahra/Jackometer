@@ -108,21 +108,28 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
   const activeDraft = drafts.find(d => d.id === activeId) || drafts[0];
   
   // Section Management State
-  const [activeSectionId, setActiveSectionId] = useState<string>(activeDraft.sections[0]?.id || 'prelim_1');
+  const [activeSectionId, setActiveSectionId] = useState<string>(activeDraft?.sections?.[0]?.id || 'prelim_1');
   const [isOutlineOpen, setIsOutlineOpen] = useState(true);
   const [newSectionTitle, setNewSectionTitle] = useState('');
 
   // View Mode
   const [viewMode, setViewMode] = useState<'WRITER' | 'SLIDES'>('WRITER');
 
+  // Slide History State (Transient)
+  const [slideHistory, setSlideHistory] = useState<SlideDeck[]>([]);
+  const [slideHistoryIndex, setSlideHistoryIndex] = useState(-1);
+
   // Sync active section when draft changes
   useEffect(() => {
-    if (!activeDraft.sections.find(s => s.id === activeSectionId)) {
+    if (activeDraft && activeDraft.sections && !activeDraft.sections.find(s => s.id === activeSectionId)) {
         setActiveSectionId(activeDraft.sections[0]?.id || '');
     }
-  }, [activeDraft.id]);
+    // Reset slide history on draft change
+    setSlideHistory([]);
+    setSlideHistoryIndex(-1);
+  }, [activeDraft?.id]);
 
-  const activeSection = activeDraft.sections.find(s => s.id === activeSectionId) || activeDraft.sections[0];
+  const activeSection = activeDraft?.sections?.find(s => s.id === activeSectionId) || activeDraft?.sections?.[0];
 
   const [loading, setLoading] = useState(false);
   const [driveSaving, setDriveSaving] = useState(false);
@@ -292,17 +299,67 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
     }
   };
 
+  // --- SLIDE GENERATION LOGIC ---
+  const updateSlideHistory = (newDeck: SlideDeck) => {
+    const newHistory = slideHistory.slice(0, slideHistoryIndex + 1);
+    newHistory.push(newDeck);
+    setSlideHistory(newHistory);
+    setSlideHistoryIndex(newHistory.length - 1);
+    updateDraft('slides', newDeck);
+  };
+
   const handleGenerateSlides = async () => {
      setLoading(true);
      try {
          const fullText = activeDraft.sections.map(s => `${s.title}\n${s.content}`).join('\n\n');
          const deck = await generateRapidPresentation(activeDraft.topic || "Research Project", fullText);
-         updateDraft('slides', deck);
+         updateSlideHistory(deck);
          setViewMode('SLIDES');
      } catch (e) {
          alert("Failed to generate slides.");
      }
      setLoading(false);
+  };
+
+  const handleUploadForSlides = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        setLoading(true);
+        try {
+          const text = ev.target?.result as string;
+          const deck = await generateRapidPresentation(activeDraft.topic || "Uploaded Document Defense", text);
+          updateSlideHistory(deck);
+        } catch (e) {
+          alert("Failed to generate slides from document.");
+        }
+        setLoading(false);
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const handleSlideUndo = () => {
+    if (slideHistoryIndex > 0) {
+      const newIndex = slideHistoryIndex - 1;
+      setSlideHistoryIndex(newIndex);
+      updateDraft('slides', slideHistory[newIndex]);
+    }
+  };
+
+  const handleSlideRedo = () => {
+    if (slideHistoryIndex < slideHistory.length - 1) {
+      const newIndex = slideHistoryIndex + 1;
+      setSlideHistoryIndex(newIndex);
+      updateDraft('slides', slideHistory[newIndex]);
+    }
+  };
+
+  const exportSlides = () => {
+    if (!activeDraft.slides) return;
+    const content = activeDraft.slides.slides.map(s => `SLIDE: ${s.header}\n\nPOINTS:\n${s.content.join('\n')}\n\nVISUAL: ${s.visualCue || 'N/A'}`).join('\n\n-------------------\n\n');
+    downloadFile(content, `${activeDraft.topic || 'Presentation'}_slides.txt`, 'text/plain');
   };
 
   const handleImportDocument = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -384,6 +441,8 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
     });
   };
 
+  if (!activeDraft) return <div className="p-10 text-center">Loading Document Engine...</div>;
+
   return (
     <div className="max-w-7xl mx-auto h-full flex flex-col relative">
       <CollaborationModal isOpen={isInviteModalOpen} onClose={() => setIsInviteModalOpen(false)} onAdd={handleAddCollaborator} existingIds={collaborators.map(c => c.id)} />
@@ -392,7 +451,7 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b border-[var(--border-color)] pb-2 flex-shrink-0 gap-4">
          {/* Draft Tabs */}
          <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 custom-scrollbar whitespace-nowrap">
-            {drafts.map(d => (
+            {drafts?.map(d => (
               <div key={d.id} onClick={() => setActiveId(d.id)} className={`px-4 py-2 cursor-pointer text-sm font-medium border-b-2 flex items-center transition-colors shrink-0 ${activeId === d.id ? 'border-[var(--primary)] text-[var(--primary)] bg-[var(--surface-color)] rounded-t' : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--surface-color)]'}`}>
                 <span className="mr-2 max-w-[100px] truncate">{d.topic || 'Untitled Doc'}</span>
                 <button onClick={(e) => deleteDraft(d.id, e)} className="hover:bg-red-100 hover:text-red-600 rounded-full p-1"><span className="material-icons text-[14px]">delete</span></button>
@@ -424,11 +483,11 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
             <div className="relative group z-20">
               <button className="flex items-center gap-1 bg-[var(--accent)] text-white px-3 py-1.5 rounded text-sm font-bold shadow-sm">Export <span className="material-icons text-sm">expand_more</span></button>
               <div className="absolute right-0 mt-2 w-56 bg-white border border-[var(--border-color)] shadow-xl rounded-lg hidden group-hover:block z-50">
-                 <button onClick={() => handleExport('PDF')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 text-sm font-medium">PDF Document (.pdf)</button>
-                 <button onClick={() => handleExport('DOCX')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 text-sm font-medium">Word Document (.docx)</button>
-                 <button onClick={() => handleExport('TXT')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 text-sm font-medium">Plain Text (.txt)</button>
+                 <button onClick={() => handleExport('PDF')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 text-sm font-medium text-[var(--text-primary)]">PDF Document (.pdf)</button>
+                 <button onClick={() => handleExport('DOCX')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 text-sm font-medium text-[var(--text-primary)]">Word Document (.docx)</button>
+                 <button onClick={() => handleExport('TXT')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 text-sm font-medium text-[var(--text-primary)]">Plain Text (.txt)</button>
                  <div className="border-t border-gray-100 my-1"></div>
-                 <button onClick={handleDriveSave} disabled={driveSaving} className="block w-full text-left px-4 py-2 hover:bg-gray-50 text-sm font-medium flex items-center gap-2">
+                 <button onClick={handleDriveSave} disabled={driveSaving} className="block w-full text-left px-4 py-2 hover:bg-gray-50 text-sm font-medium flex items-center gap-2 text-[var(--text-primary)]">
                     <span className="material-icons text-sm text-green-600">add_to_drive</span> 
                     {driveSaving ? 'Saving...' : 'Save to Google Drive'}
                  </button>
@@ -450,7 +509,10 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
                   <input value={activeDraft.course} onChange={(e) => updateDraft('course', e.target.value)} className="w-full text-xs" placeholder="Course (e.g. Microbiology)" />
                   <input value={activeDraft.topic} onChange={(e) => updateDraft('topic', e.target.value)} className="w-full text-xs" placeholder="Research Topic" />
                   <textarea value={activeDraft.details} onChange={(e) => updateDraft('details', e.target.value)} className="w-full h-16 text-xs resize-none" placeholder="Specific Details/Instructions..."></textarea>
-                  <button onClick={handleGenerateSlides} className="w-full bg-[var(--primary)] text-white text-xs font-bold py-2 rounded mt-2 hover:bg-blue-700">Generate Defense Slides</button>
+                  <button onClick={handleGenerate} disabled={loading} className="w-full bg-[var(--primary)] text-white text-xs font-bold py-2 rounded mt-2 hover:bg-blue-700 flex items-center justify-center gap-2">
+                     {loading ? <span className="material-icons animate-spin text-xs">refresh</span> : <span className="material-icons text-xs">auto_awesome</span>}
+                     Write Document
+                  </button>
                 </div>
              </div>
   
@@ -462,7 +524,7 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
                 </div>
                 
                 <div className={`flex-1 overflow-y-auto p-2 space-y-1 ${!isOutlineOpen ? 'hidden md:block' : ''}`}>
-                   {activeDraft.sections.map((section) => (
+                   {activeDraft.sections?.map((section) => (
                       <div 
                         key={section.id} 
                         onClick={() => setActiveSectionId(section.id)}
@@ -491,7 +553,7 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
                      onChange={(e) => setNewSectionTitle(e.target.value)}
                    />
                    <div className="flex gap-1">
-                      <button onClick={() => addSection('PRELIM')} className="flex-1 bg-white border border-gray-300 text-[10px] py-1 rounded hover:bg-gray-50 font-bold">Add Page</button>
+                      <button onClick={() => addSection('PRELIM')} className="flex-1 bg-white border border-gray-300 text-[10px] py-1 rounded hover:bg-gray-50 font-bold text-gray-800">Add Page</button>
                       <button onClick={() => addSection('CHAPTER')} className="flex-1 bg-[var(--accent)] text-white text-[10px] py-1 rounded hover:opacity-90 font-bold">Add Chapter</button>
                    </div>
                 </div>
@@ -504,7 +566,7 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
              <div className="h-12 bg-[var(--surface-color)] border-b border-[var(--border-color)] flex items-center justify-between px-4 flex-shrink-0">
                 <div className="flex items-center gap-2 overflow-hidden">
                   <span className="material-icons text-[var(--accent)]">edit</span>
-                  <span className="font-serif font-bold text-[var(--text-primary)] truncate max-w-[150px] md:max-w-none">{activeSection.title}</span>
+                  <span className="font-serif font-bold text-[var(--text-primary)] truncate max-w-[150px] md:max-w-none">{activeSection?.title || 'No Section Selected'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <label className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-2 py-1 rounded cursor-pointer flex items-center gap-1">
@@ -532,18 +594,18 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
                    </div>
                 )}
                 
-                {activeSection.content || isEditing ? (
+                {(activeSection?.content || isEditing) ? (
                    isEditing ? (
                      <textarea 
-                       className="w-full h-full bg-transparent resize-none outline-none font-mono text-sm leading-relaxed"
-                       value={activeSection.content}
+                       className="w-full h-full bg-transparent resize-none outline-none font-mono text-sm leading-relaxed text-[var(--text-primary)]"
+                       value={activeSection?.content || ''}
                        onChange={(e) => handleSectionContentEdit(e.target.value)}
                        placeholder="Start typing or click 'Write Section'..."
                      />
                    ) : (
                      <article className="prose prose-slate max-w-none pb-20">
                        <div className="whitespace-pre-wrap font-serif text-base text-[var(--text-primary)] font-normal leading-relaxed">
-                         {renderContent(activeSection.content)}
+                         {renderContent(activeSection?.content || '')}
                        </div>
                      </article>
                    )
@@ -558,18 +620,41 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
           </div>
         </div>
       ) : (
-        /* SLIDES VIEW */
-        <div className="flex-1 bg-slate-200/50 rounded-lg border-2 border-dashed border-slate-300 p-4 relative overflow-hidden">
+        /* SLIDES VIEW (DEFENSE GENERATOR) */
+        <div className="flex-1 bg-slate-200/50 rounded-lg border-2 border-dashed border-slate-300 p-4 relative overflow-hidden flex flex-col">
+           {/* Defense Controls */}
+           <div className="flex justify-between items-center mb-4 px-2">
+              <div className="flex items-center gap-2">
+                 <h3 className="font-bold text-[var(--text-primary)] flex items-center gap-2">
+                    <span className="material-icons text-[var(--accent)]">slideshow</span> Defense Generator
+                 </h3>
+              </div>
+              <div className="flex gap-2">
+                 <label className="bg-[var(--surface-color)] border border-[var(--border-color)] text-[var(--text-primary)] px-3 py-1.5 rounded text-xs font-bold cursor-pointer hover:bg-[var(--bg-color)] flex items-center gap-2 shadow-sm">
+                    <span className="material-icons text-sm">cloud_upload</span> Upload Bulky Doc
+                    <input type="file" accept=".txt,.md,.json" className="hidden" onChange={handleUploadForSlides} />
+                 </label>
+                 <div className="flex bg-white rounded border border-gray-300">
+                    <button onClick={handleSlideUndo} disabled={slideHistoryIndex <= 0} className="px-2 py-1 hover:bg-gray-100 disabled:opacity-30"><span className="material-icons text-sm">undo</span></button>
+                    <button onClick={handleSlideRedo} disabled={slideHistoryIndex >= slideHistory.length - 1} className="px-2 py-1 hover:bg-gray-100 disabled:opacity-30"><span className="material-icons text-sm">redo</span></button>
+                 </div>
+                 <button onClick={exportSlides} disabled={!activeDraft.slides} className="bg-[var(--primary)] text-white px-3 py-1.5 rounded text-xs font-bold hover:opacity-90 flex items-center gap-1 shadow-sm">
+                    <span className="material-icons text-sm">download</span> Export PPTX
+                 </button>
+              </div>
+           </div>
+
            {!activeDraft.slides ? (
-             <div className="absolute inset-0 flex items-center justify-center text-slate-400">
+             <div className="absolute inset-0 flex items-center justify-center text-slate-400 z-0">
                <div className="text-center">
                   <span className="material-icons text-5xl mb-2">slideshow</span>
                   <p>No project defense slides generated.</p>
-                  <button onClick={handleGenerateSlides} className="mt-4 bg-[var(--accent)] text-white px-6 py-2 rounded font-bold">Generate Defense</button>
+                  <p className="text-xs mt-2 text-[var(--text-secondary)]">Upload a bulky document or generate from existing content.</p>
+                  <button onClick={handleGenerateSlides} className="mt-4 bg-[var(--accent)] text-white px-6 py-2 rounded font-bold">Generate from Written Sections</button>
                </div>
              </div>
            ) : (
-             <div className="w-full h-full overflow-x-auto snap-x snap-mandatory flex gap-8 p-4 items-center">
+             <div className="w-full h-full overflow-x-auto snap-x snap-mandatory flex gap-8 p-4 items-center z-10">
                {activeDraft.slides.slides.map((slide, idx) => (
                  <div key={idx} className="flex-shrink-0 w-[85vw] md:w-[800px] h-[50vh] md:h-[450px] bg-white text-slate-900 rounded-2xl shadow-2xl p-8 md:p-12 flex flex-col relative snap-center border border-slate-200">
                     <h2 className="text-2xl md:text-4xl font-bold mb-4 md:mb-8 text-slate-900 border-b-4 border-slate-800 pb-4 inline-block self-start z-10">{slide.header}</h2>
@@ -578,6 +663,16 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
                  </div>
                ))}
              </div>
+           )}
+           
+           {loading && (
+              <div className="absolute inset-0 bg-white/80 z-50 flex items-center justify-center backdrop-blur-sm">
+                 <div className="flex flex-col items-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-[var(--accent)] mb-4"></div>
+                    <p className="font-bold text-[var(--text-primary)]">Analyzing Bulky Document...</p>
+                    <p className="text-xs text-[var(--text-secondary)]">Architecting Slides...</p>
+                 </div>
+              </div>
            )}
         </div>
       )}

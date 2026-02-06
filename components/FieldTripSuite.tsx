@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { generateRapidPresentation, generateFieldTripDocument, estimateWeatherConditions, generateFieldTripGuide, saveToGoogleDrive } from '../services/geminiService';
+import { generateRapidPresentation, generateFieldTripDocument, estimateWeatherConditions, generateFieldTripGuide, saveToGoogleDrive, downloadFile } from '../services/geminiService';
 import { SlideDeck, FieldTable } from '../types';
 
 interface ChecklistItem {
@@ -29,6 +29,10 @@ export const FieldTripSuite: React.FC = () => {
   const [deck, setDeck] = useState<SlideDeck | null>(null);
   const [documentContent, setDocumentContent] = useState('');
   
+  // Slide History
+  const [slideHistory, setSlideHistory] = useState<SlideDeck[]>([]);
+  const [slideHistoryIndex, setSlideHistoryIndex] = useState(-1);
+  
   // Sensor State
   const [coords, setCoords] = useState<{ lat: number, lng: number, alt: number | null, acc: number | null }>({ lat: 0, lng: 0, alt: null, acc: null });
   const [weather, setWeather] = useState({ temp: '', humidity: '', conditions: '', pressure: '' });
@@ -48,7 +52,10 @@ export const FieldTripSuite: React.FC = () => {
           alt: pos.coords.altitude,
           acc: pos.coords.accuracy
         }),
-        (err) => console.log("Loc failed", err),
+        (err) => {
+            // Silently handle location error or just log to debug console
+            console.debug("Geolocation access denied or unavailable.");
+        },
         { enableHighAccuracy: true }
       );
     }
@@ -162,6 +169,15 @@ export const FieldTripSuite: React.FC = () => {
     return `${weatherStr}${checklistStr}\n\n${tableStr}`;
   };
 
+  // --- SLIDE GENERATION ---
+  const updateSlideHistory = (newDeck: SlideDeck) => {
+    const newHistory = slideHistory.slice(0, slideHistoryIndex + 1);
+    newHistory.push(newDeck);
+    setSlideHistory(newHistory);
+    setSlideHistoryIndex(newHistory.length - 1);
+    setDeck(newDeck);
+  };
+
   const handleGenerateDeck = async () => {
     if (!slideInput && !topic) {
         alert("Please provide a topic or some input data.");
@@ -169,10 +185,53 @@ export const FieldTripSuite: React.FC = () => {
     }
     setLoading(true);
     const combinedData = `${slideInput}\n\n--- AUTO COLLECTED DATA ---\n${notes}\n${formatData()}`;
-    await generateRapidPresentation(topic || "Field Trip Report", combinedData).then(setDeck);
+    const result = await generateRapidPresentation(topic || "Field Trip Report", combinedData);
+    updateSlideHistory(result);
     setLoading(false);
   };
 
+  const handleSlideUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        setLoading(true);
+        try {
+          const text = ev.target?.result as string;
+          const result = await generateRapidPresentation(topic || "Field Data Presentation", text);
+          updateSlideHistory(result);
+        } catch (e) {
+          alert("Failed to generate slides from document.");
+        }
+        setLoading(false);
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const handleSlideUndo = () => {
+    if (slideHistoryIndex > 0) {
+      const newIndex = slideHistoryIndex - 1;
+      setSlideHistoryIndex(newIndex);
+      setDeck(slideHistory[newIndex]);
+    }
+  };
+
+  const handleSlideRedo = () => {
+    if (slideHistoryIndex < slideHistory.length - 1) {
+      const newIndex = slideHistoryIndex + 1;
+      setSlideHistoryIndex(newIndex);
+      setDeck(slideHistory[newIndex]);
+    }
+  };
+
+  const exportSlides = () => {
+    if (!deck) return;
+    const content = deck.slides.map(s => `SLIDE: ${s.header}\n\nPOINTS:\n${s.content.join('\n')}\n\nVISUAL: ${s.visualCue || 'N/A'}`).join('\n\n-------------------\n\n');
+    downloadFile(content, `${topic || 'Field_Trip'}_slides.txt`, 'text/plain');
+  };
+
+  // --- DOC GENERATION ---
   const handleGenerateDoc = async () => {
     if (!docInput && !topic) {
         alert("Please provide a topic or some input data.");
@@ -217,7 +276,7 @@ export const FieldTripSuite: React.FC = () => {
                  <h3 className="font-bold text-[var(--text-primary)] flex items-center"><span className="material-icons mr-2 text-[var(--accent)]">satellite</span> GPS Telemetry</h3>
                  <button onClick={refreshLocation} className="text-xs bg-[var(--bg-color)] p-2 rounded hover:bg-gray-200"><span className="material-icons animate-pulse">my_location</span></button>
               </div>
-              <div className="space-y-3 font-mono text-sm">
+              <div className="space-y-3 font-mono text-sm text-[var(--text-primary)]">
                  <div className="flex justify-between border-b border-dashed border-gray-300 pb-1">
                     <span className="text-[var(--text-secondary)]">LATITUDE</span>
                     <span className="font-bold">{coords.lat.toFixed(6)}° N</span>
@@ -276,7 +335,7 @@ export const FieldTripSuite: React.FC = () => {
                  {evidence.map((ev, i) => (
                     <div key={i} className="flex-shrink-0 w-64 border border-[var(--border-color)] rounded overflow-hidden shadow-sm">
                        <img src={ev.src} className="w-full h-40 object-cover" alt="Evidence" />
-                       <div className="p-2 bg-[var(--bg-color)] text-[10px] font-mono break-all leading-tight">{ev.meta.split('\n')[0]}</div>
+                       <div className="p-2 bg-[var(--bg-color)] text-[10px] font-mono break-all leading-tight text-[var(--text-primary)]">{ev.meta.split('\n')[0]}</div>
                     </div>
                  ))}
                  {evidence.length === 0 && <p className="text-sm text-[var(--text-secondary)] italic">No photos captured yet.</p>}
@@ -368,7 +427,7 @@ export const FieldTripSuite: React.FC = () => {
                             <thead>
                               <tr>
                                 {table.headers.map((h, i) => (
-                                  <th key={i} className="border border-[var(--border-color)] p-2 bg-[var(--bg-color)] text-xs text-left">{h}</th>
+                                  <th key={i} className="border border-[var(--border-color)] p-2 bg-[var(--bg-color)] text-xs text-left text-[var(--text-primary)]">{h}</th>
                                 ))}
                               </tr>
                             </thead>
@@ -380,7 +439,7 @@ export const FieldTripSuite: React.FC = () => {
                                       <input 
                                         value={cell} 
                                         onChange={(e) => updateCell(tIdx, rIdx, cIdx, e.target.value)}
-                                        className="w-full bg-transparent outline-none text-sm"
+                                        className="w-full bg-transparent outline-none text-sm text-[var(--text-primary)]"
                                       />
                                     </td>
                                   ))}
@@ -395,7 +454,7 @@ export const FieldTripSuite: React.FC = () => {
                ))}
 
                <div className="flex justify-between items-center">
-                   <button onClick={addTable} className="text-sm font-bold border border-[var(--border-color)] px-4 py-2 rounded hover:bg-[var(--bg-color)]">
+                   <button onClick={addTable} className="text-sm font-bold border border-[var(--border-color)] px-4 py-2 rounded hover:bg-[var(--bg-color)] text-[var(--text-primary)]">
                      + Add Data Table
                    </button>
                </div>
@@ -423,7 +482,22 @@ export const FieldTripSuite: React.FC = () => {
         <div className="h-full flex flex-col">
            {/* Input Section */}
            <div className="paper-panel p-6 mb-4 rounded-sm flex-shrink-0">
-               <h3 className="font-bold text-[var(--text-primary)] mb-2">Presentation Builder</h3>
+               <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-bold text-[var(--text-primary)]">Presentation Builder</h3>
+                  <div className="flex gap-2">
+                     <label className="bg-[var(--surface-color)] border border-[var(--border-color)] text-[var(--text-primary)] px-3 py-1.5 rounded text-xs font-bold cursor-pointer hover:bg-[var(--bg-color)] flex items-center gap-2 shadow-sm">
+                        <span className="material-icons text-sm">cloud_upload</span> Upload Bulky Doc
+                        <input type="file" accept=".txt,.md,.json" className="hidden" onChange={handleSlideUpload} />
+                     </label>
+                     <div className="flex bg-white rounded border border-gray-300">
+                        <button onClick={handleSlideUndo} disabled={slideHistoryIndex <= 0} className="px-2 py-1 hover:bg-gray-100 disabled:opacity-30"><span className="material-icons text-sm">undo</span></button>
+                        <button onClick={handleSlideRedo} disabled={slideHistoryIndex >= slideHistory.length - 1} className="px-2 py-1 hover:bg-gray-100 disabled:opacity-30"><span className="material-icons text-sm">redo</span></button>
+                     </div>
+                     <button onClick={exportSlides} disabled={!deck} className="bg-[var(--primary)] text-white px-3 py-1.5 rounded text-xs font-bold hover:opacity-90 flex items-center gap-1 shadow-sm">
+                        <span className="material-icons text-sm">download</span> Export PPTX
+                     </button>
+                  </div>
+               </div>
                <textarea 
                   className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded p-3 text-sm focus:border-[var(--accent)] outline-none resize-none h-20 mb-4" 
                   placeholder="Enter specific points, key findings, or context for the slides..."
@@ -441,7 +515,7 @@ export const FieldTripSuite: React.FC = () => {
            </div>
 
            {/* Slide View */}
-           <div className="flex-1 bg-slate-200/50 rounded-lg border-2 border-dashed border-slate-300 p-4 overflow-hidden relative">
+           <div className="flex-1 bg-slate-200/50 rounded-lg border-2 border-dashed border-slate-300 p-4 overflow-hidden relative flex flex-col">
                {!deck ? (
                  <div className="absolute inset-0 flex items-center justify-center text-slate-400">
                     <div className="text-center">
@@ -450,7 +524,7 @@ export const FieldTripSuite: React.FC = () => {
                     </div>
                  </div>
                ) : (
-                 <div className="w-full h-full overflow-x-auto snap-x snap-mandatory flex gap-8 p-4 items-center">
+                 <div className="w-full h-full overflow-x-auto snap-x snap-mandatory flex gap-8 p-4 items-center z-10">
                    {deck.slides.map((slide, idx) => (
                      <div key={idx} className="flex-shrink-0 w-[85vw] md:w-[800px] h-[50vh] md:h-[450px] bg-white text-slate-900 rounded-2xl shadow-2xl p-8 md:p-12 flex flex-col relative snap-center border border-slate-200">
                         <h2 className="text-2xl md:text-4xl font-bold mb-4 md:mb-8 text-slate-900 border-b-4 border-slate-800 pb-4 inline-block self-start z-10">{slide.header}</h2>
@@ -459,6 +533,15 @@ export const FieldTripSuite: React.FC = () => {
                      </div>
                    ))}
                  </div>
+               )}
+               
+               {loading && (
+                  <div className="absolute inset-0 bg-white/80 z-50 flex items-center justify-center backdrop-blur-sm">
+                     <div className="flex flex-col items-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-[var(--accent)] mb-4"></div>
+                        <p className="font-bold text-[var(--text-primary)]">Generating...</p>
+                     </div>
+                  </div>
                )}
             </div>
         </div>
