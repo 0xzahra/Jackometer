@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { generateResearchTitles, generateDeepResearch } from '../services/geminiService';
+import { generateResearchTitles, generateDeepResearch, generateStructuredOutline, downloadFile } from '../services/geminiService';
 import { ProjectTitle } from '../types';
 
 interface ResearchEngineProps {
@@ -9,13 +9,16 @@ interface ResearchEngineProps {
 export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
   const STORAGE_KEY = userId ? `jackometer_research_${userId}` : 'jackometer_research_local';
 
-  const DEFAULT_CHAPTERS = ['Chapter One: Introduction', 'Chapter Two: Literature Review', 'Chapter Three: Methodology', 'Chapter Four: Analysis', 'Chapter Five: Conclusion'];
+  // --- WORKFLOW STAGES ---
+  // 1. FORGE: User enters topic, gets titles.
+  // 2. OUTLINE: User reviews generated outline (strict structure).
+  // 3. WRITER: User generates chapters.
+  type WorkflowStage = 'FORGE' | 'OUTLINE' | 'WRITER';
 
-  // Load state from local storage
-  const [mode, setMode] = useState<'FORGE' | 'WRITER'>(() => {
+  const [stage, setStage] = useState<WorkflowStage>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved).mode : 'FORGE';
+      return saved ? JSON.parse(saved).stage || 'FORGE' : 'FORGE';
     } catch { return 'FORGE'; }
   });
 
@@ -40,51 +43,46 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
     } catch { return null; }
   });
 
-  const [generatedContent, setGeneratedContent] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved).generatedContent : '';
-    } catch { return ''; }
-  });
-
-  // Adaptive Structure State (Fixed Fallback)
   const [chapters, setChapters] = useState<string[]>(() => {
     try {
        const saved = localStorage.getItem(STORAGE_KEY);
-       const parsed = saved ? JSON.parse(saved) : null;
-       if (parsed && Array.isArray(parsed.chapters) && parsed.chapters.length > 0) {
-         return parsed.chapters;
-       }
-       return DEFAULT_CHAPTERS;
-    } catch {
-       return DEFAULT_CHAPTERS;
-    }
+       return saved ? JSON.parse(saved).chapters || [] : [];
+    } catch { return []; }
   });
-  
-  const [editingStructure, setEditingStructure] = useState(false);
-  const [newChapterName, setNewChapterName] = useState('');
-  
+
+  // Stores content per chapter
+  const [chapterContent, setChapterContent] = useState<Record<string, string>>(() => {
+    try {
+       const saved = localStorage.getItem(STORAGE_KEY);
+       return saved ? JSON.parse(saved).chapterContent || {} : {};
+    } catch { return {}; }
+  });
+
+  // Track currently active chapter for writing/viewing
+  const [activeChapterIndex, setActiveChapterIndex] = useState(0);
+
   const resultRef = useRef<HTMLDivElement>(null);
+  const [loading, setLoading] = useState(false);
 
   // Persist State
   useEffect(() => {
     const state = {
-      mode,
+      stage,
       topicInput,
       titles,
       selectedTitle,
-      generatedContent,
-      chapters
+      chapters,
+      chapterContent,
+      activeChapterIndex
     };
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch (e) {
       console.error("Storage error", e);
     }
-  }, [mode, topicInput, titles, selectedTitle, generatedContent, chapters, STORAGE_KEY]);
+  }, [stage, topicInput, titles, selectedTitle, chapters, chapterContent, activeChapterIndex, STORAGE_KEY]);
 
-  const [loading, setLoading] = useState(false);
-
+  // --- Step 1: Forge Titles ---
   const handleForge = async () => {
     if (!topicInput) return;
     setLoading(true);
@@ -98,25 +96,77 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
     setLoading(false);
   };
 
-  const handleSelectTitle = (t: ProjectTitle) => {
+  const handleSelectTitle = async (t: ProjectTitle) => {
     setSelectedTitle(t);
-    setMode('WRITER');
+    setLoading(true);
+    try {
+       // Generate the strict outline immediately upon selection
+       const outline = await generateStructuredOutline(t.title);
+       setChapters(outline);
+       setStage('OUTLINE');
+    } catch (e) {
+       alert("Failed to generate outline.");
+    }
+    setLoading(false);
   };
 
-  const handleGenerateChapter = async (chapter: string) => {
-    if (!selectedTitle) return;
+  // --- Step 2: Approve Outline ---
+  const handleApproveOutline = () => {
+    setStage('WRITER');
+    setActiveChapterIndex(0);
+  };
+
+  const handleUpdateChapterTitle = (index: number, newVal: string) => {
+    const newCh = [...chapters];
+    newCh[index] = newVal;
+    setChapters(newCh);
+  };
+
+  const handleAddChapter = () => {
+    setChapters([...chapters, "New Chapter"]);
+  };
+
+  const handleRemoveChapter = (index: number) => {
+    const newCh = [...chapters];
+    newCh.splice(index, 1);
+    setChapters(newCh);
+  };
+
+  // --- Step 3: Writer ---
+  const handleGenerateChapter = async (index: number) => {
+    if (!selectedTitle || !chapters[index]) return;
+    
+    // Check if already generated
+    if (chapterContent[chapters[index]]) {
+      if (!window.confirm("This chapter already has content. Regenerate and overwrite?")) return;
+    }
+
     setLoading(true);
+    setActiveChapterIndex(index);
+
+    // Build context from previous chapters for continuity
+    let previousContext = `Project Title: ${selectedTitle.title}\nDescription: ${selectedTitle.description}\n\n`;
+    for(let i=0; i<index; i++) {
+        if(chapterContent[chapters[i]]) {
+            previousContext += `--- PREVIOUS SECTION: ${chapters[i]} ---\n${chapterContent[chapters[i]].substring(0, 1000)}...\n\n`;
+        }
+    }
+
     try {
       const content = await generateDeepResearch(
         selectedTitle.title, 
-        chapter, 
-        selectedTitle.description
+        chapters[index], 
+        previousContext
       );
-      setGeneratedContent(prev => prev + `\n\n${chapter.toUpperCase()}\n\n` + content);
+      
+      setChapterContent(prev => ({
+          ...prev,
+          [chapters[index]]: content
+      }));
       
       setTimeout(() => {
         if (resultRef.current) {
-          resultRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+          resultRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
       }, 300);
       
@@ -126,52 +176,27 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
     setLoading(false);
   };
 
-  const addChapter = () => {
-    if (newChapterName.trim()) {
-      setChapters([...chapters, newChapterName]);
-      setNewChapterName('');
-    }
+  const handleStitchPDF = () => {
+      // Combine all chapters
+      let fullDoc = `TITLE: ${selectedTitle?.title}\n\n`;
+      chapters.forEach(ch => {
+          if (chapterContent[ch]) {
+              fullDoc += `\n\n################################################\n${ch.toUpperCase()}\n################################################\n\n${chapterContent[ch]}`;
+          }
+      });
+      downloadFile(fullDoc, `${selectedTitle?.title || 'Thesis'}_Full.pdf`, 'application/pdf');
   };
 
-  const removeChapter = (index: number) => {
-    const newCh = [...chapters];
-    newCh.splice(index, 1);
-    setChapters(newCh);
-  };
-
-  const resetStructure = () => {
-    if (window.confirm("Reset chapters to default structure?")) {
-      setChapters(DEFAULT_CHAPTERS);
-      setEditingStructure(false);
-    }
-  };
-
-  // Enhanced Render: Rich Link Tooltips
+  // Render Logic
   const renderContent = (text: string) => {
     const parts = text.split(/(\[.*?\]\(.*?\))/g);
     return parts.map((part, index) => {
       const match = part.match(/\[(.*?)\]\((.*?)\)/);
       if (match) {
         return (
-          <div key={index} className="inline-block relative group z-10">
-            <a href={match[2]} target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] font-bold bg-blue-50 px-2 py-0.5 rounded mx-1 hover:underline cursor-pointer border border-blue-100">
-              {match[1]} <span className="material-icons text-[10px] inline-block align-middle">link</span>
-            </a>
-            {/* Hover Tooltip / Preview Card */}
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-white p-3 rounded-lg shadow-xl border border-[var(--border-color)] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto z-50">
-               <div className="flex items-center gap-2 mb-2">
-                 <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-[var(--text-secondary)]">
-                    <span className="material-icons text-xs">public</span>
-                 </div>
-                 <span className="text-xs font-bold text-[var(--text-primary)] truncate block w-full">{match[1]}</span>
-               </div>
-               <p className="text-[10px] text-[var(--text-secondary)] truncate mb-2">{match[2]}</p>
-               <div className="bg-gray-50 p-2 rounded text-[10px] text-gray-500 italic">
-                 Click to open source context.
-               </div>
-               <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white rotate-45 border-b border-r border-[var(--border-color)]"></div>
-            </div>
-          </div>
+          <a key={index} href={match[2]} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-bold hover:underline bg-blue-50 px-1 rounded mx-1">
+            {match[1]}
+          </a>
         );
       }
       return part;
@@ -179,149 +204,173 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto h-full flex flex-col">
-      {mode === 'FORGE' && (
+    <div className="w-full max-w-7xl mx-auto h-full flex flex-col pb-10">
+      
+      {/* STAGE 1: FORGE */}
+      {stage === 'FORGE' && (
         <div className="flex flex-col items-center justify-center min-h-[60vh] p-4">
-           <div className="w-full max-w-2xl paper-panel p-6 md:p-10 rounded-sm relative overflow-hidden text-center">
-             <div className="absolute top-0 left-0 w-full h-1 bg-slate-800"></div>
-             <h2 className="text-3xl md:text-4xl font-serif font-bold text-[var(--text-primary)] mb-2">Topic Forge</h2>
-             <p className="text-[var(--text-secondary)] mb-8 italic font-serif">"Enter a concept. We will build the thesis."</p>
+           <div className="w-full max-w-3xl paper-panel p-10 md:p-16 rounded-2xl relative overflow-hidden text-center shadow-2xl">
+             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-600"></div>
+             <h2 className="text-4xl md:text-5xl font-bold text-[var(--text-primary)] mb-4 tracking-tight">Research Forge</h2>
+             <p className="text-[var(--text-secondary)] mb-10 text-lg">Enter a research concept. We will architect the thesis.</p>
              
-             <div className="relative mb-8">
+             <div className="relative mb-8 max-w-xl mx-auto">
                <input
                 type="text"
                 value={topicInput}
                 onChange={(e) => setTopicInput(e.target.value)}
-                placeholder="e.g. 'Sustainable Architecture'"
-                className="w-full bg-[var(--bg-color)] border-b-2 border-[var(--border-color)] text-[var(--text-primary)] p-4 text-xl md:text-2xl text-center focus:outline-none focus:border-[var(--accent)] placeholder-[var(--text-secondary)] font-serif"
+                placeholder="e.g. 'Impact of AI on Healthcare'"
+                className="w-full bg-white/50 border border-gray-200 text-[var(--text-primary)] p-5 text-xl rounded-xl shadow-inner focus:ring-4 focus:ring-blue-100 transition-all text-center"
                />
              </div>
 
              <button
               onClick={handleForge}
               disabled={loading}
-              className="w-full bg-[var(--accent)] text-white font-bold py-4 rounded transition-all disabled:opacity-50 flex items-center justify-center shadow-lg"
+              className="btn-primary text-lg px-10 py-4 shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all"
              >
                {loading ? (
-                 <span className="animate-spin material-icons">refresh</span>
+                 <span className="flex items-center gap-2"><span className="material-icons animate-spin">refresh</span> Processing...</span>
                ) : (
-                 <>
-                   <span className="material-icons mr-2">psychology</span>
-                   INITIATE FORGE
-                 </>
+                 <span className="flex items-center gap-2"><span className="material-icons">psychology</span> Initiate Forge</span>
                )}
              </button>
            </div>
 
            {/* Results */}
-           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-12 w-full pb-10">
-             {titles.map((t, idx) => (
-               <div key={idx} className="paper-card p-6 rounded-sm cursor-pointer group hover:border-[var(--accent)]" onClick={() => handleSelectTitle(t)}>
-                 <h3 className="text-lg font-bold text-[var(--text-primary)] mb-3 font-serif leading-tight group-hover:text-[var(--accent)]">{t.title}</h3>
-                 <p className="text-xs text-[var(--text-secondary)] mb-4 line-clamp-3 leading-relaxed">{t.description}</p>
-                 <div className="text-xs text-[var(--text-secondary)] bg-[var(--bg-color)] p-2 rounded">
-                   <strong>Requires:</strong> {t.requirements.join(', ')}
+           {titles.length > 0 && (
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12 w-full">
+               {titles.map((t, idx) => (
+                 <div 
+                    key={idx} 
+                    className="paper-panel p-8 rounded-xl cursor-pointer hover:border-blue-400 hover:shadow-xl transition-all group"
+                    onClick={() => handleSelectTitle(t)}
+                 >
+                   <h3 className="text-xl font-bold text-[var(--text-primary)] mb-3 leading-snug group-hover:text-blue-600 transition-colors">{t.title}</h3>
+                   <p className="text-sm text-[var(--text-secondary)] mb-4 leading-relaxed">{t.description}</p>
+                   <div className="text-xs font-bold text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                     REQUIRES: {t.requirements.slice(0, 3).join(', ')}
+                   </div>
                  </div>
-               </div>
-             ))}
-           </div>
+               ))}
+             </div>
+           )}
         </div>
       )}
 
-      {mode === 'WRITER' && selectedTitle && (
-        <div className="flex flex-col flex-1 h-full min-h-0">
-          <div className="paper-panel p-6 rounded-sm mb-6 flex flex-col md:flex-row justify-between items-start md:items-center sticky top-0 z-20 shadow-sm gap-4">
-            <div>
-              <h2 className="text-lg md:text-xl font-bold font-serif text-[var(--text-primary)] truncate max-w-lg">{selectedTitle.title}</h2>
-              <p className="text-xs text-[var(--text-secondary)] uppercase tracking-widest mt-1">Dissertation Builder Active</p>
-            </div>
-            <button className="text-xs border border-red-200 text-red-700 px-4 py-2 rounded hover:bg-red-50 transition-colors uppercase tracking-widest font-bold self-end md:self-auto" onClick={() => setMode('FORGE')}>
-              Exit
-            </button>
-          </div>
+      {/* STAGE 2: OUTLINE APPROVAL */}
+      {stage === 'OUTLINE' && selectedTitle && (
+          <div className="max-w-4xl mx-auto w-full pt-10">
+             <div className="paper-panel p-8 rounded-2xl mb-8 border-l-8 border-blue-500">
+                <h2 className="text-2xl font-bold mb-2">Structure Approval</h2>
+                <p className="text-gray-600">Review the generated outline for <strong>"{selectedTitle.title}"</strong>. This structure mimics a strict academic standard.</p>
+             </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 flex-1 h-full min-h-0 md:overflow-hidden">
-            {/* Outline Sidebar */}
-            <div className="col-span-1 md:col-span-3 paper-panel rounded-sm overflow-hidden flex flex-col md:h-full max-h-[400px] md:max-h-none">
-              <div className="bg-[var(--bg-color)] p-4 border-b border-[var(--border-color)] flex justify-between items-center">
-                <h3 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Table of Contents</h3>
-                <button onClick={() => setEditingStructure(!editingStructure)} className="text-[var(--accent)] hover:underline text-[10px] font-bold">
-                  {editingStructure ? 'DONE' : 'EDIT'}
-                </button>
-              </div>
-              
-              <div className="overflow-y-auto p-2 flex-1">
-                {editingStructure ? (
-                   <div className="space-y-2">
-                      <button onClick={resetStructure} className="w-full text-center text-xs text-red-500 border border-red-200 mb-2 p-1 rounded">Reset Default Structure</button>
-                      {chapters.map((ch, i) => (
-                         <div key={i} className="flex gap-1 items-center">
-                            <input disabled value={ch} className="text-xs w-full bg-gray-100 p-1 rounded" />
-                            <button onClick={() => removeChapter(i)} className="text-red-500"><span className="material-icons text-sm">remove_circle</span></button>
-                         </div>
-                      ))}
-                      <div className="flex gap-1 mt-2">
+             <div className="paper-panel p-8 rounded-2xl">
+                <div className="space-y-3 mb-8">
+                   {chapters.map((ch, idx) => (
+                      <div key={idx} className="flex items-center gap-3 group">
+                         <span className="text-gray-400 font-mono text-xs w-6 text-right">{idx + 1}.</span>
                          <input 
-                           className="text-xs w-full p-1 border border-gray-300 rounded" 
-                           placeholder="New Chapter Name..."
-                           value={newChapterName}
-                           onChange={(e) => setNewChapterName(e.target.value)}
+                           className="flex-1 p-3 bg-white/50 border border-transparent hover:border-gray-200 focus:bg-white focus:border-blue-300 rounded transition-all font-medium"
+                           value={ch} 
+                           onChange={(e) => handleUpdateChapterTitle(idx, e.target.value)}
                          />
-                         <button onClick={addChapter} className="text-green-600"><span className="material-icons text-sm">add_circle</span></button>
+                         <button onClick={() => handleRemoveChapter(idx)} className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span className="material-icons">close</span>
+                         </button>
                       </div>
-                   </div>
-                ) : (
-                  <>
-                    {chapters.length === 0 && <p className="text-xs text-center text-gray-400 p-4">No chapters found. Click 'EDIT' to restore.</p>}
-                    {chapters.map((chapter, i) => (
-                      <button 
-                        key={i}
-                        onClick={() => handleGenerateChapter(chapter)}
-                        className="w-full text-left p-3 mb-1 rounded hover:bg-[var(--bg-color)] text-xs font-serif text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors border-l-2 border-transparent hover:border-[var(--accent)] flex justify-between items-center"
-                      >
-                        {chapter}
-                        <span className="material-icons text-[10px] opacity-30">chevron_right</span>
-                      </button>
-                    ))}
-                  </>
-                )}
-              </div>
-            </div>
+                   ))}
+                   <button onClick={handleAddChapter} className="text-sm font-bold text-blue-600 hover:bg-blue-50 px-4 py-2 rounded inline-flex items-center gap-1 mt-2">
+                      <span className="material-icons text-sm">add</span> Add Section
+                   </button>
+                </div>
 
-            {/* Editor Area */}
-            <div ref={resultRef} className="col-span-1 md:col-span-9 paper-panel rounded-sm p-6 md:p-12 overflow-y-auto relative bg-white shadow-inner md:h-full min-h-[500px]">
-               {loading && (
-                 <div className="absolute inset-0 bg-white/80 z-20 flex items-center justify-center backdrop-blur-sm">
-                   <div className="text-center">
-                      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--accent)] mx-auto mb-4"></div>
-                      <p className="text-[var(--text-primary)] text-sm font-serif italic">Consulting Premium Repositories...</p>
-                   </div>
-                 </div>
-               )}
-               {generatedContent ? (
-                 <article className="prose prose-slate max-w-none pb-20">
-                   <div className="whitespace-pre-wrap font-serif text-base leading-relaxed text-[var(--text-primary)]">
-                     {renderContent(generatedContent)}
-                   </div>
-                 </article>
-               ) : (
-                 <div className="h-full flex flex-col items-center justify-center text-[var(--text-secondary)] opacity-50">
-                   <span className="material-icons text-6xl mb-4">library_books</span>
-                   <p className="font-serif text-xl italic text-center">Select a chapter to begin writing.</p>
-                 </div>
-               )}
-            </div>
+                <div className="flex justify-end gap-4 border-t border-gray-200 pt-6">
+                   <button onClick={() => setStage('FORGE')} className="px-6 py-3 text-gray-500 font-bold hover:bg-gray-100 rounded-xl">Back</button>
+                   <button onClick={handleApproveOutline} className="btn-primary">Approve & Start Writing</button>
+                </div>
+             </div>
           </div>
-          
-          <div className="mt-6 flex justify-end space-x-4 pb-6">
-             <button className="bg-white border border-[var(--border-color)] hover:bg-[var(--bg-color)] text-[var(--text-primary)] px-6 py-3 rounded-sm flex items-center text-sm font-bold shadow-sm">
-               <span className="material-icons mr-2 text-sm">picture_as_pdf</span>
-               PDF
-             </button>
-             <button className="bg-[var(--accent)] text-white px-8 py-3 rounded-sm flex items-center text-sm font-bold shadow-lg">
-               <span className="material-icons mr-2 text-sm">save</span>
-               Save to Vault
-             </button>
+      )}
+
+      {/* STAGE 3: WRITER */}
+      {stage === 'WRITER' && selectedTitle && (
+        <div className="flex flex-col flex-1 h-full min-h-0 pt-4">
+          {/* Header */}
+          <div className="flex justify-between items-center mb-6 px-2">
+             <div>
+                <h2 className="text-xl font-bold truncate max-w-xl">{selectedTitle.title}</h2>
+                <p className="text-xs text-gray-500 uppercase tracking-widest font-bold">Thesis Builder Active</p>
+             </div>
+             <div className="flex gap-2">
+                <button onClick={handleStitchPDF} className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-black flex items-center gap-2">
+                   <span className="material-icons text-sm">picture_as_pdf</span> Stitch PDF
+                </button>
+                <button onClick={() => setStage('FORGE')} className="text-red-500 hover:bg-red-50 px-3 py-2 rounded-lg font-bold text-sm">Exit</button>
+             </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 flex-1 h-full min-h-0">
+             
+             {/* Chapter Sidebar */}
+             <div className="col-span-1 md:col-span-3 paper-panel flex flex-col overflow-hidden h-full">
+                <div className="p-4 bg-gray-50/50 border-b border-gray-100">
+                   <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Table of Contents</h3>
+                </div>
+                <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                   {chapters.map((ch, idx) => (
+                      <button 
+                        key={idx}
+                        onClick={() => setActiveChapterIndex(idx)}
+                        className={`w-full text-left p-3 rounded-lg text-sm font-medium transition-all flex justify-between items-center ${activeChapterIndex === idx ? 'bg-blue-50 text-blue-700 border border-blue-100 shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
+                      >
+                         <span className="truncate">{ch}</span>
+                         {chapterContent[ch] && <span className="material-icons text-green-500 text-[14px]">check_circle</span>}
+                      </button>
+                   ))}
+                </div>
+             </div>
+
+             {/* Editor Area */}
+             <div className="col-span-1 md:col-span-9 paper-panel flex flex-col h-full relative overflow-hidden">
+                <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-white/40">
+                   <h3 className="font-bold text-lg">{chapters[activeChapterIndex]}</h3>
+                   <button 
+                     onClick={() => handleGenerateChapter(activeChapterIndex)}
+                     disabled={loading}
+                     className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-green-700 flex items-center gap-2 transition-all"
+                   >
+                     {loading ? <span className="material-icons animate-spin text-sm">refresh</span> : <span className="material-icons text-sm">auto_awesome</span>}
+                     {chapterContent[chapters[activeChapterIndex]] ? 'Regenerate' : 'Generate Chapter'}
+                   </button>
+                </div>
+                
+                <div ref={resultRef} className="flex-1 overflow-y-auto p-8 md:p-12 bg-white/30">
+                   {loading && (
+                      <div className="absolute inset-0 bg-white/80 z-20 flex flex-col items-center justify-center backdrop-blur-sm animate-fade-in">
+                         <div className="w-16 h-16 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+                         <p className="text-gray-600 font-medium">Researching & Writing...</p>
+                         <p className="text-xs text-gray-400 mt-2">Consulting strict academic sources</p>
+                      </div>
+                   )}
+
+                   {chapterContent[chapters[activeChapterIndex]] ? (
+                      <article className="prose prose-slate max-w-none prose-headings:font-bold prose-a:text-blue-600">
+                         <div className="whitespace-pre-wrap font-serif text-lg leading-relaxed text-gray-800">
+                            {renderContent(chapterContent[chapters[activeChapterIndex]])}
+                         </div>
+                      </article>
+                   ) : (
+                      <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                         <span className="material-icons text-6xl mb-4 opacity-20">history_edu</span>
+                         <p className="text-lg font-medium opacity-50">Empty Chapter</p>
+                         <p className="text-sm opacity-40">Click generate to write this section.</p>
+                      </div>
+                   )}
+                </div>
+             </div>
+
           </div>
         </div>
       )}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { generateRapidPresentation, generateFieldTripDocument, estimateWeatherConditions, generateFieldTripGuide } from '../services/geminiService';
+import { generateRapidPresentation, generateFieldTripDocument, estimateWeatherConditions, generateFieldTripGuide, saveToGoogleDrive } from '../services/geminiService';
 import { SlideDeck, FieldTable } from '../types';
 
 interface ChecklistItem {
@@ -11,6 +11,7 @@ interface ChecklistItem {
 export const FieldTripSuite: React.FC = () => {
   const [tab, setTab] = useState<'ENVIRONMENT' | 'DATA' | 'SLIDES' | 'DOCUMENT'>('ENVIRONMENT');
   const [loading, setLoading] = useState(false);
+  const [driveSaving, setDriveSaving] = useState(false);
   
   // Trip Setup State
   const [topic, setTopic] = useState('');
@@ -20,6 +21,11 @@ export const FieldTripSuite: React.FC = () => {
   const [initializing, setInitializing] = useState(false);
 
   const [notes, setNotes] = useState('');
+  
+  // Slide & Doc specific inputs
+  const [slideInput, setSlideInput] = useState('');
+  const [docInput, setDocInput] = useState('');
+  
   const [deck, setDeck] = useState<SlideDeck | null>(null);
   const [documentContent, setDocumentContent] = useState('');
   
@@ -157,17 +163,35 @@ export const FieldTripSuite: React.FC = () => {
   };
 
   const handleGenerateDeck = async () => {
+    if (!slideInput && !topic) {
+        alert("Please provide a topic or some input data.");
+        return;
+    }
     setLoading(true);
-    await generateRapidPresentation(topic, `${notes}\n\n${formatData()}`).then(setDeck);
-    setTab('SLIDES');
+    const combinedData = `${slideInput}\n\n--- AUTO COLLECTED DATA ---\n${notes}\n${formatData()}`;
+    await generateRapidPresentation(topic || "Field Trip Report", combinedData).then(setDeck);
     setLoading(false);
   };
 
   const handleGenerateDoc = async () => {
+    if (!docInput && !topic) {
+        alert("Please provide a topic or some input data.");
+        return;
+    }
     setLoading(true);
-    await generateFieldTripDocument(topic, formatData(), notes).then(setDocumentContent);
-    setTab('DOCUMENT');
+    // Combine manual doc input with automated data
+    const combinedNotes = `${docInput}\n\n--- FIELD NOTES ---\n${notes}`;
+    await generateFieldTripDocument(topic || "Field Report", formatData(), combinedNotes).then(setDocumentContent);
     setLoading(false);
+  };
+
+  const handleDriveSave = async () => {
+    if (!documentContent) return;
+    setDriveSaving(true);
+    const filename = `${topic || 'Field_Report'}.docx`;
+    await saveToGoogleDrive(filename, documentContent, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    setDriveSaving(false);
+    alert("Field report saved to Google Drive!");
   };
 
   return (
@@ -177,7 +201,7 @@ export const FieldTripSuite: React.FC = () => {
           <button 
             key={t}
             onClick={() => setTab(t as any)}
-            className={`px-4 md:px-6 py-2 font-bold font-serif transition-colors whitespace-nowrap ${tab === t ? 'text-[var(--text-primary)] border-b-2 border-[var(--accent)]' : 'text-[var(--text-secondary)] opacity-60 hover:opacity-100'}`}
+            className={`px-4 md:px-6 py-2 font-bold transition-colors whitespace-nowrap ${tab === t ? 'text-[var(--text-primary)] border-b-2 border-[var(--accent)]' : 'text-[var(--text-secondary)] opacity-60 hover:opacity-100'}`}
           >
             {t === 'ENVIRONMENT' ? 'Environment Monitor' : t === 'DATA' ? (isGuideActive ? 'Field Input' : 'Trip Setup') : t === 'SLIDES' ? 'Presentation' : 'Document'}
           </button>
@@ -267,7 +291,7 @@ export const FieldTripSuite: React.FC = () => {
             <div className="paper-panel p-8 rounded-sm max-w-2xl mx-auto mt-10">
                <div className="flex flex-col items-center text-center mb-8">
                   <span className="material-icons text-5xl text-[var(--accent)] mb-4">travel_explore</span>
-                  <h3 className="text-2xl font-serif font-bold text-[var(--text-primary)]">Initialize Field Trip</h3>
+                  <h3 className="text-2xl font-bold text-[var(--text-primary)]">Initialize Field Trip</h3>
                   <p className="text-sm text-[var(--text-secondary)]">
                     Configure your research parameters. Jackometer will architect the data collection tables and observation checklist for you.
                   </p>
@@ -297,7 +321,7 @@ export const FieldTripSuite: React.FC = () => {
                   <button 
                     onClick={handleInitializeGuide}
                     disabled={initializing || !topic}
-                    className="w-full bg-[var(--accent)] text-white font-bold py-4 rounded shadow-lg flex items-center justify-center gap-2 hover:opacity-90 disabled:opacity-50 transition-all"
+                    className="w-full btn-primary flex items-center justify-center gap-2"
                   >
                     {initializing ? <span className="material-icons animate-spin">refresh</span> : <span className="material-icons">architecture</span>}
                     {initializing ? 'Analyzing Requirements...' : 'Generate Field Guide'}
@@ -377,7 +401,7 @@ export const FieldTripSuite: React.FC = () => {
                </div>
 
                <div className="paper-panel p-6 rounded-sm">
-                  <h3 className="text-[var(--text-primary)] font-bold mb-4 font-serif">Additional Field Notes</h3>
+                  <h3 className="text-[var(--text-primary)] font-bold mb-4">Additional Field Notes</h3>
                   <textarea 
                     className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded p-3 text-[var(--text-primary)] focus:border-[var(--accent)] outline-none resize-none font-mono text-xs h-32" 
                     placeholder="Observations..."
@@ -386,13 +410,9 @@ export const FieldTripSuite: React.FC = () => {
                   ></textarea>
                </div>
                
-               <div className="flex justify-end space-x-2">
-                  <button onClick={handleGenerateDeck} disabled={loading} className="bg-[var(--accent)] text-white font-bold px-6 py-2 rounded shadow text-sm">
-                     {loading ? 'Processing...' : 'Generate Slides'}
-                  </button>
-                  <button onClick={handleGenerateDoc} disabled={loading} className="bg-[var(--text-secondary)] text-white font-bold px-6 py-2 rounded shadow text-sm">
-                     {loading ? 'Processing...' : 'Write Document'}
-                  </button>
+               <div className="p-4 bg-yellow-50 text-yellow-800 text-xs rounded border border-yellow-100 flex items-center">
+                   <span className="material-icons mr-2 text-sm">info</span>
+                   Switch to <strong>SLIDES</strong> or <strong>DOCUMENT</strong> tabs to finalize and generate your report.
                </div>
             </>
           )}
@@ -400,34 +420,92 @@ export const FieldTripSuite: React.FC = () => {
       )}
 
       {tab === 'SLIDES' && (
-        <div className="h-full flex flex-col bg-slate-200/50 rounded-lg border-2 border-dashed border-slate-300 p-4">
-           {!deck ? (
-             <div className="flex-1 flex items-center justify-center text-slate-400">
-               No presentation generated yet.
-             </div>
-           ) : (
-             <div className="flex-1 overflow-x-auto flex gap-8 p-4 snap-x items-center">
-               {deck.slides.map((slide, idx) => (
-                 <div key={idx} className="flex-shrink-0 w-[800px] h-[450px] bg-white text-slate-900 rounded-sm shadow-2xl p-12 flex flex-col relative snap-center border border-slate-200">
-                    <h2 className="text-4xl font-serif font-bold mb-8 text-slate-900 border-b-4 border-slate-800 pb-4 inline-block self-start z-10">{slide.header}</h2>
-                    <ul className="flex-1 space-y-4 z-10">{slide.content.map((point, i) => <li key={i} className="text-xl flex items-start font-serif"><span className="mr-3 text-slate-400 font-bold">•</span>{point}</li>)}</ul>
-                    <div className="absolute bottom-2 right-4 text-xs text-slate-400 font-mono">Slide {idx + 1}</div>
+        <div className="h-full flex flex-col">
+           {/* Input Section */}
+           <div className="paper-panel p-6 mb-4 rounded-sm flex-shrink-0">
+               <h3 className="font-bold text-[var(--text-primary)] mb-2">Presentation Builder</h3>
+               <textarea 
+                  className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded p-3 text-sm focus:border-[var(--accent)] outline-none resize-none h-20 mb-4" 
+                  placeholder="Enter specific points, key findings, or context for the slides..."
+                  value={slideInput}
+                  onChange={(e) => setSlideInput(e.target.value)}
+               ></textarea>
+               <button 
+                  onClick={handleGenerateDeck} 
+                  disabled={loading} 
+                  className="bg-[var(--accent)] text-white font-bold px-6 py-2 rounded shadow text-sm flex items-center gap-2"
+               >
+                  {loading ? <span className="material-icons animate-spin text-sm">refresh</span> : <span className="material-icons text-sm">co_present</span>}
+                  {deck ? 'Regenerate Slides' : 'Generate Presentation'}
+               </button>
+           </div>
+
+           {/* Slide View */}
+           <div className="flex-1 bg-slate-200/50 rounded-lg border-2 border-dashed border-slate-300 p-4 overflow-hidden relative">
+               {!deck ? (
+                 <div className="absolute inset-0 flex items-center justify-center text-slate-400">
+                    <div className="text-center">
+                       <span className="material-icons text-5xl mb-2">slideshow</span>
+                       <p>No presentation generated yet.</p>
+                    </div>
                  </div>
-               ))}
-             </div>
-           )}
+               ) : (
+                 <div className="w-full h-full overflow-x-auto snap-x snap-mandatory flex gap-8 p-4 items-center">
+                   {deck.slides.map((slide, idx) => (
+                     <div key={idx} className="flex-shrink-0 w-[85vw] md:w-[800px] h-[50vh] md:h-[450px] bg-white text-slate-900 rounded-2xl shadow-2xl p-8 md:p-12 flex flex-col relative snap-center border border-slate-200">
+                        <h2 className="text-2xl md:text-4xl font-bold mb-4 md:mb-8 text-slate-900 border-b-4 border-slate-800 pb-4 inline-block self-start z-10">{slide.header}</h2>
+                        <ul className="flex-1 space-y-4 z-10 overflow-y-auto">{slide.content.map((point, i) => <li key={i} className="text-lg md:text-xl flex items-start"><span className="mr-3 text-slate-400 font-bold">•</span>{point}</li>)}</ul>
+                        <div className="absolute bottom-2 right-4 text-xs text-slate-400 font-mono">Slide {idx + 1}</div>
+                     </div>
+                   ))}
+                 </div>
+               )}
+            </div>
         </div>
       )}
 
       {tab === 'DOCUMENT' && (
-        <div className="paper-panel p-10 rounded-sm flex-1 overflow-y-auto bg-white border border-[var(--border-color)] shadow-inner">
-           {documentContent ? (
-             <article className="prose prose-slate max-w-none">
-               <pre className="whitespace-pre-wrap font-serif text-base text-[var(--text-primary)] font-normal">{documentContent}</pre>
-             </article>
-           ) : (
-             <div className="flex items-center justify-center h-full text-[var(--text-secondary)] opacity-50 italic">Document not generated yet.</div>
-           )}
+        <div className="h-full flex flex-col">
+            {/* Input Section */}
+            <div className="paper-panel p-6 mb-4 rounded-sm flex-shrink-0">
+               <h3 className="font-bold text-[var(--text-primary)] mb-2">Report Writer</h3>
+               <textarea 
+                  className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded p-3 text-sm focus:border-[var(--accent)] outline-none resize-none h-20 mb-4" 
+                  placeholder="Enter specific details, methodology notes, or conclusions for the document..."
+                  value={docInput}
+                  onChange={(e) => setDocInput(e.target.value)}
+               ></textarea>
+               <div className="flex gap-2">
+                 <button 
+                    onClick={handleGenerateDoc} 
+                    disabled={loading} 
+                    className="bg-[var(--text-secondary)] text-white font-bold px-6 py-2 rounded shadow text-sm flex items-center gap-2"
+                 >
+                    {loading ? <span className="material-icons animate-spin text-sm">refresh</span> : <span className="material-icons text-sm">article</span>}
+                    {documentContent ? 'Regenerate Document' : 'Write Report'}
+                 </button>
+                 <button 
+                    onClick={handleDriveSave} 
+                    disabled={driveSaving || !documentContent}
+                    className="bg-green-600 text-white font-bold px-6 py-2 rounded shadow text-sm flex items-center gap-2 disabled:opacity-50"
+                 >
+                    <span className="material-icons text-sm">add_to_drive</span>
+                    {driveSaving ? 'Saving...' : 'Save to Drive'}
+                 </button>
+               </div>
+           </div>
+
+           <div className="paper-panel p-10 rounded-sm flex-1 overflow-y-auto bg-white border border-[var(--border-color)] shadow-inner">
+              {documentContent ? (
+                <article className="prose prose-slate max-w-none">
+                  <pre className="whitespace-pre-wrap font-serif text-base text-[var(--text-primary)] font-normal">{documentContent}</pre>
+                </article>
+              ) : (
+                <div className="flex items-center justify-center h-full text-[var(--text-secondary)] opacity-50 italic">
+                   Document not generated yet. Use the controls above.
+                </div>
+              )}
+           </div>
         </div>
       )}
     </div>

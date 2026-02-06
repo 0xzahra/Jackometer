@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { generateTechnicalReport, generateLabReport, analyzeMicroscopeImage, generateImageCaption, downloadFile } from '../services/geminiService';
-import { AppendixItem, FieldTable, Collaborator, UserSearchResult } from '../types';
+import { generateTechnicalReport, generateLabReport, analyzeMicroscopeImage, generateImageCaption, downloadFile, generateRapidPresentation, saveToGoogleDrive } from '../services/geminiService';
+import { AppendixItem, FieldTable, Collaborator, UserSearchResult, SlideDeck } from '../types';
 import { CollaborationModal } from './CollaborationModal';
 
 interface ReportSuiteProps {
@@ -17,6 +17,7 @@ interface DocumentDraft {
   historyIndex: number;
   tables: FieldTable[];
   appendix: AppendixItem[];
+  slides?: SlideDeck;
 }
 
 export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
@@ -25,8 +26,12 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
   ]);
   const [activeDocId, setActiveDocId] = useState('1');
   const [loading, setLoading] = useState(false);
+  const [driveSaving, setDriveSaving] = useState(false);
   const [analyzingImage, setAnalyzingImage] = useState(false);
   const [captionLoading, setCaptionLoading] = useState(false);
+  
+  // View State
+  const [viewMode, setViewMode] = useState<'REPORT' | 'SLIDES'>('REPORT');
 
   // Collaboration State
   const [collaborators, setCollaborators] = useState<Collaborator[]>([
@@ -223,11 +228,48 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
     setLoading(false);
   };
 
+  const handleGenerateSlides = async () => {
+     if (!activeDoc.report) {
+         alert("Please generate or write a report first.");
+         return;
+     }
+     setLoading(true);
+     try {
+         const deck = await generateRapidPresentation(activeDoc.topic || "Technical Report", activeDoc.report);
+         updateDoc('slides', deck);
+         setViewMode('SLIDES');
+     } catch (e) {
+         alert("Slide generation failed.");
+     }
+     setLoading(false);
+  };
+
+  const handleImportDocument = (e: React.ChangeEvent<HTMLInputElement>) => {
+     const file = e.target.files?.[0];
+     if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+           const text = ev.target?.result as string;
+           pushHistory(text);
+        };
+        reader.readAsText(file);
+     }
+  };
+
   const handleExport = (format: string) => {
     let mime = 'text/plain';
     if (format === 'DOCX') mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
     if (format === 'ODT') mime = 'application/vnd.oasis.opendocument.text';
     downloadFile(activeDoc.report, `${activeDoc.topic || 'Report'}.${format.toLowerCase()}`, mime);
+  };
+
+  const handleDriveSave = async () => {
+    if (!activeDoc.report) return;
+    setDriveSaving(true);
+    const filename = `${activeDoc.topic || 'Report'}.docx`;
+    await saveToGoogleDrive(filename, activeDoc.report, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    setDriveSaving(false);
+    alert("Report saved to Google Drive!");
   };
 
   // --- Microscope Analysis ---
@@ -326,169 +368,233 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
        </div>
 
        {/* Tabs Bar */}
-       <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
-         {docs.map(doc => (
-           <div 
-             key={doc.id}
-             onClick={() => setActiveDocId(doc.id)}
-             className={`flex items-center px-4 py-2 rounded-t-lg border-b-2 cursor-pointer transition-colors whitespace-nowrap ${
-               activeDocId === doc.id 
-                 ? 'bg-[var(--surface-color)] border-[var(--primary)] text-[var(--primary)] font-bold' 
-                 : 'bg-transparent border-transparent text-[var(--text-secondary)] hover:bg-[var(--surface-color)]'
-             }`}
-           >
-             <span className="mr-2 max-w-[150px] truncate">{doc.topic || 'Untitled Draft'}</span>
-             <button onClick={(e) => closeDraft(doc.id, e)} className="hover:text-red-500 rounded-full p-1">
-               <span className="material-icons text-xs">close</span>
-             </button>
-           </div>
-         ))}
-         <button onClick={createNewDraft} className="p-2 rounded-full hover:bg-[var(--surface-color)] text-[var(--text-secondary)]" title="New Draft">
-           <span className="material-icons">add</span>
-         </button>
+       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+         <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 custom-scrollbar whitespace-nowrap">
+            {docs.map(doc => (
+              <div 
+                key={doc.id}
+                onClick={() => setActiveDocId(doc.id)}
+                className={`flex items-center px-4 py-2 rounded-t-lg border-b-2 cursor-pointer transition-colors whitespace-nowrap ${
+                  activeDocId === doc.id 
+                    ? 'bg-[var(--surface-color)] border-[var(--primary)] text-[var(--primary)] font-bold' 
+                    : 'bg-transparent border-transparent text-[var(--text-secondary)] hover:bg-[var(--surface-color)]'
+                }`}
+              >
+                <span className="mr-2 max-w-[150px] truncate">{doc.topic || 'Untitled Draft'}</span>
+                <button onClick={(e) => closeDraft(doc.id, e)} className="hover:text-red-500 rounded-full p-1">
+                  <span className="material-icons text-xs">close</span>
+                </button>
+              </div>
+            ))}
+            <button onClick={createNewDraft} className="p-2 rounded-full hover:bg-[var(--surface-color)] text-[var(--text-secondary)]" title="New Draft">
+              <span className="material-icons">add</span>
+            </button>
+         </div>
+
+         {/* View Toggle */}
+         <div className="flex bg-[var(--bg-color)] rounded p-1 border border-[var(--border-color)]">
+            <button 
+              onClick={() => setViewMode('REPORT')}
+              className={`px-4 py-1.5 rounded text-xs font-bold flex items-center gap-1 transition-colors ${viewMode === 'REPORT' ? 'bg-white shadow text-[var(--primary)]' : 'text-[var(--text-secondary)]'}`}
+            >
+               <span className="material-icons text-sm">description</span> Report
+            </button>
+            <button 
+              onClick={() => setViewMode('SLIDES')}
+              className={`px-4 py-1.5 rounded text-xs font-bold flex items-center gap-1 transition-colors ${viewMode === 'SLIDES' ? 'bg-white shadow text-[var(--primary)]' : 'text-[var(--text-secondary)]'}`}
+            >
+               <span className="material-icons text-sm">slideshow</span> Slides
+            </button>
+         </div>
        </div>
 
-       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 overflow-hidden">
-         {/* Input Side */}
-         <div className="paper-panel p-6 rounded-sm overflow-y-auto space-y-6">
-           
-           {/* Basic Info */}
-           <div>
-             <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {type === 'TECHNICAL' ? "Establishment / Topic" : "Experiment Title"}
-             </label>
-             <input 
-               className="w-full"
-               value={activeDoc.topic}
-               onChange={(e) => updateDoc('topic', e.target.value)}
-             />
-           </div>
-
-           {/* Microscope Analysis (Lab Only) */}
-           {type === 'LAB' && (
-             <div className="border-2 border-dashed border-[var(--accent)] bg-blue-50/50 p-4 rounded text-center">
-                <label className="cursor-pointer block">
-                  <span className="material-icons text-3xl text-[var(--accent)] mb-2">biotech</span>
-                  <div className="font-bold text-[var(--accent)]">Analyze Biological/Chemical Sample</div>
-                  <div className="text-xs text-[var(--text-secondary)]">Upload microscope or chemical reaction images for AI observation.</div>
-                  <input type="file" accept="image/*" className="hidden" onChange={handleMicroscopeUpload} />
-                </label>
-                {analyzingImage && <p className="text-xs text-[var(--accent)] mt-2 animate-pulse">Analyzing cellular structure & chemical properties...</p>}
-                {activeDoc.imageAnalysis && <p className="text-xs text-green-600 mt-2 font-bold">Analysis Attached to Observations.</p>}
-             </div>
-           )}
-
-           <div>
-             <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-               {type === 'TECHNICAL' ? "Experience Details" : "Observations & Procedure"}
-             </label>
-             <textarea 
-                className="w-full h-40 resize-none"
-                value={activeDoc.details}
-                onChange={(e) => updateDoc('details', e.target.value)}
-             ></textarea>
-           </div>
-
-           {/* Collapsible Input Tables */}
-           <div className="border-t border-[var(--border-color)] pt-4">
-              <div className="flex justify-between items-center mb-2">
-                 <label className="text-xs font-bold text-[var(--text-secondary)] uppercase">Data Tables</label>
-                 <button onClick={addTable} className="text-xs text-[var(--accent)] font-bold hover:underline">+ Add Table (Collapsible)</button>
-              </div>
-              {activeDoc.tables.map(t => (
-                <div key={t.id} className="mb-2 border border-[var(--border-color)] rounded bg-[var(--bg-color)]">
-                   <div className="p-2 flex justify-between items-center cursor-pointer bg-[var(--surface-color)]" onClick={() => toggleTable(t.id)}>
-                      <span className="font-bold text-sm text-[var(--text-primary)]">{t.name}</span>
-                      <span className="material-icons text-sm">{t.collapsed ? 'expand_more' : 'expand_less'}</span>
-                   </div>
-                   {!t.collapsed && (
-                     <div className="p-2 overflow-x-auto">
-                        <table className="w-full text-xs">
-                           <thead>
-                              <tr>{t.headers.map((h, i) => <th key={i} className="border p-1">{h}</th>)}</tr>
-                           </thead>
-                           <tbody>
-                              {t.rows.map((row, rIdx) => (
-                                 <tr key={rIdx}>
-                                    {row.map((cell, cIdx) => (
-                                       <td key={cIdx} className="border p-0">
-                                          <input className="w-full p-1 bg-transparent outline-none" value={cell} onChange={(e) => updateTableData(t.id, rIdx, cIdx, e.target.value)} />
-                                       </td>
-                                    ))}
-                                 </tr>
-                              ))}
-                           </tbody>
-                        </table>
-                        <button onClick={() => addTableRow(t.id)} className="text-[10px] text-[var(--accent)] font-bold mt-1">+ Row</button>
-                     </div>
-                   )}
-                </div>
-              ))}
-           </div>
-
-           {/* Appendix Builder */}
-           <div className="border-t border-[var(--border-color)] pt-4">
-              <div className="flex justify-between items-center mb-2">
-                 <label className="text-xs font-bold text-[var(--text-secondary)] uppercase">Appendix (Images & Captions)</label>
-                 <label className="text-xs text-[var(--accent)] font-bold hover:underline cursor-pointer">
-                    + Upload Image
-                    <input type="file" multiple accept="image/*" className="hidden" onChange={handleAppendixUpload} />
+       {viewMode === 'REPORT' ? (
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 overflow-hidden">
+           {/* Input Side */}
+           <div className="paper-panel p-6 rounded-sm overflow-y-auto space-y-6">
+             
+             {/* Basic Info */}
+             <div>
+               <div className="flex justify-between items-center mb-1">
+                 <label className="text-xs font-bold text-[var(--text-secondary)] uppercase">
+                    {type === 'TECHNICAL' ? "Establishment / Topic" : "Experiment Title"}
                  </label>
-              </div>
-              {captionLoading && <p className="text-xs text-[var(--text-secondary)] animate-pulse">Generating academic captions...</p>}
-              <div className="space-y-3">
-                 {activeDoc.appendix.map((item, idx) => (
-                    <div key={item.id} className="flex gap-3 items-start bg-[var(--bg-color)] p-2 rounded border border-[var(--border-color)]">
-                       <img src={item.image} className="w-16 h-16 object-cover rounded" alt="Appendix" />
-                       <div className="flex-1">
-                          <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Figure {idx + 1}</p>
-                          <textarea 
-                             className="w-full text-xs p-1 bg-transparent border-none outline-none resize-none h-12" 
-                             value={item.caption} 
-                             onChange={(e) => updateCaption(item.id, e.target.value)}
-                             placeholder="Is this caption accurate? Edit here..."
-                          />
-                       </div>
-                       <button onClick={() => removeAppendixItem(item.id)} className="text-red-400 hover:text-red-600">
-                          <span className="material-icons text-sm">delete</span>
-                       </button>
-                    </div>
-                 ))}
-              </div>
-           </div>
-           
-           <button 
-             onClick={handleGenerate}
-             disabled={loading}
-             className="w-full btn-primary"
-           >
-             {loading ? 'Compiling Report...' : 'Generate Report'}
-           </button>
-         </div>
-
-         {/* Output Side */}
-         <div className="paper-panel p-10 rounded-sm flex-1 overflow-y-auto bg-white border border-[var(--border-color)] relative">
-           {activeDoc.report ? (
-             <>
-               <div className="absolute top-4 right-4 flex gap-2">
-                 <button onClick={() => handleExport('PDF')} className="text-xs font-bold border border-[var(--border-color)] px-3 py-1 rounded hover:bg-gray-50">PDF</button>
-                 <button onClick={() => handleExport('DOCX')} className="text-xs font-bold border border-[var(--border-color)] px-3 py-1 rounded hover:bg-gray-50">Word</button>
-                 <button onClick={() => handleExport('ODT')} className="text-xs font-bold border border-[var(--border-color)] px-3 py-1 rounded hover:bg-gray-50">ODT</button>
+                 <label className="text-xs text-[var(--accent)] font-bold hover:underline cursor-pointer flex items-center gap-1">
+                    <span className="material-icons text-xs">upload</span> Import Text
+                    <input type="file" accept=".txt,.md,.json" className="hidden" onChange={handleImportDocument} />
+                 </label>
                </div>
-               <article className="prose prose-slate max-w-none mt-6">
-                 <div className="whitespace-pre-wrap font-serif text-base text-[var(--text-primary)] font-normal leading-relaxed">
-                   {renderContent(activeDoc.report)}
-                 </div>
-               </article>
-             </>
-           ) : (
-             <div className="flex flex-col items-center justify-center h-full text-[var(--text-secondary)] opacity-50">
-               <span className="material-icons text-6xl mb-4">description</span>
-               <p className="italic">Report preview will appear here</p>
+               <input 
+                 className="w-full"
+                 value={activeDoc.topic}
+                 onChange={(e) => updateDoc('topic', e.target.value)}
+                 placeholder="e.g. Analysis of Soil Samples"
+               />
              </div>
-           )}
+  
+             {/* Microscope Analysis (Lab Only) */}
+             {type === 'LAB' && (
+               <div className="border-2 border-dashed border-[var(--accent)] bg-blue-50/50 p-4 rounded text-center">
+                  <label className="cursor-pointer block">
+                    <span className="material-icons text-3xl text-[var(--accent)] mb-2">biotech</span>
+                    <div className="font-bold text-[var(--accent)]">Analyze Biological/Chemical Sample</div>
+                    <div className="text-xs text-[var(--text-secondary)]">Upload microscope or chemical reaction images for AI observation.</div>
+                    <input type="file" accept="image/*" className="hidden" onChange={handleMicroscopeUpload} />
+                  </label>
+                  {analyzingImage && <p className="text-xs text-[var(--accent)] mt-2 animate-pulse">Analyzing cellular structure & chemical properties...</p>}
+                  {activeDoc.imageAnalysis && <p className="text-xs text-green-600 mt-2 font-bold">Analysis Attached to Observations.</p>}
+               </div>
+             )}
+  
+             <div>
+               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
+                 {type === 'TECHNICAL' ? "Experience Details" : "Observations & Procedure"}
+               </label>
+               <textarea 
+                  className="w-full h-40 resize-none"
+                  value={activeDoc.details}
+                  onChange={(e) => updateDoc('details', e.target.value)}
+                  placeholder="Enter details or paste your rough notes here..."
+               ></textarea>
+             </div>
+  
+             {/* Collapsible Input Tables */}
+             <div className="border-t border-[var(--border-color)] pt-4">
+                <div className="flex justify-between items-center mb-2">
+                   <label className="text-xs font-bold text-[var(--text-secondary)] uppercase">Data Tables</label>
+                   <button onClick={addTable} className="text-xs text-[var(--accent)] font-bold hover:underline">+ Add Table (Collapsible)</button>
+                </div>
+                {activeDoc.tables.map(t => (
+                  <div key={t.id} className="mb-2 border border-[var(--border-color)] rounded bg-[var(--bg-color)]">
+                     <div className="p-2 flex justify-between items-center cursor-pointer bg-[var(--surface-color)]" onClick={() => toggleTable(t.id)}>
+                        <span className="font-bold text-sm text-[var(--text-primary)]">{t.name}</span>
+                        <span className="material-icons text-sm">{t.collapsed ? 'expand_more' : 'expand_less'}</span>
+                     </div>
+                     {!t.collapsed && (
+                       <div className="p-2 overflow-x-auto">
+                          <table className="w-full text-xs">
+                             <thead>
+                                <tr>{t.headers.map((h, i) => <th key={i} className="border p-1">{h}</th>)}</tr>
+                             </thead>
+                             <tbody>
+                                {t.rows.map((row, rIdx) => (
+                                   <tr key={rIdx}>
+                                      {row.map((cell, cIdx) => (
+                                         <td key={cIdx} className="border p-0">
+                                            <input className="w-full p-1 bg-transparent outline-none" value={cell} onChange={(e) => updateTableData(t.id, rIdx, cIdx, e.target.value)} />
+                                         </td>
+                                      ))}
+                                   </tr>
+                                ))}
+                             </tbody>
+                          </table>
+                          <button onClick={() => addTableRow(t.id)} className="text-[10px] text-[var(--accent)] font-bold mt-1">+ Row</button>
+                       </div>
+                     )}
+                  </div>
+                ))}
+             </div>
+  
+             {/* Appendix Builder */}
+             <div className="border-t border-[var(--border-color)] pt-4">
+                <div className="flex justify-between items-center mb-2">
+                   <label className="text-xs font-bold text-[var(--text-secondary)] uppercase">Appendix (Images & Captions)</label>
+                   <label className="text-xs text-[var(--accent)] font-bold hover:underline cursor-pointer">
+                      + Upload Image
+                      <input type="file" multiple accept="image/*" className="hidden" onChange={handleAppendixUpload} />
+                   </label>
+                </div>
+                {captionLoading && <p className="text-xs text-[var(--text-secondary)] animate-pulse">Generating academic captions...</p>}
+                <div className="space-y-3">
+                   {activeDoc.appendix.map((item, idx) => (
+                      <div key={item.id} className="flex gap-3 items-start bg-[var(--bg-color)] p-2 rounded border border-[var(--border-color)]">
+                         <img src={item.image} className="w-16 h-16 object-cover rounded" alt="Appendix" />
+                         <div className="flex-1">
+                            <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Figure {idx + 1}</p>
+                            <textarea 
+                               className="w-full text-xs p-1 bg-transparent border-none outline-none resize-none h-12" 
+                               value={item.caption} 
+                               onChange={(e) => updateCaption(item.id, e.target.value)}
+                               placeholder="Is this caption accurate? Edit here..."
+                            />
+                         </div>
+                         <button onClick={() => removeAppendixItem(item.id)} className="text-red-400 hover:text-red-600">
+                            <span className="material-icons text-sm">delete</span>
+                         </button>
+                      </div>
+                   ))}
+                </div>
+             </div>
+             
+             <div className="flex gap-2">
+               <button 
+                 onClick={handleGenerate}
+                 disabled={loading}
+                 className="flex-1 btn-primary"
+               >
+                 {loading ? 'Compiling Report...' : 'Generate Report'}
+               </button>
+               <button 
+                  onClick={handleGenerateSlides}
+                  disabled={loading}
+                  className="bg-[var(--accent)] text-white px-4 rounded font-bold hover:opacity-90 flex items-center justify-center"
+                  title="Generate Slides from Report"
+               >
+                  <span className="material-icons">slideshow</span>
+               </button>
+             </div>
+           </div>
+  
+           {/* Output Side */}
+           <div className="paper-panel p-10 rounded-sm flex-1 overflow-y-auto bg-white border border-[var(--border-color)] relative">
+             {activeDoc.report ? (
+               <>
+                 <div className="absolute top-4 right-4 flex gap-2">
+                   <button onClick={() => handleExport('PDF')} className="text-xs font-bold border border-[var(--border-color)] px-3 py-1 rounded hover:bg-gray-50">PDF</button>
+                   <button onClick={() => handleExport('DOCX')} className="text-xs font-bold border border-[var(--border-color)] px-3 py-1 rounded hover:bg-gray-50">Word</button>
+                   <button onClick={() => handleExport('ODT')} className="text-xs font-bold border border-[var(--border-color)] px-3 py-1 rounded hover:bg-gray-50">ODT</button>
+                   <button onClick={handleDriveSave} className="text-xs font-bold border border-[var(--border-color)] px-3 py-1 rounded hover:bg-green-50 text-green-700 flex items-center gap-1" disabled={driveSaving}>
+                      <span className="material-icons text-xs">add_to_drive</span> {driveSaving ? '...' : ''}
+                   </button>
+                 </div>
+                 <article className="prose prose-slate max-w-none mt-6">
+                   <div className="whitespace-pre-wrap font-serif text-base text-[var(--text-primary)] font-normal leading-relaxed">
+                     {renderContent(activeDoc.report)}
+                   </div>
+                 </article>
+               </>
+             ) : (
+               <div className="flex flex-col items-center justify-center h-full text-[var(--text-secondary)] opacity-50">
+                 <span className="material-icons text-6xl mb-4">description</span>
+                 <p className="italic">Report preview will appear here</p>
+               </div>
+             )}
+           </div>
          </div>
-       </div>
+       ) : (
+          /* SLIDES VIEW */
+          <div className="flex-1 bg-slate-200/50 rounded-lg border-2 border-dashed border-slate-300 p-4 relative overflow-hidden">
+             {!activeDoc.slides ? (
+               <div className="absolute inset-0 flex items-center justify-center text-slate-400">
+                 <div className="text-center">
+                    <span className="material-icons text-5xl mb-2">slideshow</span>
+                    <p>No presentation generated yet.</p>
+                    <button onClick={handleGenerateSlides} className="mt-4 bg-[var(--accent)] text-white px-6 py-2 rounded font-bold">Generate from Report</button>
+                 </div>
+               </div>
+             ) : (
+               <div className="w-full h-full overflow-x-auto snap-x snap-mandatory flex gap-8 p-4 items-center">
+                 {activeDoc.slides.slides.map((slide, idx) => (
+                   <div key={idx} className="flex-shrink-0 w-[85vw] md:w-[800px] h-[50vh] md:h-[450px] bg-white text-slate-900 rounded-2xl shadow-2xl p-8 md:p-12 flex flex-col relative snap-center border border-slate-200">
+                      <h2 className="text-2xl md:text-4xl font-bold mb-4 md:mb-8 text-slate-900 border-b-4 border-slate-800 pb-4 inline-block self-start z-10">{slide.header}</h2>
+                      <ul className="flex-1 space-y-4 z-10 overflow-y-auto">{slide.content.map((point, i) => <li key={i} className="text-lg md:text-xl flex items-start"><span className="mr-3 text-slate-400 font-bold">•</span>{point}</li>)}</ul>
+                      <div className="absolute bottom-2 right-4 text-xs text-slate-400 font-mono">Slide {idx + 1}</div>
+                   </div>
+                 ))}
+               </div>
+             )}
+          </div>
+       )}
     </div>
   );
 };

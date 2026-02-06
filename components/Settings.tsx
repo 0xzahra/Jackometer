@@ -121,6 +121,24 @@ export const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser }) => {
                </button>
              </div>
 
+             {/* Change Email */}
+             <div className="pb-4 border-b border-[var(--border-color)]">
+               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">Change Email Address</label>
+               <input 
+                 type="email"
+                 placeholder="New Email Address"
+                 className="w-full mb-3"
+                 value={emailForm.newEmail}
+                 onChange={(e) => setEmailForm({...emailForm, newEmail: e.target.value})}
+               />
+               <button 
+                 onClick={handleUpdateEmail}
+                 className="w-full bg-[var(--surface-color)] border border-[var(--border-color)] text-[var(--text-primary)] py-2 rounded font-bold text-sm hover:bg-[var(--bg-color)] transition-colors"
+               >
+                 Update Email
+               </button>
+             </div>
+
              {/* Change Password */}
              <div>
                <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">Reset Password</label>

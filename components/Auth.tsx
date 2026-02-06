@@ -271,13 +271,14 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 sm:px-20 relative">
         <div className="max-w-md w-full mx-auto">
           <div className="text-center mb-10 relative">
-            {/* Skills Submerging Symbols Animation */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-[400px] -z-10 pointer-events-none">
+            {/* Skills Submerging Symbols Animation - Enhanced Visibility */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-[400px] pointer-events-none z-0">
                 <style>{`
                   @keyframes submergeFloat {
-                    0% { transform: translateY(15px) scale(0.9); opacity: 0; }
-                    50% { opacity: 0.12; }
-                    100% { transform: translateY(-25px) scale(1.1); opacity: 0; }
+                    0% { transform: translateY(20px) scale(0.8); opacity: 0; }
+                    40% { opacity: 0.6; } /* Increased opacity for visibility */
+                    60% { opacity: 0.6; }
+                    100% { transform: translateY(-30px) scale(1.1); opacity: 0; }
                   }
                   .skill-symbol {
                     position: absolute;
@@ -287,14 +288,14 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                     user-select: none;
                   }
                 `}</style>
-                <span className="material-icons skill-symbol" style={{ left: '5%', top: '60%', animationDelay: '0s', fontSize: '24px' }}>school</span>
-                <span className="material-icons skill-symbol" style={{ right: '5%', top: '20%', animationDelay: '1s', fontSize: '28px' }}>science</span>
-                <span className="material-icons skill-symbol" style={{ left: '15%', top: '10%', animationDelay: '2s', fontSize: '20px' }}>psychology</span>
-                <span className="material-icons skill-symbol" style={{ right: '15%', top: '80%', animationDelay: '3s', fontSize: '26px' }}>functions</span>
-                <span className="material-icons skill-symbol" style={{ left: '50%', top: '-20%', animationDelay: '4s', fontSize: '22px' }}>history_edu</span>
-                <span className="material-icons skill-symbol" style={{ left: '50%', bottom: '-20%', animationDelay: '2.5s', fontSize: '22px' }}>gavel</span>
-                <span className="material-icons skill-symbol" style={{ left: '80%', top: '50%', animationDelay: '3.5s', fontSize: '30px' }}>biotech</span>
-                <span className="material-icons skill-symbol" style={{ left: '10%', top: '40%', animationDelay: '1.5s', fontSize: '18px' }}>calculate</span>
+                <span className="material-icons skill-symbol" style={{ left: '-5%', top: '60%', animationDelay: '0s', fontSize: '32px' }}>school</span>
+                <span className="material-icons skill-symbol" style={{ right: '-5%', top: '20%', animationDelay: '1s', fontSize: '36px' }}>science</span>
+                <span className="material-icons skill-symbol" style={{ left: '10%', top: '10%', animationDelay: '2s', fontSize: '24px' }}>psychology</span>
+                <span className="material-icons skill-symbol" style={{ right: '10%', top: '80%', animationDelay: '3s', fontSize: '30px' }}>functions</span>
+                <span className="material-icons skill-symbol" style={{ left: '50%', top: '-30%', animationDelay: '4s', fontSize: '28px' }}>history_edu</span>
+                <span className="material-icons skill-symbol" style={{ left: '50%', bottom: '-30%', animationDelay: '2.5s', fontSize: '28px' }}>gavel</span>
+                <span className="material-icons skill-symbol" style={{ right: '80%', top: '50%', animationDelay: '3.5s', fontSize: '40px' }}>biotech</span>
+                <span className="material-icons skill-symbol" style={{ left: '80%', top: '40%', animationDelay: '1.5s', fontSize: '22px' }}>calculate</span>
             </div>
 
             <h2 className="text-4xl font-serif font-bold text-[var(--text-primary)] mb-2 relative z-10">Jackometer</h2>

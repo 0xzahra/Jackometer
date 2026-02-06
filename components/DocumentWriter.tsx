@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { generateSectionContent, searchYouTubeVideos, downloadFile, generateImageCaption, enrichCitationFromUrl } from '../services/geminiService';
-import { YouTubeVideo, Citation, Collaborator, AppendixItem, UserSearchResult } from '../types';
+import { generateSectionContent, searchYouTubeVideos, downloadFile, generateImageCaption, enrichCitationFromUrl, generateRapidPresentation, saveToGoogleDrive } from '../services/geminiService';
+import { YouTubeVideo, Citation, Collaborator, AppendixItem, UserSearchResult, SlideDeck } from '../types';
 import { CollaborationModal } from './CollaborationModal';
 
 interface DocSection {
@@ -23,6 +23,7 @@ interface DocDraft {
   historyIndex: number;
   uploadedImages: string[];
   appendix: AppendixItem[];
+  slides?: SlideDeck;
 }
 
 interface DocumentWriterProps {
@@ -111,6 +112,9 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
   const [isOutlineOpen, setIsOutlineOpen] = useState(true);
   const [newSectionTitle, setNewSectionTitle] = useState('');
 
+  // View Mode
+  const [viewMode, setViewMode] = useState<'WRITER' | 'SLIDES'>('WRITER');
+
   // Sync active section when draft changes
   useEffect(() => {
     if (!activeDraft.sections.find(s => s.id === activeSectionId)) {
@@ -121,6 +125,7 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
   const activeSection = activeDraft.sections.find(s => s.id === activeSectionId) || activeDraft.sections[0];
 
   const [loading, setLoading] = useState(false);
+  const [driveSaving, setDriveSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
 
@@ -196,8 +201,6 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
       s.id === activeSectionId ? { ...s, content: val } : s
     );
     updateDraft('sections', updatedSections);
-    // Note: For real-time typing, we don't push to history on every keystroke.
-    // Ideally, use a debounce or onBlur to saveToHistory.
   };
 
   const addSection = (type: 'PRELIM' | 'CHAPTER') => {
@@ -289,6 +292,31 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
     }
   };
 
+  const handleGenerateSlides = async () => {
+     setLoading(true);
+     try {
+         const fullText = activeDraft.sections.map(s => `${s.title}\n${s.content}`).join('\n\n');
+         const deck = await generateRapidPresentation(activeDraft.topic || "Research Project", fullText);
+         updateDraft('slides', deck);
+         setViewMode('SLIDES');
+     } catch (e) {
+         alert("Failed to generate slides.");
+     }
+     setLoading(false);
+  };
+
+  const handleImportDocument = (e: React.ChangeEvent<HTMLInputElement>) => {
+     const file = e.target.files?.[0];
+     if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+           const text = ev.target?.result as string;
+           handleSectionContentEdit(text);
+        };
+        reader.readAsText(file);
+     }
+  };
+
   // --- HANDLERS ---
   const handleAddCollaborator = (user: UserSearchResult) => {
     const newCollab: Collaborator = {
@@ -332,6 +360,19 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
     downloadFile(fullContent, filename, mime);
   };
 
+  const handleDriveSave = async () => {
+    if (!activeDraft.topic) {
+        alert("Cannot save: Document title missing.");
+        return;
+    }
+    setDriveSaving(true);
+    const fullContent = activeDraft.sections.map(s => `${s.title.toUpperCase()}\n\n${s.content}\n\n`).join('***\n\n');
+    const filename = `${activeDraft.topic || 'Document'}.docx`;
+    await saveToGoogleDrive(filename, fullContent, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    setDriveSaving(false);
+    alert("Document saved to Google Drive!");
+  };
+
   const renderContent = (text: string) => {
     const parts = text.split(/(\[.*?\]\(.*?\))/g);
     return parts.map((part, index) => {
@@ -361,11 +402,12 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
          </div>
 
          {/* Toolbar Right: Undo/Redo, Collab, Export */}
-         <div className="flex items-center gap-4 w-full md:w-auto justify-end">
-             {/* Undo / Redo */}
-             <div className="flex bg-[var(--surface-color)] rounded border border-[var(--border-color)]">
-                <button onClick={handleUndo} disabled={activeDraft.historyIndex === 0} className="p-1.5 hover:bg-gray-100 disabled:opacity-30 border-r border-[var(--border-color)]"><span className="material-icons text-sm">undo</span></button>
-                <button onClick={handleRedo} disabled={activeDraft.historyIndex === activeDraft.history.length - 1} className="p-1.5 hover:bg-gray-100 disabled:opacity-30"><span className="material-icons text-sm">redo</span></button>
+         <div className="flex items-center gap-4 w-full md:w-auto justify-end flex-wrap">
+             
+             {/* View Toggle */}
+             <div className="flex bg-[var(--bg-color)] rounded p-1 border border-[var(--border-color)]">
+               <button onClick={() => setViewMode('WRITER')} className={`px-3 py-1 text-xs font-bold rounded ${viewMode === 'WRITER' ? 'bg-white shadow text-[var(--primary)]' : 'text-[var(--text-secondary)]'}`}>Writer</button>
+               <button onClick={() => setViewMode('SLIDES')} className={`px-3 py-1 text-xs font-bold rounded ${viewMode === 'SLIDES' ? 'bg-white shadow text-[var(--primary)]' : 'text-[var(--text-secondary)]'}`}>Defense</button>
              </div>
 
              {/* Collaborators */}
@@ -379,134 +421,166 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
                  <button onClick={() => setIsInviteModalOpen(true)} className="w-8 h-8 rounded-full bg-gray-100 border-2 border-dashed border-gray-400 flex items-center justify-center hover:bg-gray-200 z-10"><span className="material-icons text-sm text-gray-500">person_add</span></button>
              </div>
 
-            <button onClick={() => { setShowArchiveSearch(true); setArchiveQuery(''); setArchiveResults(drafts); }} className="p-2 text-[var(--text-secondary)] hover:text-[var(--accent)] border border-transparent hover:border-[var(--border-color)] rounded"><span className="material-icons">manage_search</span></button>
-            
             <div className="relative group z-20">
               <button className="flex items-center gap-1 bg-[var(--accent)] text-white px-3 py-1.5 rounded text-sm font-bold shadow-sm">Export <span className="material-icons text-sm">expand_more</span></button>
-              <div className="absolute right-0 mt-2 w-48 bg-white border border-[var(--border-color)] shadow-xl rounded-lg hidden group-hover:block z-50">
+              <div className="absolute right-0 mt-2 w-56 bg-white border border-[var(--border-color)] shadow-xl rounded-lg hidden group-hover:block z-50">
                  <button onClick={() => handleExport('PDF')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 text-sm font-medium">PDF Document (.pdf)</button>
                  <button onClick={() => handleExport('DOCX')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 text-sm font-medium">Word Document (.docx)</button>
                  <button onClick={() => handleExport('TXT')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 text-sm font-medium">Plain Text (.txt)</button>
+                 <div className="border-t border-gray-100 my-1"></div>
+                 <button onClick={handleDriveSave} disabled={driveSaving} className="block w-full text-left px-4 py-2 hover:bg-gray-50 text-sm font-medium flex items-center gap-2">
+                    <span className="material-icons text-sm text-green-600">add_to_drive</span> 
+                    {driveSaving ? 'Saving...' : 'Save to Google Drive'}
+                 </button>
               </div>
             </div>
          </div>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-6 flex-1 h-full min-h-0 md:overflow-hidden pb-20 md:pb-0">
-        
-        {/* LEFT COLUMN: Controls & Outline */}
-        <div className="w-full md:w-1/3 flex flex-col gap-4 md:overflow-hidden h-full">
-           
-           {/* Document Details Card */}
-           <div className="paper-panel p-4 rounded-sm flex-shrink-0">
-              <h3 className="font-bold text-[var(--text-primary)] mb-2 flex items-center gap-2"><span className="material-icons text-sm">edit_note</span> Context</h3>
-              <div className="space-y-2">
-                <input value={activeDraft.course} onChange={(e) => updateDraft('course', e.target.value)} className="w-full text-xs" placeholder="Course (e.g. Microbiology)" />
-                <input value={activeDraft.topic} onChange={(e) => updateDraft('topic', e.target.value)} className="w-full text-xs" placeholder="Research Topic" />
-                <textarea value={activeDraft.details} onChange={(e) => updateDraft('details', e.target.value)} className="w-full h-16 text-xs resize-none" placeholder="Specific Details/Instructions..."></textarea>
-              </div>
-           </div>
-
-           {/* Outline / Section Navigator */}
-           <div className="paper-panel p-0 rounded-sm flex-1 flex flex-col overflow-hidden border-l-4 border-[var(--primary)]">
-              <div className="p-3 border-b border-[var(--border-color)] bg-[var(--surface-color)] flex justify-between items-center">
-                 <h3 className="font-bold text-[var(--text-primary)] flex items-center gap-2 text-sm"><span className="material-icons text-sm">format_list_numbered</span> Outline</h3>
-                 <button onClick={() => setIsOutlineOpen(!isOutlineOpen)} className="text-[var(--text-secondary)] md:hidden"><span className="material-icons">{isOutlineOpen ? 'expand_less' : 'expand_more'}</span></button>
-              </div>
-              
-              <div className={`flex-1 overflow-y-auto p-2 space-y-1 ${!isOutlineOpen ? 'hidden md:block' : ''}`}>
-                 {activeDraft.sections.map((section) => (
-                    <div 
-                      key={section.id} 
-                      onClick={() => setActiveSectionId(section.id)}
-                      className={`p-2 rounded text-xs cursor-pointer flex justify-between items-center group transition-colors ${activeSectionId === section.id ? 'bg-[var(--primary)] text-white font-bold' : 'hover:bg-gray-100 text-[var(--text-secondary)]'}`}
-                    >
-                       <div className="flex items-center gap-2 overflow-hidden">
-                          <span className="material-icons text-[10px] opacity-70">{section.type === 'PRELIM' ? 'article' : 'book'}</span>
-                          <span className="truncate">{section.title}</span>
-                       </div>
-                       <button 
-                         onClick={(e) => deleteSection(section.id, e)} 
-                         className={`hover:bg-red-500 hover:text-white rounded p-0.5 ${activeSectionId === section.id ? 'text-white opacity-100' : 'text-red-400 opacity-0 group-hover:opacity-100'}`}
-                         title="Delete Section"
-                       >
-                         <span className="material-icons text-[12px]">close</span>
-                       </button>
-                    </div>
-                 ))}
-              </div>
-
-              <div className="p-2 border-t border-[var(--border-color)] bg-gray-50">
-                 <input 
-                   className="w-full mb-2 text-xs p-1 border rounded" 
-                   placeholder="New Section Title..." 
-                   value={newSectionTitle}
-                   onChange={(e) => setNewSectionTitle(e.target.value)}
-                 />
-                 <div className="flex gap-1">
-                    <button onClick={() => addSection('PRELIM')} className="flex-1 bg-white border border-gray-300 text-[10px] py-1 rounded hover:bg-gray-50 font-bold">Add Page</button>
-                    <button onClick={() => addSection('CHAPTER')} className="flex-1 bg-[var(--accent)] text-white text-[10px] py-1 rounded hover:opacity-90 font-bold">Add Chapter</button>
-                 </div>
-              </div>
-           </div>
-        </div>
-
-        {/* RIGHT COLUMN: Editor Area */}
-        <div ref={editorRef} className="w-full md:w-2/3 paper-panel rounded-sm overflow-hidden bg-white border border-[var(--border-color)] shadow-inner relative flex flex-col md:h-full min-h-[500px]">
-           {/* Editor Toolbar */}
-           <div className="h-12 bg-[var(--surface-color)] border-b border-[var(--border-color)] flex items-center justify-between px-4 flex-shrink-0">
-              <div className="flex items-center gap-2 overflow-hidden">
-                <span className="material-icons text-[var(--accent)]">edit</span>
-                <span className="font-serif font-bold text-[var(--text-primary)] truncate max-w-[150px] md:max-w-none">{activeSection.title}</span>
-                <span className="text-[10px] bg-gray-200 text-gray-600 px-2 rounded">{activeSection.type}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setIsEditing(!isEditing)} className={`text-xs font-bold px-3 py-1 rounded flex items-center gap-1 ${isEditing ? 'bg-[var(--accent)] text-white' : 'bg-gray-100 text-[var(--text-secondary)] hover:bg-gray-200'}`}>
-                  <span className="material-icons text-sm">{isEditing ? 'visibility' : 'edit'}</span>
-                  <span className="hidden sm:inline">{isEditing ? 'View Mode' : 'Edit Mode'}</span>
-                </button>
-                <button onClick={handleGenerate} disabled={loading} className="bg-green-600 text-white text-xs font-bold px-3 py-1 rounded hover:bg-green-700 flex items-center gap-1 shadow-sm">
-                   {loading ? <span className="material-icons animate-spin text-sm">refresh</span> : <span className="material-icons text-sm">auto_awesome</span>}
-                   <span className="hidden sm:inline">Write Section</span>
-                </button>
-              </div>
-           </div>
-
-           <div className="flex-1 overflow-y-auto relative p-6 md:p-10">
-              {loading && (
-                 <div className="absolute inset-0 bg-white/80 z-20 flex items-center justify-center backdrop-blur-sm">
-                    <div className="text-center">
-                       <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[var(--accent)] mx-auto mb-2"></div>
-                       <p className="text-xs text-[var(--text-secondary)] font-serif italic">Consulting academic repositories & writing...</p>
-                    </div>
-                 </div>
-              )}
-              
-              {activeSection.content || isEditing ? (
-                 isEditing ? (
-                   <textarea 
-                     className="w-full h-full bg-transparent resize-none outline-none font-mono text-sm leading-relaxed"
-                     value={activeSection.content}
-                     onChange={(e) => handleSectionContentEdit(e.target.value)}
-                     placeholder="Start typing or click 'Write Section'..."
-                   />
-                 ) : (
-                   <article className="prose prose-slate max-w-none pb-20">
-                     <div className="whitespace-pre-wrap font-serif text-base text-[var(--text-primary)] font-normal leading-relaxed">
-                       {renderContent(activeSection.content)}
-                     </div>
-                   </article>
-                 )
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full text-[var(--text-secondary)] opacity-50">
-                  <span className="material-icons text-6xl mb-4">library_books</span>
-                  <p className="italic">Section is empty.</p>
-                  <p className="text-xs mt-2">Click <strong className="text-[var(--accent)]">Write Section</strong> to generate content using AI.</p>
+      {viewMode === 'WRITER' ? (
+        <div className="flex flex-col md:flex-row gap-6 flex-1 h-full min-h-0 md:overflow-hidden pb-20 md:pb-0">
+          
+          {/* LEFT COLUMN: Controls & Outline */}
+          <div className="w-full md:w-1/3 flex flex-col gap-4 md:overflow-hidden h-full">
+             
+             {/* Document Details Card */}
+             <div className="paper-panel p-4 rounded-sm flex-shrink-0">
+                <h3 className="font-bold text-[var(--text-primary)] mb-2 flex items-center gap-2"><span className="material-icons text-sm">edit_note</span> Context</h3>
+                <div className="space-y-2">
+                  <input value={activeDraft.course} onChange={(e) => updateDraft('course', e.target.value)} className="w-full text-xs" placeholder="Course (e.g. Microbiology)" />
+                  <input value={activeDraft.topic} onChange={(e) => updateDraft('topic', e.target.value)} className="w-full text-xs" placeholder="Research Topic" />
+                  <textarea value={activeDraft.details} onChange={(e) => updateDraft('details', e.target.value)} className="w-full h-16 text-xs resize-none" placeholder="Specific Details/Instructions..."></textarea>
+                  <button onClick={handleGenerateSlides} className="w-full bg-[var(--primary)] text-white text-xs font-bold py-2 rounded mt-2 hover:bg-blue-700">Generate Defense Slides</button>
                 </div>
-              )}
-           </div>
+             </div>
+  
+             {/* Outline / Section Navigator */}
+             <div className="paper-panel p-0 rounded-sm flex-1 flex flex-col overflow-hidden border-l-4 border-[var(--primary)]">
+                <div className="p-3 border-b border-[var(--border-color)] bg-[var(--surface-color)] flex justify-between items-center">
+                   <h3 className="font-bold text-[var(--text-primary)] flex items-center gap-2 text-sm"><span className="material-icons text-sm">format_list_numbered</span> Outline</h3>
+                   <button onClick={() => setIsOutlineOpen(!isOutlineOpen)} className="text-[var(--text-secondary)] md:hidden"><span className="material-icons">{isOutlineOpen ? 'expand_less' : 'expand_more'}</span></button>
+                </div>
+                
+                <div className={`flex-1 overflow-y-auto p-2 space-y-1 ${!isOutlineOpen ? 'hidden md:block' : ''}`}>
+                   {activeDraft.sections.map((section) => (
+                      <div 
+                        key={section.id} 
+                        onClick={() => setActiveSectionId(section.id)}
+                        className={`p-2 rounded text-xs cursor-pointer flex justify-between items-center group transition-colors ${activeSectionId === section.id ? 'bg-[var(--primary)] text-white font-bold' : 'hover:bg-gray-100 text-[var(--text-secondary)]'}`}
+                      >
+                         <div className="flex items-center gap-2 overflow-hidden">
+                            <span className="material-icons text-[10px] opacity-70">{section.type === 'PRELIM' ? 'article' : 'book'}</span>
+                            <span className="truncate">{section.title}</span>
+                         </div>
+                         <button 
+                           onClick={(e) => deleteSection(section.id, e)} 
+                           className={`hover:bg-red-500 hover:text-white rounded p-0.5 ${activeSectionId === section.id ? 'text-white opacity-100' : 'text-red-400 opacity-0 group-hover:opacity-100'}`}
+                           title="Delete Section"
+                         >
+                           <span className="material-icons text-[12px]">close</span>
+                         </button>
+                      </div>
+                   ))}
+                </div>
+  
+                <div className="p-2 border-t border-[var(--border-color)] bg-gray-50">
+                   <input 
+                     className="w-full mb-2 text-xs p-1 border rounded" 
+                     placeholder="New Section Title..." 
+                     value={newSectionTitle}
+                     onChange={(e) => setNewSectionTitle(e.target.value)}
+                   />
+                   <div className="flex gap-1">
+                      <button onClick={() => addSection('PRELIM')} className="flex-1 bg-white border border-gray-300 text-[10px] py-1 rounded hover:bg-gray-50 font-bold">Add Page</button>
+                      <button onClick={() => addSection('CHAPTER')} className="flex-1 bg-[var(--accent)] text-white text-[10px] py-1 rounded hover:opacity-90 font-bold">Add Chapter</button>
+                   </div>
+                </div>
+             </div>
+          </div>
+  
+          {/* RIGHT COLUMN: Editor Area */}
+          <div ref={editorRef} className="w-full md:w-2/3 paper-panel rounded-sm overflow-hidden bg-white border border-[var(--border-color)] shadow-inner relative flex flex-col md:h-full min-h-[500px]">
+             {/* Editor Toolbar */}
+             <div className="h-12 bg-[var(--surface-color)] border-b border-[var(--border-color)] flex items-center justify-between px-4 flex-shrink-0">
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <span className="material-icons text-[var(--accent)]">edit</span>
+                  <span className="font-serif font-bold text-[var(--text-primary)] truncate max-w-[150px] md:max-w-none">{activeSection.title}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-2 py-1 rounded cursor-pointer flex items-center gap-1">
+                     <span className="material-icons text-xs">upload</span> Import
+                     <input type="file" accept=".txt,.md,.json" className="hidden" onChange={handleImportDocument} />
+                  </label>
+                  <button onClick={() => setIsEditing(!isEditing)} className={`text-xs font-bold px-3 py-1 rounded flex items-center gap-1 ${isEditing ? 'bg-[var(--accent)] text-white' : 'bg-gray-100 text-[var(--text-secondary)] hover:bg-gray-200'}`}>
+                    <span className="material-icons text-sm">{isEditing ? 'visibility' : 'edit'}</span>
+                    <span className="hidden sm:inline">{isEditing ? 'View Mode' : 'Edit Mode'}</span>
+                  </button>
+                  <button onClick={handleGenerate} disabled={loading} className="bg-green-600 text-white text-xs font-bold px-3 py-1 rounded hover:bg-green-700 flex items-center gap-1 shadow-sm">
+                     {loading ? <span className="material-icons animate-spin text-sm">refresh</span> : <span className="material-icons text-sm">auto_awesome</span>}
+                     <span className="hidden sm:inline">Write Section</span>
+                  </button>
+                </div>
+             </div>
+  
+             <div className="flex-1 overflow-y-auto relative p-6 md:p-10">
+                {loading && (
+                   <div className="absolute inset-0 bg-white/80 z-20 flex items-center justify-center backdrop-blur-sm">
+                      <div className="text-center">
+                         <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[var(--accent)] mx-auto mb-2"></div>
+                         <p className="text-xs text-[var(--text-secondary)] font-serif italic">Consulting academic repositories & writing...</p>
+                      </div>
+                   </div>
+                )}
+                
+                {activeSection.content || isEditing ? (
+                   isEditing ? (
+                     <textarea 
+                       className="w-full h-full bg-transparent resize-none outline-none font-mono text-sm leading-relaxed"
+                       value={activeSection.content}
+                       onChange={(e) => handleSectionContentEdit(e.target.value)}
+                       placeholder="Start typing or click 'Write Section'..."
+                     />
+                   ) : (
+                     <article className="prose prose-slate max-w-none pb-20">
+                       <div className="whitespace-pre-wrap font-serif text-base text-[var(--text-primary)] font-normal leading-relaxed">
+                         {renderContent(activeSection.content)}
+                       </div>
+                     </article>
+                   )
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-[var(--text-secondary)] opacity-50">
+                    <span className="material-icons text-6xl mb-4">library_books</span>
+                    <p className="italic">Section is empty.</p>
+                    <p className="text-xs mt-2">Click <strong className="text-[var(--accent)]">Write Section</strong> to generate content using AI.</p>
+                  </div>
+                )}
+             </div>
+          </div>
         </div>
-      </div>
+      ) : (
+        /* SLIDES VIEW */
+        <div className="flex-1 bg-slate-200/50 rounded-lg border-2 border-dashed border-slate-300 p-4 relative overflow-hidden">
+           {!activeDraft.slides ? (
+             <div className="absolute inset-0 flex items-center justify-center text-slate-400">
+               <div className="text-center">
+                  <span className="material-icons text-5xl mb-2">slideshow</span>
+                  <p>No project defense slides generated.</p>
+                  <button onClick={handleGenerateSlides} className="mt-4 bg-[var(--accent)] text-white px-6 py-2 rounded font-bold">Generate Defense</button>
+               </div>
+             </div>
+           ) : (
+             <div className="w-full h-full overflow-x-auto snap-x snap-mandatory flex gap-8 p-4 items-center">
+               {activeDraft.slides.slides.map((slide, idx) => (
+                 <div key={idx} className="flex-shrink-0 w-[85vw] md:w-[800px] h-[50vh] md:h-[450px] bg-white text-slate-900 rounded-2xl shadow-2xl p-8 md:p-12 flex flex-col relative snap-center border border-slate-200">
+                    <h2 className="text-2xl md:text-4xl font-bold mb-4 md:mb-8 text-slate-900 border-b-4 border-slate-800 pb-4 inline-block self-start z-10">{slide.header}</h2>
+                    <ul className="flex-1 space-y-4 z-10 overflow-y-auto">{slide.content.map((point, i) => <li key={i} className="text-lg md:text-xl flex items-start"><span className="mr-3 text-slate-400 font-bold">•</span>{point}</li>)}</ul>
+                    <div className="absolute bottom-2 right-4 text-xs text-slate-400 font-mono">Slide {idx + 1}</div>
+                 </div>
+               ))}
+             </div>
+           )}
+        </div>
+      )}
 
       {/* Archive Search Modal */}
       {showArchiveSearch && (

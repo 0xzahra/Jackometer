@@ -81,6 +81,17 @@ export const downloadFile = (content: string, filename: string, mimeType: string
   URL.revokeObjectURL(url);
 };
 
+export const saveToGoogleDrive = async (filename: string, content: string, mimeType: string): Promise<boolean> => {
+  // Simulation of Google Drive Upload
+  // In a real application, this would use the Google Drive API v3 to create a file
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      console.log(`[Mock Drive Upload] File: ${filename}, Type: ${mimeType}`);
+      resolve(true);
+    }, 1500);
+  });
+};
+
 // --- RESEARCH ENGINE ---
 export const generateResearchTitles = async (topic: string): Promise<ProjectTitle[]> => {
   const ai = getAI();
@@ -115,21 +126,56 @@ export const generateResearchTitles = async (topic: string): Promise<ProjectTitl
   return cleanAndParseJSON(response.text, []);
 };
 
+// NEW: Strict Supervisor Outline Generation
+export const generateStructuredOutline = async (topic: string): Promise<string[]> => {
+  const ai = getAI();
+  const prompt = `
+    Act as a strict Academic Supervisor.
+    Create a robust research project outline for the topic: "${topic}".
+    
+    Structure Requirements:
+    - Preliminaries: Title page, Abstract, Table of Contents.
+    - Chapter 1: Introduction (Background, Statement of Problem, Objectives, Research Questions).
+    - Chapter 2: Literature Review (Conceptual Framework, Theoretical Framework, Empirical Review).
+    - Chapter 3: Methodology (Research Design, Population, Sample, Instrument, Data Analysis).
+    - Chapter 4: Data Presentation and Analysis.
+    - Chapter 5: Summary, Conclusion, and Recommendations.
+    - References.
+    
+    The output must be a JSON array of strings, where each string is a distinct section or subheading title that needs to be written. 
+    Ensure it flows logically from start to finish.
+  `;
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: prompt,
+    config: {
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: Type.ARRAY,
+        items: { type: Type.STRING }
+      }
+    }
+  });
+
+  return cleanAndParseJSON(response.text, []);
+};
+
 export const generateDeepResearch = async (title: string, chapter: string, context: string) => {
   const ai = getAI();
   const prompt = `
     Title: ${title}
-    Chapter: ${chapter}
-    Context/Outline: ${context}
+    Section: ${chapter}
+    Project Context: ${context}
     
-    Write the content for this chapter. 
+    Write the content for this specific section/chapter. 
     Style: Academic, "Old Money" authority, 20+ years experience.
-    Strictly academic format (APA 7th Edition). 
+    Strictly academic format (APA 7th Edition).
     
     CRITICAL CITATION RULES:
     1. You MUST use Google Search to find real sources.
     2. Every factual claim must be cited inline using (Author, Year) or [Source Title] format.
-    3. At the very end of the response, create a section called "REFERENCES". In this section, list every source used in full APA format, including the URL.
+    3. If this is the "References" section, compile a list of all sources used in previous chapters if possible, or generate a list of highly relevant real sources for this topic.
 
     Use high-level vocabulary.
     Do NOT use markdown symbols for headers like **, ## inside the body text. Format as plain, beautifully written text.
