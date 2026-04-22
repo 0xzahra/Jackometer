@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AppView, UserProfile } from '../types';
+import { BibliographyManager } from './BibliographyManager';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -28,7 +29,7 @@ const NavButton: React.FC<{
         }`}
       >
         <span className={`material-icons text-xl mr-4 ${active ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--accent)]'}`}>{icon}</span>
-        <span className={`font-serif text-sm tracking-wide ${active ? 'font-bold' : 'font-normal'}`}>{label}</span>
+        <span className={`font-sans text-sm tracking-wide ${active ? 'font-bold' : 'font-normal'}`}>{label}</span>
       </button>
     </div>
   );
@@ -107,7 +108,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
       >
         <div className="px-8 mb-6 flex justify-between items-center">
           <div>
-            <div className="text-2xl font-bold font-serif text-[var(--text-primary)] tracking-tight cursor-pointer" onClick={() => { setView(AppView.DASHBOARD); setSidebarOpen(false); }}>
+            <div className="text-2xl font-bold font-sans text-[var(--text-primary)] tracking-tight cursor-pointer" onClick={() => { setView(AppView.DASHBOARD); setSidebarOpen(false); }}>
               Jackometer
             </div>
             <p className="text-xs text-[var(--text-secondary)] mt-1 uppercase tracking-widest font-sans">Academic Suite</p>
@@ -119,15 +120,15 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
         
         <div className="flex-1 overflow-y-auto">
           <div className="px-4 mb-2 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider opacity-100">Modules</div>
-          <NavButton active={currentView === AppView.RESEARCH} onClick={() => { setView(AppView.RESEARCH); setSidebarOpen(false); }} icon="school" label="Research Engine" />
+          <NavButton active={currentView === AppView.RESEARCH} onClick={() => { setView(AppView.RESEARCH); setSidebarOpen(false); }} icon="school" label="Study Dojo" />
           <NavButton active={currentView === AppView.DOCUMENT_WRITER} onClick={() => { setView(AppView.DOCUMENT_WRITER); setSidebarOpen(false); }} icon="description" label="Document Writer" />
-          <NavButton active={currentView === AppView.ASSIGNMENT} onClick={() => { setView(AppView.ASSIGNMENT); setSidebarOpen(false); }} icon="gavel" label="Assignment / Grader" />
+          <NavButton active={currentView === AppView.ASSIGNMENT} onClick={() => { setView(AppView.ASSIGNMENT); setSidebarOpen(false); }} icon="gavel" label="Essay Critique" />
           <NavButton active={currentView === AppView.FIELD_TRIP} onClick={() => { setView(AppView.FIELD_TRIP); setSidebarOpen(false); }} icon="landscape" label="Field Trip" />
           <NavButton active={currentView === AppView.TECHNICAL_REPORT} onClick={() => { setView(AppView.TECHNICAL_REPORT); setSidebarOpen(false); }} icon="engineering" label="Technical Report" />
           <NavButton active={currentView === AppView.LAB_REPORT} onClick={() => { setView(AppView.LAB_REPORT); setSidebarOpen(false); }} icon="science" label="Lab Report" />
           <NavButton active={currentView === AppView.DATA_CRUNCHER} onClick={() => { setView(AppView.DATA_CRUNCHER); setSidebarOpen(false); }} icon="analytics" label="Data Cruncher" />
-          <NavButton active={currentView === AppView.COMPRESSOR} onClick={() => { setView(AppView.COMPRESSOR); setSidebarOpen(false); }} icon="folder_zip" label="File Studio" />
-          <NavButton active={currentView === AppView.CAREER} onClick={() => { setView(AppView.CAREER); setSidebarOpen(false); }} icon="work_outline" label="Career Studio" />
+          <NavButton active={currentView === AppView.COMPRESSOR} onClick={() => { setView(AppView.COMPRESSOR); setSidebarOpen(false); }} icon="folder_zip" label="File Compressor" />
+          <NavButton active={currentView === AppView.CAREER} onClick={() => { setView(AppView.CAREER); setSidebarOpen(false); }} icon="work_outline" label="Career Growth" />
           
           <div className="px-4 mb-2 mt-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider opacity-100">Communication</div>
           <NavButton active={currentView === AppView.COMMUNITY} onClick={() => { setView(AppView.COMMUNITY); setSidebarOpen(false); }} icon="forum" label="Community Groups" />
@@ -143,7 +144,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
              className="flex items-center cursor-pointer hover:bg-[var(--shadow-color)] rounded p-2 transition-colors mb-2" 
              onClick={() => setView(AppView.PROFILE)}
           >
-            <div className="w-8 h-8 rounded-full bg-[var(--accent)] flex items-center justify-center text-white font-bold font-serif">
+            <div className="w-8 h-8 rounded-full bg-[var(--accent)] flex items-center justify-center text-white font-bold font-sans">
               {user.avatar === 'G' ? <span className="material-icons text-xs">google</span> : user.name[0]}
             </div>
             <div className="ml-3 overflow-hidden">
@@ -171,7 +172,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
             <button onClick={() => setSidebarOpen(true)} className="mr-8 text-[var(--text-primary)] hover:text-[var(--accent)] flex-shrink-0">
               <span className="material-icons text-2xl">menu</span>
             </button>
-            <h2 className="text-xl font-serif font-bold text-[var(--text-primary)] capitalize truncate ml-2">
+            <h2 className="text-xl font-sans font-bold text-[var(--text-primary)] capitalize truncate ml-2">
               {currentView.replace(/_/g, ' ').toLowerCase()}
             </h2>
           </div>
@@ -226,11 +227,23 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
         </div>
 
         {/* Footer */}
-        <footer className="h-10 border-t border-[var(--border-color)] bg-[var(--panel-bg)] flex items-center justify-between px-8 text-xs font-serif text-[var(--text-secondary)] flex-shrink-0">
+        <footer className="h-10 border-t border-[var(--border-color)] bg-[var(--panel-bg)] flex items-center justify-between px-8 text-xs font-sans text-[var(--text-secondary)] flex-shrink-0">
            <span>Jackometer v2050</span>
            <span className="font-bold opacity-70">Vibe coded by arewa.base.eth</span>
         </footer>
       </main>
+
+          {/* Right Sidebar - Tools Panel */}
+      {currentView === AppView.DOCUMENT_WRITER && (
+        <aside className="hidden xl:flex w-80 flex-col border-l border-[var(--border-color)] bg-white dark:bg-slate-900 z-30 shadow-l">
+          <div className="h-16 flex items-center px-6 border-b border-[var(--border-color)] bg-[var(--panel-bg)] flex-shrink-0">
+            <h2 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Workspace Tools</h2>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            <BibliographyManager />
+          </div>
+        </aside>
+      )}
 
       {/* Interactive Tour Modal */}
       {tourOpen && (
@@ -240,7 +253,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
               <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-6 text-[var(--accent)]">
                  <span className="material-icons text-3xl">{tourSteps[tourStep].icon}</span>
               </div>
-              <h3 className="text-2xl font-serif font-bold text-[var(--text-primary)] mb-2">{tourSteps[tourStep].title}</h3>
+              <h3 className="text-2xl font-sans font-bold text-[var(--text-primary)] mb-2">{tourSteps[tourStep].title}</h3>
               <p className="text-[var(--text-secondary)] mb-8 leading-relaxed">
                 {tourSteps[tourStep].text}
               </p>

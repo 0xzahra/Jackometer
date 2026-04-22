@@ -73,14 +73,14 @@ export const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser }) => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-10">
-      <h2 className="text-3xl font-serif font-bold text-[var(--text-primary)] mb-8">System Configuration</h2>
+      <h2 className="text-3xl font-sans font-bold text-[var(--text-primary)] mb-8 tracking-tight">System Configuration</h2>
       
       {/* Academic Integrity Vault */}
-      <div className="paper-panel p-8 rounded-sm border-l-4 border-black">
+      <div className="glass-panel p-8 border-l-4 border-emerald-500 shadow-lg bg-emerald-500/5">
          <div className="flex items-start gap-4">
-            <span className="material-icons text-4xl text-black opacity-80">verified_user</span>
+            <span className="material-icons text-5xl text-[var(--primary)] opacity-90 drop-shadow-sm">verified_user</span>
             <div>
-               <h3 className="text-xl font-bold font-serif mb-2">Academic Integrity Vault</h3>
+               <h3 className="text-xl font-bold font-sans tracking-tight mb-2 text-[var(--text-primary)]">Academic Integrity Vault</h3>
                <p className="text-sm text-[var(--text-secondary)] mb-4">
                  Your research data, generated drafts, and uploaded lab results are strictly confidential. 
                  They are <strong>never</strong> used to train public AI models.
@@ -100,8 +100,8 @@ export const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         
         {/* Account Security */}
-        <div className="paper-panel p-8 rounded-sm">
-          <div className="flex items-center gap-3 mb-6 border-b border-[var(--border-color)] pb-2">
+        <div className="glass-panel p-8">
+          <div className="flex items-center gap-3 mb-6 border-b border-[var(--border-color)] pb-3">
             <span className="material-icons text-[var(--accent)]">lock</span>
             <h3 className="text-lg font-bold text-[var(--text-primary)]">Account Security</h3>
           </div>
@@ -174,8 +174,8 @@ export const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser }) => {
         </div>
 
         {/* Display Settings */}
-        <div className="paper-panel p-8 rounded-sm">
-           <div className="flex items-center gap-3 mb-6 border-b border-[var(--border-color)] pb-2">
+        <div className="glass-panel p-8">
+           <div className="flex items-center gap-3 mb-6 border-b border-[var(--border-color)] pb-3">
             <span className="material-icons text-[var(--accent)]">visibility</span>
             <h3 className="text-lg font-bold text-[var(--text-primary)]">Accessibility & Display</h3>
           </div>

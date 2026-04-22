@@ -181,7 +181,7 @@ export default function App() {
           {renderPersistentView(AppView.LAB_REPORT, <ReportSuite type="LAB" />)}
           {renderPersistentView(AppView.INBOX, <Inbox setView={handleSetView} />)}
           {renderPersistentView(AppView.NOTIFICATIONS, <Notifications setView={handleSetView} />)}
-          {renderPersistentView(AppView.PROFILE, <Profile user={user} />)}
+          {renderPersistentView(AppView.PROFILE, <Profile user={user} onUpdateUser={handleUpdateUser} />)}
         </Layout>
 
         <VoiceAssistant />

@@ -522,6 +522,32 @@ export const verifyCitations = async (citations: Citation[]): Promise<{id: strin
   return cleanAndParseJSON(response.text, []);
 };
 
+export const scanReference = async (base64Image: string, style: string): Promise<string> => {
+  const ai = getAI();
+  const prompt = `
+    You are an elite academic librarian. Extract bibliographic information from the provided image (e.g., book cover, copyright page, reference list).
+    
+    CRITICAL INSTRUCTION (Zero-Hallucination):
+    ONLY use text that is visibly present in the scanned image. Do not invent, guess, or look up missing information.
+    If crucial information (like author, year, title, or publisher) is completely missing from the scan, you MUST output exactly this phrase: "Data not found in scan." and nothing else.
+    
+    If the data is present, format the citation strictly according to ${style} rules.
+    Output ONLY the final formatted citation text, nothing else.
+  `;
+  
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash-image',
+    contents: {
+      parts: [
+        { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
+        { text: prompt }
+      ]
+    }
+  });
+
+  return response.text?.trim() || "Data not found in scan.";
+};
+
 export const getContextualQuotes = async (citation: Citation, userContext: string): Promise<string[]> => {
   const ai = getAI();
   const prompt = `

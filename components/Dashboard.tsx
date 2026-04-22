@@ -35,7 +35,7 @@ const StickyCard: React.FC<{
       </div>
       
       <div>
-        <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2 font-serif leading-tight">{title}</h3>
+        <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2 font-sans leading-tight">{title}</h3>
         <p className="text-xs text-[var(--text-secondary)] leading-relaxed line-clamp-3">{desc}</p>
       </div>
 
@@ -73,10 +73,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
   return (
     <div className="max-w-7xl mx-auto pb-10 relative">
       <div className="mb-12 text-center pt-8">
-        <h1 className="text-5xl font-serif font-bold text-[var(--text-primary)] mb-2 tracking-tight">
+        <h1 className="text-5xl font-sans font-bold text-[var(--text-primary)] mb-2 tracking-tight">
           {greeting}, Scholar.
         </h1>
-        <p className="text-[var(--text-secondary)] max-w-2xl mx-auto text-lg font-serif italic mb-2 relative inline-block">
+        <p className="text-[var(--text-secondary)] max-w-2xl mx-auto text-lg font-sans italic mb-2 relative inline-block">
           <span className="text-4xl text-[var(--border-color)] absolute -left-6 -top-2">"</span>
           {quote.text}
           <span className="text-4xl text-[var(--border-color)] absolute -right-6 -bottom-4">"</span>
@@ -86,7 +86,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 px-4">
         <StickyCard 
-          title="Research Engine" 
+          title="Study Dojo" 
           desc="Thesis Forge & Dissertation Builder."
           icon="school"
           onClick={() => setView(AppView.RESEARCH)}
@@ -98,8 +98,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
           onClick={() => setView(AppView.DOCUMENT_WRITER)}
         />
         <StickyCard 
-          title="Assignment / Grader" 
-          desc="Essay Critique, Grading & 'Handwriting' Protocol."
+          title="Essay Critique" 
+          desc="OCR & Review engine."
           icon="gavel"
           onClick={() => setView(AppView.ASSIGNMENT)}
         />
@@ -128,14 +128,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
           onClick={() => setView(AppView.DATA_CRUNCHER)}
         />
         <StickyCard 
-          title="File Studio" 
+          title="File Compressor" 
           desc="Universal file compressor & optimizer."
           icon="folder_zip"
           onClick={() => setView(AppView.COMPRESSOR)}
         />
         <StickyCard 
-          title="Career Studio" 
-          desc="CV, Resume & Passport builder."
+          title="Career Growth" 
+          desc="Personal refinement, CV, Resume & Passport builder."
           icon="work_outline"
           onClick={() => setView(AppView.CAREER)}
         />

@@ -224,20 +224,20 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       {/* Left Side - Motivation */}
       <div className="hidden lg:flex w-1/2 bg-[var(--surface-color)] border-r border-[var(--border-color)] flex-col justify-center px-20 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-2 bg-[var(--primary)]"></div>
-        <div className="absolute -right-20 -top-20 w-64 h-64 bg-blue-50 rounded-full blur-3xl opacity-50"></div>
-        <div className="absolute -left-20 bottom-20 w-80 h-80 bg-purple-50 rounded-full blur-3xl opacity-50"></div>
+        <div className="absolute -right-20 -top-20 w-64 h-64 bg-emerald-100 rounded-full blur-3xl opacity-30 dark:bg-emerald-900"></div>
+        <div className="absolute -left-20 bottom-20 w-80 h-80 bg-green-100 rounded-full blur-3xl opacity-30 dark:bg-green-900"></div>
         
         <div className="relative z-10">
-          <h1 className="text-6xl font-serif font-bold text-[var(--text-primary)] mb-6 leading-tight">
+          <h1 className="text-6xl font-sans font-bold text-[var(--text-primary)] mb-6 leading-tight tracking-tight">
             Stop Writing <br/> From Scratch.
           </h1>
-          <p className="text-xl text-[var(--text-secondary)] mb-8 leading-relaxed font-serif italic">
+          <p className="text-xl text-[var(--text-secondary)] mb-8 leading-relaxed font-sans italic">
             "Jackometer architects your thesis, drafts your lab reports, and polishes your citations. Focus on the discovery, let AI handle the documentation."
           </p>
           
           <div className="space-y-4">
             <div className="flex items-center gap-4">
-               <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-[var(--primary)]">
+               <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center text-[var(--primary)] dark:bg-emerald-900">
                  <span className="material-icons">auto_awesome</span>
                </div>
                <div>
@@ -246,7 +246,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                </div>
             </div>
             <div className="flex items-center gap-4">
-               <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-700">
+               <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center text-[var(--primary)] dark:bg-emerald-900">
                  <span className="material-icons">school</span>
                </div>
                <div>
@@ -255,7 +255,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                </div>
             </div>
             <div className="flex items-center gap-4">
-               <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-700">
+               <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center text-[var(--primary)] dark:bg-emerald-900">
                  <span className="material-icons">science</span>
                </div>
                <div>
@@ -298,11 +298,11 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                 <span className="material-icons skill-symbol" style={{ left: '80%', top: '40%', animationDelay: '1.5s', fontSize: '22px' }}>calculate</span>
             </div>
 
-            <h2 className="text-4xl font-serif font-bold text-[var(--text-primary)] mb-2 relative z-10">Jackometer</h2>
+            <h2 className="text-4xl font-sans font-bold text-[var(--text-primary)] mb-2 relative z-10">Jackometer</h2>
             <p className="text-[var(--text-secondary)] uppercase tracking-widest text-xs font-bold relative z-10">Academic Intelligence Suite</p>
           </div>
 
-          <div className="paper-panel p-8 rounded-xl shadow-xl bg-white relative z-10">
+          <div className="glass-panel p-8 rounded-xl shadow-xl relative z-10 w-full max-w-md mx-auto">
             <h3 className="text-2xl font-bold text-[var(--text-primary)] mb-6 text-center">
               {isSignup ? 'Start Your Research Journey' : 'Welcome Back, Scholar'}
             </h3>
