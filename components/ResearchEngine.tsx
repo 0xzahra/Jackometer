@@ -29,6 +29,20 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
     } catch { return ''; }
   });
 
+  const [qualificationInput, setQualificationInput] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved).qualificationInput || '' : '';
+    } catch { return ''; }
+  });
+
+  const [disciplineInput, setDisciplineInput] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved).disciplineInput || '' : '';
+    } catch { return ''; }
+  });
+
   const [titles, setTitles] = useState<ProjectTitle[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -69,6 +83,8 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
     const state = {
       stage,
       topicInput,
+      qualificationInput,
+      disciplineInput,
       titles,
       selectedTitle,
       chapters,
@@ -80,14 +96,14 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
     } catch (e) {
       console.error("Storage error", e);
     }
-  }, [stage, topicInput, titles, selectedTitle, chapters, chapterContent, activeChapterIndex, STORAGE_KEY]);
+  }, [stage, topicInput, qualificationInput, disciplineInput, titles, selectedTitle, chapters, chapterContent, activeChapterIndex, STORAGE_KEY]);
 
   // --- Step 1: Forge Titles ---
   const handleForge = async () => {
     if (!topicInput) return;
     setLoading(true);
     try {
-      const results = await generateResearchTitles(topicInput);
+      const results = await generateResearchTitles(topicInput, qualificationInput, disciplineInput);
       setTitles(results);
     } catch (e) {
       console.error(e);
@@ -209,30 +225,46 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
       {/* STAGE 1: FORGE */}
       {stage === 'FORGE' && (
         <div className="flex flex-col items-center justify-center min-h-[60vh] p-4">
-           <div className="w-full max-w-3xl paper-panel p-10 md:p-16 rounded-2xl relative overflow-hidden text-center shadow-2xl">
-             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-600"></div>
-             <h2 className="text-4xl md:text-5xl font-bold text-[var(--text-primary)] mb-4 tracking-tight">Research Forge</h2>
+           <div className="w-full max-w-3xl glass-panel p-10 md:p-16 rounded-2xl relative overflow-hidden text-center shadow-2xl">
+             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[var(--primary)] to-[var(--accent)]"></div>
+             <h2 className="text-4xl md:text-5xl font-bold text-[var(--text-primary)] mb-4 tracking-tight">Topic Ideas</h2>
              <p className="text-[var(--text-secondary)] mb-10 text-lg">Enter a research concept. We will architect the thesis.</p>
              
-             <div className="relative mb-8 max-w-xl mx-auto">
+             <div className="flex flex-col gap-4 mb-8 max-w-xl mx-auto">
                <input
                 type="text"
                 value={topicInput}
                 onChange={(e) => setTopicInput(e.target.value)}
-                placeholder="e.g. 'Impact of AI on Healthcare'"
-                className="w-full bg-white/50 border border-gray-200 text-[var(--text-primary)] p-5 text-xl rounded-xl shadow-inner focus:ring-4 focus:ring-blue-100 transition-all text-center"
+                placeholder="Topic Idea (e.g. 'Impact of AI on Healthcare')"
+                className="w-full bg-white/50 dark:bg-black/20 border border-[var(--border-color)] text-[var(--text-primary)] p-5 text-xl rounded-xl shadow-inner focus:ring-4 focus:ring-[var(--primary)]/20 transition-all text-center placeholder-gray-400"
                />
+               <div className="flex flex-col sm:flex-row gap-4">
+                 <input
+                  type="text"
+                  value={qualificationInput}
+                  onChange={(e) => setQualificationInput(e.target.value)}
+                  placeholder="Qualification (e.g. MSc, PhD)"
+                  className="flex-1 bg-white/50 dark:bg-black/20 border border-[var(--border-color)] text-[var(--text-primary)] p-4 text-base rounded-xl shadow-inner focus:ring-4 focus:ring-[var(--primary)]/20 transition-all text-center placeholder-gray-400"
+                 />
+                 <input
+                  type="text"
+                  value={disciplineInput}
+                  onChange={(e) => setDisciplineInput(e.target.value)}
+                  placeholder="Discipline (e.g. Computer Science)"
+                  className="flex-1 bg-white/50 dark:bg-black/20 border border-[var(--border-color)] text-[var(--text-primary)] p-4 text-base rounded-xl shadow-inner focus:ring-4 focus:ring-[var(--primary)]/20 transition-all text-center placeholder-gray-400"
+                 />
+               </div>
              </div>
 
              <button
               onClick={handleForge}
               disabled={loading}
-              className="btn-primary text-lg px-10 py-4 shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all"
+              className="btn-primary text-lg px-10 py-4 shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all rounded-xl"
              >
                {loading ? (
                  <span className="flex items-center gap-2"><span className="material-icons animate-spin">refresh</span> Processing...</span>
                ) : (
-                 <span className="flex items-center gap-2"><span className="material-icons">psychology</span> Initiate Forge</span>
+                 <span className="flex items-center gap-2"><span className="material-icons">lightbulb</span> Generate Ideas</span>
                )}
              </button>
            </div>
@@ -243,12 +275,12 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
                {titles.map((t, idx) => (
                  <div 
                     key={idx} 
-                    className="paper-panel p-8 rounded-xl cursor-pointer hover:border-blue-400 hover:shadow-xl transition-all group"
+                    className="glass-panel p-8 rounded-xl cursor-pointer hover:border-[var(--primary)] hover:shadow-xl transition-all group"
                     onClick={() => handleSelectTitle(t)}
                  >
-                   <h3 className="text-xl font-bold text-[var(--text-primary)] mb-3 leading-snug group-hover:text-blue-600 transition-colors">{t.title}</h3>
+                   <h3 className="text-xl font-bold text-[var(--text-primary)] mb-3 leading-snug group-hover:text-[var(--primary)] transition-colors">{t.title}</h3>
                    <p className="text-sm text-[var(--text-secondary)] mb-4 leading-relaxed">{t.description}</p>
-                   <div className="text-xs font-bold text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                   <div className="text-xs font-bold text-[var(--text-secondary)] bg-[var(--surface-color)] p-3 rounded-lg border border-[var(--border-color)]">
                      REQUIRES: {t.requirements.slice(0, 3).join(', ')}
                    </div>
                  </div>
@@ -261,33 +293,33 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
       {/* STAGE 2: OUTLINE APPROVAL */}
       {stage === 'OUTLINE' && selectedTitle && (
           <div className="max-w-4xl mx-auto w-full pt-10">
-             <div className="paper-panel p-8 rounded-2xl mb-8 border-l-8 border-blue-500">
+             <div className="glass-panel p-8 rounded-2xl mb-8 border-l-8 border-[var(--primary)]">
                 <h2 className="text-2xl font-bold mb-2">Structure Approval</h2>
-                <p className="text-gray-600">Review the generated outline for <strong>"{selectedTitle.title}"</strong>. This structure mimics a strict academic standard.</p>
+                <p className="text-[var(--text-secondary)]">Review the generated outline for <strong>"{selectedTitle.title}"</strong>. This structure mimics a strict academic standard.</p>
              </div>
 
-             <div className="paper-panel p-8 rounded-2xl">
+             <div className="glass-panel p-8 rounded-2xl">
                 <div className="space-y-3 mb-8">
                    {chapters.map((ch, idx) => (
                       <div key={idx} className="flex items-center gap-3 group">
-                         <span className="text-gray-400 font-mono text-xs w-6 text-right">{idx + 1}.</span>
+                         <span className="text-[var(--text-secondary)] font-mono text-xs w-6 text-right">{idx + 1}.</span>
                          <input 
-                           className="flex-1 p-3 bg-white/50 border border-transparent hover:border-gray-200 focus:bg-white focus:border-blue-300 rounded transition-all font-medium"
+                           className="flex-1 p-3 bg-white/50 dark:bg-black/20 border border-transparent hover:border-[var(--border-color)] focus:bg-white dark:focus:bg-black/40 focus:border-[var(--primary)] rounded transition-all font-medium"
                            value={ch} 
                            onChange={(e) => handleUpdateChapterTitle(idx, e.target.value)}
                          />
-                         <button onClick={() => handleRemoveChapter(idx)} className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                         <button onClick={() => handleRemoveChapter(idx)} className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
                             <span className="material-icons">close</span>
                          </button>
                       </div>
                    ))}
-                   <button onClick={handleAddChapter} className="text-sm font-bold text-blue-600 hover:bg-blue-50 px-4 py-2 rounded inline-flex items-center gap-1 mt-2">
+                   <button onClick={handleAddChapter} className="text-sm font-bold text-[var(--accent)] hover:bg-[var(--surface-color)] px-4 py-2 rounded inline-flex items-center gap-1 mt-2">
                       <span className="material-icons text-sm">add</span> Add Section
                    </button>
                 </div>
 
-                <div className="flex justify-end gap-4 border-t border-gray-200 pt-6">
-                   <button onClick={() => setStage('FORGE')} className="px-6 py-3 text-gray-500 font-bold hover:bg-gray-100 rounded-xl">Back</button>
+                <div className="flex justify-end gap-4 border-t border-[var(--border-color)] pt-6">
+                   <button onClick={() => setStage('FORGE')} className="px-6 py-3 text-[var(--text-secondary)] font-bold hover:bg-[var(--surface-color)] rounded-xl">Back</button>
                    <button onClick={handleApproveOutline} className="btn-primary">Approve & Start Writing</button>
                 </div>
              </div>
@@ -314,39 +346,39 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6 flex-1 h-full min-h-0">
              
              {/* Chapter Sidebar */}
-             <div className="col-span-1 md:col-span-3 paper-panel flex flex-col overflow-hidden h-full">
-                <div className="p-4 bg-gray-50/50 border-b border-gray-100">
-                   <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Table of Contents</h3>
+             <div className="col-span-1 md:col-span-3 glass-panel flex flex-col overflow-hidden h-full">
+                <div className="p-4 bg-[var(--surface-color)] border-b border-[var(--border-color)]">
+                   <h3 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Table of Contents</h3>
                 </div>
                 <div className="flex-1 overflow-y-auto p-2 space-y-1">
                    {chapters.map((ch, idx) => (
                       <button 
                         key={idx}
                         onClick={() => setActiveChapterIndex(idx)}
-                        className={`w-full text-left p-3 rounded-lg text-sm font-medium transition-all flex justify-between items-center ${activeChapterIndex === idx ? 'bg-blue-50 text-blue-700 border border-blue-100 shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
+                        className={`w-full text-left p-3 rounded-lg text-sm font-medium transition-all flex justify-between items-center ${activeChapterIndex === idx ? 'bg-[var(--surface-color)] text-[var(--text-primary)] border border-[var(--border-color)] shadow-sm font-bold' : 'text-[var(--text-secondary)] hover:bg-[var(--surface-color)]'}`}
                       >
                          <span className="truncate">{ch}</span>
-                         {chapterContent[ch] && <span className="material-icons text-green-500 text-[14px]">check_circle</span>}
+                         {chapterContent[ch] && <span className="material-icons text-[var(--primary)] text-[14px]">check_circle</span>}
                       </button>
                    ))}
                 </div>
              </div>
 
              {/* Editor Area */}
-             <div className="col-span-1 md:col-span-9 paper-panel flex flex-col h-full relative overflow-hidden">
-                <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-white/40">
-                   <h3 className="font-bold text-lg">{chapters[activeChapterIndex]}</h3>
+             <div className="col-span-1 md:col-span-9 glass-panel flex flex-col h-full relative overflow-hidden">
+                <div className="p-4 border-b border-[var(--border-color)] flex justify-between items-center bg-[var(--surface-color)]">
+                   <h3 className="font-bold text-lg text-[var(--text-primary)]">{chapters[activeChapterIndex]}</h3>
                    <button 
                      onClick={() => handleGenerateChapter(activeChapterIndex)}
                      disabled={loading}
-                     className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-green-700 flex items-center gap-2 transition-all"
+                     className="btn-primary flex items-center gap-2 transition-all px-4 py-2 text-sm rounded-lg shadow-md"
                    >
                      {loading ? <span className="material-icons animate-spin text-sm">refresh</span> : <span className="material-icons text-sm">auto_awesome</span>}
                      {chapterContent[chapters[activeChapterIndex]] ? 'Regenerate' : 'Generate Chapter'}
                    </button>
                 </div>
                 
-                <div ref={resultRef} className="flex-1 overflow-y-auto p-8 md:p-12 bg-white/30">
+                <div ref={resultRef} className="flex-1 overflow-y-auto p-8 md:p-12 bg-white/50 dark:bg-black/20">
                    {loading && (
                       <div className="absolute inset-0 bg-white/80 z-20 flex flex-col items-center justify-center backdrop-blur-sm animate-fade-in">
                          <div className="w-16 h-16 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin mb-4"></div>

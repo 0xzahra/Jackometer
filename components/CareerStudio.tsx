@@ -24,7 +24,7 @@ export const CareerStudio: React.FC = () => {
 
   // Review State
   const [reviewInput, setReviewInput] = useState('');
-  const [reviewImage, setReviewImage] = useState<string | null>(null);
+  const [reviewFile, setReviewFile] = useState<{ data: string, mimeType: string, name: string } | null>(null);
   const [reviewOutput, setReviewOutput] = useState('');
   const [reviewLoading, setReviewLoading] = useState(false);
 
@@ -72,25 +72,32 @@ export const CareerStudio: React.FC = () => {
   };
 
   // Review Logic
-  const handleReviewImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleReviewFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setReviewImage(reader.result as string);
-        setReviewInput(''); // Clear text input if image is selected
+        setReviewFile({
+           data: reader.result as string,
+           mimeType: file.type || 'application/octet-stream',
+           name: file.name
+        });
+        setReviewInput(''); // Clear text input if file is selected
       };
       reader.readAsDataURL(file);
     }
   };
 
   const processReview = async () => {
-    if (!reviewInput && !reviewImage) return;
+    if (!reviewInput && !reviewFile) return;
     setReviewLoading(true);
     try {
       let result = '';
-      if (reviewImage) {
-        result = await reviewCareerDocument({ image: reviewImage.split(',')[1] });
+      if (reviewFile) {
+        result = await reviewCareerDocument({ 
+            fileData: reviewFile.data.split(',')[1],
+            mimeType: reviewFile.mimeType
+        });
       } else {
         result = await reviewCareerDocument({ text: reviewInput });
       }
@@ -181,21 +188,29 @@ export const CareerStudio: React.FC = () => {
          <div className="grid grid-cols-12 gap-8 h-full">
             <div className="col-span-12 md:col-span-5 paper-panel p-8 rounded-sm overflow-y-auto">
                <h3 className="text-xl font-serif font-bold text-[var(--text-primary)] mb-2">Upload Existing</h3>
-               <p className="text-xs text-[var(--text-secondary)] mb-6">Upload a photo of your CV or paste the text directly for an AI critique & rewrite.</p>
+               <p className="text-xs text-[var(--text-secondary)] mb-6">Upload your CV/Resume (PDF, Image, or Word) or paste the text directly for an AI critique & rewrite.</p>
                
                <div className="space-y-6">
-                  {/* Image Upload */}
-                  <div className={`border-2 border-dashed border-[var(--border-color)] rounded-lg h-40 flex flex-col items-center justify-center relative transition-colors ${reviewImage ? 'bg-blue-50 border-blue-300' : 'bg-[var(--bg-color)] hover:bg-[var(--panel-bg)]'}`}>
-                     {reviewImage ? (
-                        <div className="relative w-full h-full p-2">
-                           <img src={reviewImage} className="w-full h-full object-contain" alt="Preview" />
-                           <button onClick={() => setReviewImage(null)} className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 shadow"><span className="material-icons text-xs">close</span></button>
+                  {/* File Upload */}
+                  <div className={`border-2 border-dashed border-[var(--border-color)] rounded-lg h-40 flex flex-col items-center justify-center relative transition-colors ${reviewFile ? 'bg-blue-50 border-blue-300' : 'bg-[var(--bg-color)] hover:bg-[var(--panel-bg)]'}`}>
+                     {reviewFile ? (
+                        <div className="relative w-full h-full p-2 flex flex-col items-center justify-center text-center">
+                           {reviewFile.mimeType.startsWith('image/') ? (
+                             <img src={reviewFile.data} className="w-full h-full object-contain mb-1" alt="Preview" />
+                           ) : (
+                             <>
+                               <span className="material-icons text-4xl text-blue-500 mb-2">description</span>
+                               <p className="font-bold text-xs text-[var(--text-primary)] truncate px-4 max-w-full">{reviewFile.name}</p>
+                             </>
+                           )}
+                           <button onClick={() => setReviewFile(null)} className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 shadow z-10"><span className="material-icons text-xs">close</span></button>
                         </div>
                      ) : (
                         <>
-                           <span className="material-icons text-3xl text-[var(--text-secondary)] mb-2">add_a_photo</span>
-                           <p className="font-bold text-xs text-[var(--text-primary)]">Upload Photo / Screenshot</p>
-                           <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleReviewImageUpload} accept="image/*" />
+                           <span className="material-icons text-3xl text-[var(--text-secondary)] mb-2">upload_file</span>
+                           <p className="font-bold text-xs text-[var(--text-primary)]">Upload Document / Photo</p>
+                           <p className="text-[10px] text-[var(--text-secondary)] mt-1">PDF, DOCX, JPG, PNG</p>
+                           <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleReviewFileUpload} accept="image/*,application/pdf,.doc,.docx" />
                         </>
                      )}
                   </div>
@@ -211,13 +226,13 @@ export const CareerStudio: React.FC = () => {
                      className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] p-4 rounded text-sm text-[var(--text-primary)] outline-none h-40 resize-none font-mono"
                      placeholder="Paste your existing resume content here..."
                      value={reviewInput}
-                     onChange={(e) => { setReviewInput(e.target.value); setReviewImage(null); }}
-                     disabled={!!reviewImage}
+                     onChange={(e) => { setReviewInput(e.target.value); setReviewFile(null); }}
+                     disabled={!!reviewFile}
                   ></textarea>
 
                   <button 
                      onClick={processReview} 
-                     disabled={reviewLoading || (!reviewInput && !reviewImage)} 
+                     disabled={reviewLoading || (!reviewInput && !reviewFile)} 
                      className="w-full bg-[var(--accent)] text-white py-4 rounded font-bold shadow-lg flex items-center justify-center gap-2"
                   >
                      {reviewLoading ? <span className="material-icons animate-spin">refresh</span> : <span className="material-icons">auto_fix_high</span>}

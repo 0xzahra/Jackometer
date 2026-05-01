@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Group, Message, Member } from '../types';
 
 export const Community: React.FC = () => {
+  const [mainTab, setMainTab] = useState<'GROUPS' | 'SHOWCASE'>('GROUPS');
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'CHAT' | 'MEMBERS'>('CHAT');
   
@@ -130,10 +131,24 @@ export const Community: React.FC = () => {
 
   const currentGroupData = groups.find(g => g.id === activeGroup);
 
+  const [showcaseItems, setShowcaseItems] = useState([
+    { id: 's1', title: 'The Ethics of Machine Sentience', author: 'Dr. Sarah Connor', type: 'Journal', likes: 142, discussion: 23, downloads: 400 },
+    { id: 's2', title: 'CRISPR Applications in Agriculture', author: 'John Doe', type: 'Research Report', likes: 89, discussion: 12, downloads: 156 },
+    { id: 's3', title: 'Macroeconomic Shifts Post-2020', author: 'Jane Goodall', type: 'Essay', likes: 54, discussion: 5, downloads: 40 },
+  ]);
+
   return (
-    <div className="w-full h-full max-w-6xl mx-auto flex gap-6">
-      {/* Groups List */}
-      <div className="w-1/3 paper-panel flex flex-col overflow-hidden">
+    <div className="w-full h-full max-w-6xl mx-auto flex gap-6 flex-col">
+       {/* Top Navigation */}
+       <div className="flex justify-center bg-[var(--surface-color)] p-2 rounded border border-[var(--border-color)]">
+          <button onClick={() => setMainTab('GROUPS')} className={`px-8 py-2 text-sm font-bold uppercase tracking-widest rounded transition-colors ${mainTab === 'GROUPS' ? 'bg-[var(--primary)] text-white shadow' : 'text-gray-500 hover:bg-gray-100'}`}>Study Groups</button>
+          <button onClick={() => setMainTab('SHOWCASE')} className={`px-8 py-2 text-sm font-bold uppercase tracking-widest rounded transition-colors ${mainTab === 'SHOWCASE' ? 'bg-[var(--primary)] text-white shadow' : 'text-gray-500 hover:bg-gray-100'}`}>Public Showcase</button>
+       </div>
+
+       {mainTab === 'GROUPS' ? (
+         <div className="flex gap-6 h-full min-h-0 relative flex-1">
+           {/* Groups List */}
+           <div className="w-1/3 paper-panel flex flex-col overflow-hidden">
          <div className="p-4 border-b border-[var(--border-color)] bg-[var(--surface-color)]">
            <h2 className="text-xl font-serif font-bold text-[var(--text-primary)]">Groups</h2>
          </div>
@@ -390,7 +405,39 @@ export const Community: React.FC = () => {
              </div>
            </div>
          )}
-      </div>
+       </div>
+       </div>
+       ) : (
+         /* SHOWCASE VIEW */
+         <div className="paper-panel p-6 flex-1 overflow-y-auto">
+            <div className="flex justify-between items-center mb-8 border-b pb-4">
+               <div>
+                 <h2 className="text-3xl font-bold font-serif text-[var(--text-primary)]">The Jackometer Forge Showcase</h2>
+                 <p className="text-[var(--text-secondary)]">Read, discuss, and download elite academic papers published by the community.</p>
+               </div>
+               <button className="bg-[var(--accent)] text-white px-6 py-2 rounded font-bold shadow-md hover:opacity-90 flex items-center gap-2">
+                 <span className="material-icons">publish</span> Publish Work
+               </button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+               {showcaseItems.map(item => (
+                 <div key={item.id} className="bg-[var(--bg-color)] border border-[var(--border-color)] rounded-xl p-6 hover:shadow-xl hover:border-[var(--primary)] transition-all cursor-pointer flex flex-col relative group">
+                    <div className="absolute top-4 right-4 bg-white px-2 py-0.5 rounded text-[10px] font-bold uppercase border border-gray-200 text-[var(--primary)] shadow-sm">
+                      {item.type}
+                    </div>
+                    <h3 className="font-bold text-lg text-[var(--text-primary)] mt-4 mb-2 line-clamp-2 leading-tight group-hover:text-[var(--primary)] transition-colors">{item.title}</h3>
+                    <p className="text-sm text-gray-500 mb-6 italic">By {item.author}</p>
+                    <div className="mt-auto flex justify-between items-center text-gray-500 text-xs font-bold border-t pt-4">
+                       <span className="flex items-center gap-1 hover:text-red-500"><span className="material-icons text-sm">favorite</span> {item.likes}</span>
+                       <span className="flex items-center gap-1 hover:text-blue-500"><span className="material-icons text-sm">forum</span> {item.discussion}</span>
+                       <span className="flex items-center gap-1 hover:text-green-500"><span className="material-icons text-sm">file_download</span> {item.downloads}</span>
+                    </div>
+                 </div>
+               ))}
+            </div>
+         </div>
+       )}
     </div>
   );
 };

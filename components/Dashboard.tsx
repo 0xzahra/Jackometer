@@ -84,11 +84,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
         <p className="text-xs font-bold text-[var(--accent)] uppercase tracking-widest mt-4">— {quote.author}</p>
       </div>
 
+      {/* CORE MISSION STATEMENT */}
+      <div className="max-w-4xl mx-auto px-4 mb-12">
+         <div className="paper-panel p-8 rounded-xl shadow-lg border border-[var(--primary)] text-center relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[var(--primary)]/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out"></div>
+            <span className="material-icons text-5xl text-[var(--accent)] mb-4 opacity-80">workspace_premium</span>
+            <p className="text-[var(--text-primary)] text-lg leading-relaxed font-serif relative z-10">
+               With <strong className="text-[var(--accent)] font-sans tracking-tight">Jackometer</strong>, you do not have to worry about writing project documents, review essays, scholar assignments, journals, literature reviews, or technical reports from scratch and taking years to write one. Jackometer insulates your project. Between the <strong>Proof of Work Ledger</strong> and the defense preparation, we ensure you graduate with honors.
+            </p>
+         </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 px-4">
         <StickyCard 
-          title="Study Dojo" 
-          desc="Thesis Forge & Dissertation Builder."
-          icon="school"
+          title="Topic Ideas" 
+          desc="Generate topics and research structured outlines."
+          icon="lightbulb"
           onClick={() => setView(AppView.RESEARCH)}
         />
         <StickyCard 
@@ -98,9 +109,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
           onClick={() => setView(AppView.DOCUMENT_WRITER)}
         />
         <StickyCard 
-          title="Essay Critique" 
-          desc="OCR & Review engine."
-          icon="gavel"
+          title="Assignment Solver" 
+          desc="Solve assignments, summarize, and review essays."
+          icon="assignment"
           onClick={() => setView(AppView.ASSIGNMENT)}
         />
         <StickyCard 

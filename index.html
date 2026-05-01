@@ -10,37 +10,40 @@
     <style>
       :root {
         /* Emerald Glass Palette - Light */
-        --bg-color: #f0fdf4; /* Light Emerald Tint */
-        --surface-color: rgba(16, 185, 129, 0.05); /* Glass Emerald */
-        --panel-bg: rgba(255, 255, 255, 0.7);
+        --bg-color: #e6f6ec; /* Noticeable Emerald Tint */
+        --surface-color: rgba(255, 255, 255, 0.6); /* True Frost Glass */
+        --panel-bg: rgba(255, 255, 255, 0.8);
         --primary: #10b981; /* Emerald Green */
-        --accent: #34d399; /* Lighter Emerald */
+        --accent: #059669; /* Darker Emerald for contrast */
         --on-primary: #ffffff;
-        --text-primary: #111827; /* Deep Charcoal */
-        --text-secondary: #374151; /* Lighter Charcoal */
-        --border-color: rgba(16, 185, 129, 0.3);
-        --emerald-glow: 0 0 15px rgba(16, 185, 129, 0.2);
+        --text-primary: #0f172a; /* Deep Charcoal */
+        --text-secondary: #475569; /* Slate Gray */
+        --border-color: rgba(16, 185, 129, 0.25);
+        --emerald-glow: 0 0 15px rgba(16, 185, 129, 0.15);
         
         /* Modern 3D Shadows & Depth */
         --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
-        --shadow-glass: 0 10px 30px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(16, 185, 129, 0.1);
-        --shadow-hover: 0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 20px rgba(16, 185, 129, 0.2);
-        --glass-border: 1px solid rgba(16, 185, 129, 0.4);
+        --shadow-glass: 0 12px 36px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255,255,255,0.6);
+        --shadow-hover: 0 20px 40px rgba(0, 0, 0, 0.15), inset 0 0 0 1px rgba(255,255,255,0.8);
+        --glass-border: 1px solid rgba(255, 255, 255, 0.4);
       }
 
       [data-theme='dark'] {
         /* Emerald Glass Palette - Dark */
-        --bg-color: #111827; /* Deep Charcoal Base */
-        --surface-color: rgba(16, 185, 129, 0.1); /* Emerald Glass */
-        --panel-bg: rgba(17, 24, 39, 0.6);
+        --bg-color: #0f172a; /* Deep Slate/Charcoal */
+        --surface-color: rgba(16, 185, 129, 0.08); /* Emerald Tinted Dark Glass */
+        --panel-bg: rgba(15, 23, 42, 0.8);
         --primary: #10b981; /* Emerald Green */
-        --accent: #059669; /* Darker Emerald */
+        --accent: #34d399; /* Lighter Emerald for dark mode */
         --on-primary: #ffffff;
-        --text-primary: #f9fafb; /* Light Gray */
-        --text-secondary: #9ca3af; /* Gray 400 */
-        --border-color: rgba(16, 185, 129, 0.4); 
-        --emerald-glow: 0 0 20px rgba(16, 185, 129, 0.3);
-        --glass-border: 1px solid rgba(16, 185, 129, 0.3);
+        --text-primary: #f8fafc; /* Frost White */
+        --text-secondary: #94a3b8; /* Slate Gray */
+        --border-color: rgba(16, 185, 129, 0.3); 
+        --emerald-glow: 0 0 25px rgba(16, 185, 129, 0.2);
+        
+        --shadow-glass: 0 12px 36px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(16, 185, 129, 0.15);
+        --shadow-hover: 0 20px 40px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(16, 185, 129, 0.25);
+        --glass-border: 1px solid rgba(16, 185, 129, 0.25);
       }
 
       body {
@@ -73,8 +76,8 @@
       /* Glass Panel - The Core UI Element */
       .paper-panel, .glass-panel {
         background: var(--surface-color);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
         border: var(--glass-border);
         box-shadow: var(--shadow-glass), var(--emerald-glow);
         border-radius: 16px; /* Modern rounded corners */
@@ -111,7 +114,7 @@
       /* Sticky Card Modernization */
       .sticky-card {
         background: var(--surface-color);
-        backdrop-filter: blur(16px);
+        backdrop-filter: blur(24px);
         box-shadow: var(--shadow-glass), var(--emerald-glow);
         border: var(--glass-border);
         border-radius: 16px;

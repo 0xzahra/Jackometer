@@ -93,12 +93,14 @@ export const saveToGoogleDrive = async (filename: string, content: string, mimeT
 };
 
 // --- RESEARCH ENGINE ---
-export const generateResearchTitles = async (topic: string): Promise<ProjectTitle[]> => {
+export const generateResearchTitles = async (topic: string, qualification: string = '', discipline: string = ''): Promise<ProjectTitle[]> => {
   const ai = getAI();
   const prompt = `
     You are Jackometer, an elite academic research assistant.
     The user wants research project titles for the topic: "${topic}".
-    Provide 3-5 distinct, high-level, unique project titles suitable for an MSc or PhD level.
+    ${qualification ? `Target Qualification Level: ${qualification}` : ''}
+    ${discipline ? `Discipline/Field of Study: ${discipline}` : ''}
+    Provide 3-5 distinct, high-level, unique project titles suitable for the specified level and discipline.
     For each title, explain what is needed (requirements) to execute it.
     Output JSON.
   `;
@@ -369,6 +371,23 @@ export const estimateWeatherConditions = async (lat: number, lng: number): Promi
 // --- DOCUMENT WRITER ---
 
 // NEW: Section-Specific Generation
+export const humanizeText = async (text: string): Promise<string> => {
+  const ai = getAI();
+  const prompt = `
+    You are an advanced Syntax Humanizer.
+    Rewrite the following academic text so that it completely bypasses AI detection tools like Turnitin, GPTZero, and Originality.ai.
+    - Vary sentence lengths and structures (some very short, some compound-complex).
+    - Introduce slight, natural imperfections or colloquial academic phrasing where appropriate.
+    - Do not use words like "moreover", "furthermore", "delve", "tapestry", "crucial", or "underscore".
+    - Avoid predictable AI cadences. Read like a competent human researcher who is summarizing their own organic work.
+    
+    TEXT:
+    ${text}
+  `;
+  const response = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt });
+  return response.text?.trim() || text;
+};
+
 export const generateSectionContent = async (
   sectionTitle: string,
   sectionType: string,
@@ -873,7 +892,7 @@ export const generateResume = async (data: CVData): Promise<string> => {
     return response.text || "";
 }
 
-export const reviewCareerDocument = async (docData: { text?: string, image?: string }): Promise<string> => {
+export const reviewCareerDocument = async (docData: { text?: string, fileData?: string, mimeType?: string }): Promise<string> => {
   const ai = getAI();
   const prompt = `
     Act as a seasoned Human Resources Manager and Hiring Recruiter with 15+ years of experience.
@@ -894,22 +913,20 @@ export const reviewCareerDocument = async (docData: { text?: string, image?: str
     Output the full improved document text followed by the notes.
   `;
 
-  const contents: any = {};
-  if (docData.image) {
-    // If image provided, use vision model
-    contents.parts = [
-      { inlineData: { mimeType: 'image/jpeg', data: docData.image } },
-      { text: prompt }
-    ];
+  if (docData.fileData && docData.mimeType) {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
-      contents: contents
+      model: 'gemini-2.5-flash', // A model that properly accepts both PDF and Images
+      contents: {
+        parts: [
+          { inlineData: { mimeType: docData.mimeType, data: docData.fileData } },
+          { text: prompt }
+        ]
+      }
     });
     return response.text || "";
   } else if (docData.text) {
-    // If text provided, use text model
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview', // Switched for speed
+      model: 'gemini-3-flash-preview', 
       contents: `${prompt}\n\nORIGINAL CONTENT:\n${docData.text}`
     });
     return response.text || "";

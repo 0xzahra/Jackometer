@@ -9,11 +9,11 @@ export const AssignmentSuite: React.FC<AssignmentSuiteProps> = ({ userId }) => {
   const STORAGE_KEY = userId ? `jackometer_assignment_${userId}` : 'jackometer_assignment_local';
 
   // State Persistence Initialization
-  const [mode, setMode] = useState<'GRADER' | 'SYNTHESIZER' | 'SOLVER'>(() => {
+  const [mode, setMode] = useState<'REVIEW' | 'SUMMARIZE' | 'SOLVER'>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved).mode : 'GRADER';
-    } catch { return 'GRADER'; }
+      return saved ? JSON.parse(saved).mode : 'REVIEW';
+    } catch { return 'REVIEW'; }
   });
 
   const [input, setInput] = useState(() => {
@@ -88,9 +88,9 @@ export const AssignmentSuite: React.FC<AssignmentSuiteProps> = ({ userId }) => {
     setLoading(true);
     try {
       let res = '';
-      if (mode === 'GRADER') {
+      if (mode === 'REVIEW') {
         res = await gradeEssay(input, instruction);
-      } else if (mode === 'SYNTHESIZER') {
+      } else if (mode === 'SUMMARIZE') {
         res = await synthesizeCritique(input);
       } else {
         // SOLVER Mode
@@ -156,31 +156,31 @@ export const AssignmentSuite: React.FC<AssignmentSuiteProps> = ({ userId }) => {
     <div className="max-w-6xl mx-auto h-full flex flex-col">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-2xl font-serif font-bold text-[var(--text-primary)]">
-            {mode === 'GRADER' ? "Professor's Review" : mode === 'SYNTHESIZER' ? 'Literature Review' : 'Assignment Solver'}
+          <h2 className="text-3xl font-sans font-bold text-[var(--text-primary)] tracking-tight">
+            Assignment Solver & Reviewer
           </h2>
-          <p className="text-sm text-[var(--text-secondary)]">
-            {mode === 'GRADER' ? 'Ruthless critique from a tenured expert.' : mode === 'SYNTHESIZER' ? 'Synthesize academic sources.' : 'Generate assignment solutions.'}
+          <p className="text-sm text-[var(--text-secondary)] mt-1">
+            {mode === 'REVIEW' ? 'Get a strict review of your essay.' : mode === 'SUMMARIZE' ? 'Summarize material into key points.' : 'Generate solutions for your assignments.'}
           </p>
         </div>
-        <div className="flex bg-[var(--surface-color)] rounded-lg p-1 border border-[var(--border-color)]">
+        <div className="flex bg-[var(--surface-color)] rounded-xl p-1 border border-[var(--border-color)] shadow-sm">
            <button 
-             onClick={() => setMode('GRADER')}
-             className={`px-4 py-2 rounded text-sm font-bold transition-colors ${mode === 'GRADER' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-color)]'}`}
+             onClick={() => setMode('REVIEW')}
+             className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${mode === 'REVIEW' ? 'bg-[var(--accent)] text-white shadow-md' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-color)]'}`}
            >
-             Critique
+             Review
            </button>
            <button 
-             onClick={() => setMode('SYNTHESIZER')}
-             className={`px-4 py-2 rounded text-sm font-bold transition-colors ${mode === 'SYNTHESIZER' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-color)]'}`}
+             onClick={() => setMode('SUMMARIZE')}
+             className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${mode === 'SUMMARIZE' ? 'bg-[var(--accent)] text-white shadow-md' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-color)]'}`}
            >
-             Synthesize
+             Summarize
            </button>
            <button 
              onClick={() => setMode('SOLVER')}
-             className={`px-4 py-2 rounded text-sm font-bold transition-colors ${mode === 'SOLVER' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-color)]'}`}
+             className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${mode === 'SOLVER' ? 'bg-[var(--accent)] text-white shadow-md' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-color)]'}`}
            >
-             Solver
+             Solve
            </button>
         </div>
       </div>
@@ -188,13 +188,13 @@ export const AssignmentSuite: React.FC<AssignmentSuiteProps> = ({ userId }) => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
         
         {/* Left Column: Input */}
-        <div className={`col-span-12 ${showBiasPanel ? 'lg:col-span-4' : 'lg:col-span-6'} paper-panel p-6 rounded-sm flex flex-col transition-all duration-300`}>
-           <label className="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">
-             {mode === 'GRADER' ? 'Submit Work for Review' : mode === 'SYNTHESIZER' ? 'Source Material' : 'Question / Prompt'}
+        <div className={`col-span-12 ${showBiasPanel ? 'lg:col-span-4' : 'lg:col-span-6'} glass-panel p-6 flex flex-col transition-all duration-300`}>
+           <label className="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2 block">
+             {mode === 'REVIEW' ? 'Submit Essay for Review' : mode === 'SUMMARIZE' ? 'Source Material to Summarize' : 'Assignment Question'}
            </label>
            <textarea 
-             className="flex-1 bg-[var(--bg-color)] border border-[var(--border-color)] p-4 rounded outline-none resize-none font-serif text-sm leading-relaxed mb-4"
-             placeholder={mode === 'GRADER' ? "Paste your essay draft here. Be warned, the grading is strict..." : mode === 'SYNTHESIZER' ? "Paste text or link..." : "Enter assignment details..."}
+             className="flex-1 bg-white/50 dark:bg-black/20 border border-[var(--border-color)] p-4 rounded-xl outline-none resize-none font-sans text-sm leading-relaxed mb-4 shadow-inner"
+             placeholder={mode === 'REVIEW' ? "Paste your essay draft here to get it reviewed..." : mode === 'SUMMARIZE' ? "Paste text..." : "Enter assignment details..."}
              value={input}
              onChange={(e) => setInput(e.target.value)}
            ></textarea>
@@ -216,10 +216,10 @@ export const AssignmentSuite: React.FC<AssignmentSuiteProps> = ({ userId }) => {
               <button 
                  onClick={handleAction}
                  disabled={loading || !input}
-                 className="flex-1 btn-primary flex items-center justify-center text-sm"
+                 className="flex-1 btn-primary flex items-center justify-center text-sm rounded-xl py-3 shadow-md"
                >
-                 {loading ? <span className="material-icons animate-spin mr-2">refresh</span> : <span className="material-icons mr-2">{mode === 'SOLVER' ? 'auto_fix_high' : mode === 'GRADER' ? 'gavel' : 'history_edu'}</span>}
-                 {mode === 'GRADER' ? 'Grade & Critique' : mode === 'SYNTHESIZER' ? 'Synthesize' : 'Solve'}
+                 {loading ? <span className="material-icons animate-spin mr-2">refresh</span> : <span className="material-icons mr-2">{mode === 'SOLVER' ? 'auto_fix_high' : mode === 'REVIEW' ? 'gavel' : 'summarize'}</span>}
+                 {mode === 'REVIEW' ? 'Review Essay' : mode === 'SUMMARIZE' ? 'Summarize Text' : 'Solve Assignment'}
                </button>
                
                {mode === 'SOLVER' && (
@@ -236,7 +236,7 @@ export const AssignmentSuite: React.FC<AssignmentSuiteProps> = ({ userId }) => {
 
         {/* Middle Column: Supervisor Bias Decoder (Conditional) */}
         {showBiasPanel && mode === 'SOLVER' && (
-          <div className="col-span-12 lg:col-span-4 paper-panel p-6 rounded-sm flex flex-col bg-slate-50 border-l-4 border-[var(--accent)] animate-fade-in-up">
+          <div className="col-span-12 lg:col-span-4 glass-panel p-6 flex flex-col bg-emerald-500/5 border-t-4 border-[var(--accent)] animate-fade-in-up">
              <div className="flex justify-between items-center mb-4">
                 <h3 className="font-bold text-[var(--text-primary)] flex items-center gap-2">
                    <span className="material-icons text-[var(--accent)]">psychology</span> Supervisor Intelligence
@@ -283,24 +283,14 @@ export const AssignmentSuite: React.FC<AssignmentSuiteProps> = ({ userId }) => {
         )}
 
         {/* Right Column: Output */}
-        <div ref={resultRef} className={`col-span-12 ${showBiasPanel ? 'lg:col-span-4' : 'lg:col-span-6'} paper-panel p-8 rounded-sm overflow-y-auto bg-white border border-[var(--border-color)] relative`}>
-           <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
-              <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Human Hand</span>
-              <button 
-                onClick={() => setHandwritingMode(!handwritingMode)}
-                className={`w-10 h-5 rounded-full flex items-center px-1 transition-colors ${handwritingMode ? 'bg-[var(--accent)]' : 'bg-gray-300'}`}
-              >
-                <div className={`w-3 h-3 bg-white rounded-full transition-transform ${handwritingMode ? 'translate-x-5' : ''}`}></div>
-              </button>
-           </div>
-
+        <div ref={resultRef} className={`col-span-12 ${showBiasPanel ? 'lg:col-span-4' : 'lg:col-span-6'} glass-panel p-8 overflow-y-auto bg-white/50 dark:bg-black/20 border border-[var(--border-color)] relative`}>
            {output ? (
-             <div className={`mt-8 whitespace-pre-wrap leading-relaxed text-base ${handwritingMode ? 'font-handwriting text-blue-800' : 'font-serif text-[var(--text-primary)]'}`}>
+             <div className={`mt-8 whitespace-pre-wrap leading-relaxed text-base font-serif text-[var(--text-primary)]`}>
                {renderContent(output)}
                
                {/* Plain Text indicator since user requested no markdown */}
-               {mode === 'SOLVER' && !handwritingMode && (
-                  <div className="mt-8 pt-4 border-t border-dashed border-gray-200 text-[10px] text-gray-400 font-sans">
+               {mode === 'SOLVER' && (
+                  <div className="mt-8 pt-4 border-t border-dashed border-[var(--border-color)] text-[10px] text-[var(--text-secondary)] font-sans">
                      Generated as plain text. Supervisor bias {biasProfile ? 'APPLIED' : 'NOT APPLIED'}.
                   </div>
                )}
@@ -309,7 +299,7 @@ export const AssignmentSuite: React.FC<AssignmentSuiteProps> = ({ userId }) => {
              <div className="flex flex-col items-center justify-center h-full text-[var(--text-secondary)] opacity-50">
                <span className="material-icons text-6xl mb-4">rate_review</span>
                <p className="italic font-serif text-lg">
-                 Ready to review.
+                 Ready.
                </p>
              </div>
            )}

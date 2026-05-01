@@ -42,6 +42,10 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
   const [tourOpen, setTourOpen] = useState(false);
   const [tourStep, setTourStep] = useState(0);
 
+  // Badge States
+  const [unreadMessages, setUnreadMessages] = useState(true);
+  const [unreadNotifications, setUnreadNotifications] = useState(true);
+
   useEffect(() => {
     // Check local storage for first time visit
     if (!localStorage.getItem('jackometer_tour_done')) {
@@ -65,12 +69,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
     {
       title: "Welcome to Jackometer",
       text: "Your AI-powered academic fortress. Stop writing from scratch. We architect your research.",
-      icon: "waving_hand",
+      icon: "school",
     },
     {
       title: "Deep Draft",
-      text: "Generate entire 20-page dissertations with real citations. Just input your topic in the Research Engine.",
-      icon: "school",
+      text: "Generate entire 20-page dissertations with real citations. Just input your topic in Topic Ideas.",
+      icon: "lightbulb",
       highlight: AppView.RESEARCH
     },
     {
@@ -120,9 +124,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
         
         <div className="flex-1 overflow-y-auto">
           <div className="px-4 mb-2 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider opacity-100">Modules</div>
-          <NavButton active={currentView === AppView.RESEARCH} onClick={() => { setView(AppView.RESEARCH); setSidebarOpen(false); }} icon="school" label="Study Dojo" />
+          <NavButton active={currentView === AppView.RESEARCH} onClick={() => { setView(AppView.RESEARCH); setSidebarOpen(false); }} icon="lightbulb" label="Topic Ideas" />
           <NavButton active={currentView === AppView.DOCUMENT_WRITER} onClick={() => { setView(AppView.DOCUMENT_WRITER); setSidebarOpen(false); }} icon="description" label="Document Writer" />
-          <NavButton active={currentView === AppView.ASSIGNMENT} onClick={() => { setView(AppView.ASSIGNMENT); setSidebarOpen(false); }} icon="gavel" label="Essay Critique" />
+          <NavButton active={currentView === AppView.ASSIGNMENT} onClick={() => { setView(AppView.ASSIGNMENT); setSidebarOpen(false); }} icon="assignment" label="Assignment Solver" />
           <NavButton active={currentView === AppView.FIELD_TRIP} onClick={() => { setView(AppView.FIELD_TRIP); setSidebarOpen(false); }} icon="landscape" label="Field Trip" />
           <NavButton active={currentView === AppView.TECHNICAL_REPORT} onClick={() => { setView(AppView.TECHNICAL_REPORT); setSidebarOpen(false); }} icon="engineering" label="Technical Report" />
           <NavButton active={currentView === AppView.LAB_REPORT} onClick={() => { setView(AppView.LAB_REPORT); setSidebarOpen(false); }} icon="science" label="Lab Report" />
@@ -209,14 +213,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
 
              <div className="h-6 w-px bg-[var(--border-color)] mx-2 hidden sm:block"></div>
 
-             <button onClick={() => setView(AppView.INBOX)} className="relative text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors p-2" title="Inbox">
+             <button onClick={() => { setView(AppView.INBOX); setUnreadMessages(false); }} className="relative text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors p-2" title="Inbox">
                <span className="material-icons">mail</span>
-               <span className="absolute top-1 right-1 w-2 h-2 bg-[var(--accent)] rounded-full border border-[var(--panel-bg)]"></span>
+               {unreadMessages && <span className="absolute top-1 right-1 w-2 h-2 bg-[var(--accent)] rounded-full border border-[var(--panel-bg)]"></span>}
              </button>
              
-             <button onClick={() => setView(AppView.NOTIFICATIONS)} className="relative text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors p-2" title="Notifications">
+             <button onClick={() => { setView(AppView.NOTIFICATIONS); setUnreadNotifications(false); }} className="relative text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors p-2" title="Notifications">
                <span className="material-icons">notifications</span>
-               <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-[var(--panel-bg)]"></span>
+               {unreadNotifications && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-[var(--panel-bg)]"></span>}
              </button>
           </div>
         </header>
