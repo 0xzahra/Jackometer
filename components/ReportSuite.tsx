@@ -382,8 +382,23 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
     });
   };
 
+  const clearProgress = () => {
+    if (window.confirm("Are you sure you want to erase all progress in Technical Report?")) {
+      setDocs([{ id: '1', topic: '', details: '', report: '', history: [''], historyIndex: 0, tables: [], appendix: [] }]);
+      setActiveDocId('1');
+      setViewMode('REPORT');
+      setSlideHistory([]);
+      setSlideHistoryIndex(-1);
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto h-full flex flex-col">
+       <div className="flex justify-end mb-4">
+         <button onClick={clearProgress} className="text-red-500 hover:bg-red-50 px-3 py-1 rounded text-xs font-bold border border-red-100 flex items-center gap-1">
+            <span className="material-icons text-sm">delete_sweep</span> Erase Progress
+         </button>
+       </div>
        <CollaborationModal 
          isOpen={isInviteModalOpen} 
          onClose={() => setIsInviteModalOpen(false)} 

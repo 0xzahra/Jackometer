@@ -76,11 +76,14 @@ export const AssignmentSuite: React.FC<AssignmentSuiteProps> = ({ userId }) => {
       supervisorText,
       customFormat
     };
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch (e) {
-      console.error("Storage error", e);
-    }
+    const timeoutId = setTimeout(() => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {
+        console.error("Storage error", e);
+      }
+    }, 1000);
+    return () => clearTimeout(timeoutId);
   }, [mode, input, instruction, output, biasProfile, supervisorText, customFormat, STORAGE_KEY]);
 
   const handleAction = async () => {
@@ -106,6 +109,19 @@ export const AssignmentSuite: React.FC<AssignmentSuiteProps> = ({ userId }) => {
       alert("Operation failed.");
     }
     setLoading(false);
+  };
+
+  const clearProgress = () => {
+    if (window.confirm("Are you sure you want to erase all progress in Assignment Solver?")) {
+      localStorage.removeItem(STORAGE_KEY);
+      setMode('SOLVER');
+      setInput('');
+      setInstruction('');
+      setOutput('');
+      setBiasProfile('');
+      setSupervisorText('');
+      setCustomFormat('');
+    }
   };
 
   const handleDecodeBias = async () => {
@@ -154,6 +170,11 @@ export const AssignmentSuite: React.FC<AssignmentSuiteProps> = ({ userId }) => {
 
   return (
     <div className="max-w-6xl mx-auto h-full flex flex-col">
+      <div className="flex justify-end mb-4">
+         <button onClick={clearProgress} className="text-red-500 hover:bg-red-50 px-3 py-1 rounded text-xs font-bold border border-red-100 flex items-center gap-1">
+            <span className="material-icons text-sm">delete_sweep</span> Erase Progress
+         </button>
+      </div>
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-3xl font-sans font-bold text-[var(--text-primary)] tracking-tight">

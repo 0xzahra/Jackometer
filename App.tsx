@@ -1,4 +1,5 @@
 import React, { useState, createContext, useContext, useEffect, ReactNode } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Layout } from './components/Layout';
 import { Dashboard } from './components/Dashboard';
 import { ResearchEngine } from './components/ResearchEngine';
@@ -11,6 +12,7 @@ import { ReportSuite } from './components/ReportSuite';
 import { DataCruncher } from './components/DataCruncher';
 import { Inbox } from './components/Inbox';
 import { Notifications } from './components/Notifications';
+import { Projects } from './components/Projects';
 import { DocumentWriter } from './components/DocumentWriter';
 import { AssignmentSuite } from './components/AssignmentSuite';
 import { FileCompressor } from './components/FileCompressor';
@@ -72,10 +74,35 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   }
 }
 
+export const showToast = (message: string) => {
+  window.dispatchEvent(new CustomEvent('app-toast', { detail: message }));
+};
+
+// Override window.alert to PREVENT iframe sandbox SecurityErrors which crash the app
+window.alert = (msg: any) => showToast(String(msg));
+
 export default function App() {
   const [currentView, setCurrentView] = useState<AppView>(AppView.DASHBOARD);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const [showSplash, setShowSplash] = useState(true);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+  
+  useEffect(() => {
+    const handleToast = (e: any) => {
+      setToast(e.detail);
+      setTimeout(() => setToast(null), 3000);
+    };
+    window.addEventListener('app-toast', handleToast);
+    return () => window.removeEventListener('app-toast', handleToast);
+  }, []);
   
   // Multitasking State: Track which views have been visited to keep them alive
   // Initialize with DASHBOARD to ensure it renders immediately on load
@@ -153,11 +180,54 @@ export default function App() {
     );
   };
 
+  if (showSplash) {
+    return (
+      <div className="h-screen w-screen bg-[var(--bg-color)] flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 1.1, filter: 'blur(10px)' }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className="flex flex-col items-center gap-6"
+        >
+          <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center shadow-[var(--btn-shadow)]">
+            <span className="material-icons text-white text-5xl">auto_awesome</span>
+          </div>
+          <h1 className="text-4xl font-sans font-bold text-[var(--text-primary)] tracking-tight">Jackometer</h1>
+          <motion.div 
+            className="w-48 h-1 bg-[var(--border-color)] overflow-hidden rounded-full"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+          >
+            <motion.div 
+              className="h-full bg-[var(--primary)]"
+              initial={{ x: '-100%' }}
+              animate={{ x: '100%' }}
+              transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
+            />
+          </motion.div>
+        </motion.div>
+      </div>
+    );
+  }
+
   if (!user) {
     return (
-      <ErrorBoundary>
-        <Auth onLogin={handleLogin} />
-      </ErrorBoundary>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key="auth"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.5 }}
+          className="h-full w-full"
+        >
+          <ErrorBoundary>
+            <Auth onLogin={handleLogin} />
+          </ErrorBoundary>
+        </motion.div>
+      </AnimatePresence>
     );
   }
 
@@ -165,34 +235,59 @@ export default function App() {
     <LiveAPIContext.Provider value={{}}>
       <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
       
-      <ErrorBoundary>
-        <Layout 
-          currentView={currentView} 
-          setView={handleSetView} 
-          theme={theme} 
-          toggleTheme={toggleTheme}
-          user={user}
-          onLogout={handleLogout}
-        >
-          {renderPersistentView(AppView.DASHBOARD, <Dashboard setView={handleSetView} />)}
-          {renderPersistentView(AppView.RESEARCH, <ResearchEngine userId={user.email} />)}
-          {renderPersistentView(AppView.DOCUMENT_WRITER, <DocumentWriter userId={user.email} />)}
-          {renderPersistentView(AppView.ASSIGNMENT, <AssignmentSuite userId={user.email} />)}
-          {renderPersistentView(AppView.FIELD_TRIP, <FieldTripSuite />)}
-          {renderPersistentView(AppView.CAREER, <CareerStudio />)}
-          {renderPersistentView(AppView.COMMUNITY, <Community />)}
-          {renderPersistentView(AppView.SETTINGS, <Settings user={user} onUpdateUser={handleUpdateUser} />)}
-          {renderPersistentView(AppView.DATA_CRUNCHER, <DataCruncher />)}
-          {renderPersistentView(AppView.COMPRESSOR, <FileCompressor />)}
-          {renderPersistentView(AppView.TECHNICAL_REPORT, <ReportSuite type="TECHNICAL" />)}
-          {renderPersistentView(AppView.LAB_REPORT, <ReportSuite type="LAB" />)}
-          {renderPersistentView(AppView.INBOX, <Inbox setView={handleSetView} />)}
-          {renderPersistentView(AppView.NOTIFICATIONS, <Notifications setView={handleSetView} />)}
-          {renderPersistentView(AppView.PROFILE, <Profile user={user} onUpdateUser={handleUpdateUser} />)}
-        </Layout>
+      {toast && (
+        <AnimatePresence>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[9999] bg-red-500 text-white px-6 py-3 rounded-lg shadow-2xl flex items-center gap-3 font-bold"
+          >
+            <span className="material-icons">error_outline</span>
+            {toast}
+          </motion.div>
+        </AnimatePresence>
+      )}
 
-        <VoiceAssistant />
-      </ErrorBoundary>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key="app"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6 }}
+          className="h-full w-full"
+        >
+          <ErrorBoundary>
+            <Layout 
+              currentView={currentView} 
+              setView={handleSetView} 
+              theme={theme} 
+              toggleTheme={toggleTheme}
+              user={user}
+              onLogout={handleLogout}
+            >
+              {renderPersistentView(AppView.DASHBOARD, <Dashboard setView={handleSetView} />)}
+              {renderPersistentView(AppView.RESEARCH, <ResearchEngine userId={user.email} />)}
+              {renderPersistentView(AppView.PROJECTS, <Projects setView={handleSetView} />)}
+              {renderPersistentView(AppView.DOCUMENT_WRITER, <DocumentWriter userId={user.email} />)}
+              {renderPersistentView(AppView.ASSIGNMENT, <AssignmentSuite userId={user.email} />)}
+              {renderPersistentView(AppView.FIELD_TRIP, <FieldTripSuite />)}
+              {renderPersistentView(AppView.CAREER, <CareerStudio />)}
+              {renderPersistentView(AppView.COMMUNITY, <Community />)}
+              {renderPersistentView(AppView.SETTINGS, <Settings user={user} onUpdateUser={handleUpdateUser} />)}
+              {renderPersistentView(AppView.DATA_CRUNCHER, <DataCruncher />)}
+              {renderPersistentView(AppView.COMPRESSOR, <FileCompressor />)}
+              {renderPersistentView(AppView.TECHNICAL_REPORT, <ReportSuite type="TECHNICAL" />)}
+              {renderPersistentView(AppView.LAB_REPORT, <ReportSuite type="LAB" />)}
+              {renderPersistentView(AppView.INBOX, <Inbox setView={handleSetView} />)}
+              {renderPersistentView(AppView.NOTIFICATIONS, <Notifications setView={handleSetView} />)}
+              {renderPersistentView(AppView.PROFILE, <Profile user={user} onUpdateUser={handleUpdateUser} />)}
+            </Layout>
+
+            <VoiceAssistant />
+          </ErrorBoundary>
+        </motion.div>
+      </AnimatePresence>
     </LiveAPIContext.Provider>
   );
 }

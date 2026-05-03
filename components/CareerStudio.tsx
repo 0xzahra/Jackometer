@@ -108,18 +108,42 @@ export const CareerStudio: React.FC = () => {
     setReviewLoading(false);
   };
 
+  const clearProgress = () => {
+    if (window.confirm("Are you sure you want to erase all progress in Career Studio?")) {
+      setSelectedImage(null);
+      setProcessedImage(null);
+      setDocOutput('');
+      setFormData({
+        fullName: '',
+        email: '',
+        phone: '',
+        education: '',
+        experience: '',
+        skills: ''
+      });
+      setReviewInput('');
+      setReviewFile(null);
+      setReviewOutput('');
+    }
+  };
+
   return (
-    <div className="w-full h-full flex flex-col">
-      <div className="flex mb-8 border-b border-[var(--border-color)] overflow-x-auto">
-        {['PASSPORT', 'CV', 'RESUME', 'REVIEW'].map((t) => (
-          <button 
-            key={t}
-            className={`px-8 py-4 font-serif font-bold text-sm transition-colors whitespace-nowrap ${tool === t ? 'text-[var(--text-primary)] border-b-2 border-[var(--accent)] bg-[var(--panel-bg)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
-            onClick={() => setTool(t as any)}
-          >
-            {t === 'PASSPORT' ? 'Passport Builder' : t === 'CV' ? 'CV Builder' : t === 'RESUME' ? 'Resume Builder' : 'Review & Edit'}
-          </button>
-        ))}
+    <div className="w-full h-full flex flex-col pt-2">
+      <div className="flex justify-between items-center mb-6 border-b border-[var(--border-color)] overflow-x-auto">
+        <div className="flex">
+          {['PASSPORT', 'CV', 'RESUME', 'REVIEW'].map((t) => (
+            <button 
+              key={t}
+              className={`px-8 py-4 font-serif font-bold text-sm transition-colors whitespace-nowrap ${tool === t ? 'text-[var(--text-primary)] border-b-2 border-[var(--accent)] bg-[var(--panel-bg)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+              onClick={() => setTool(t as any)}
+            >
+              {t === 'PASSPORT' ? 'Passport Builder' : t === 'CV' ? 'CV Builder' : t === 'RESUME' ? 'Resume Builder' : 'Review & Edit'}
+            </button>
+          ))}
+        </div>
+        <button onClick={clearProgress} className="text-red-500 hover:bg-red-50 px-3 py-1 rounded text-xs font-bold border border-red-100 flex items-center gap-1 shrink-0 ml-4 mb-2 mr-2">
+            <span className="material-icons text-sm">delete_sweep</span> Erase
+        </button>
       </div>
 
       {tool === 'PASSPORT' && (

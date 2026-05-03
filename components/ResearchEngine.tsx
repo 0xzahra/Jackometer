@@ -98,6 +98,21 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
     }
   }, [stage, topicInput, qualificationInput, disciplineInput, titles, selectedTitle, chapters, chapterContent, activeChapterIndex, STORAGE_KEY]);
 
+  const clearProgress = () => {
+    if (window.confirm("Are you sure you want to erase all progress in Topic Ideas?")) {
+      localStorage.removeItem(STORAGE_KEY);
+      setStage('FORGE');
+      setTopicInput('');
+      setQualificationInput('');
+      setDisciplineInput('');
+      setTitles([]);
+      setSelectedTitle(null);
+      setChapters([]);
+      setChapterContent({});
+      setActiveChapterIndex(0);
+    }
+  };
+
   // --- Step 1: Forge Titles ---
   const handleForge = async () => {
     if (!topicInput) return;
@@ -222,6 +237,13 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
   return (
     <div className="w-full max-w-7xl mx-auto h-full flex flex-col pb-10">
       
+      {/* Top Header Controls */}
+      <div className="flex justify-end mb-4">
+         <button onClick={clearProgress} className="text-red-500 hover:bg-red-50 px-3 py-1 rounded text-xs font-bold border border-red-100 flex items-center gap-1">
+            <span className="material-icons text-sm">delete_sweep</span> Erase Progress
+         </button>
+      </div>
+
       {/* STAGE 1: FORGE */}
       {stage === 'FORGE' && (
         <div className="flex flex-col items-center justify-center min-h-[60vh] p-4">
@@ -275,14 +297,40 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
                {titles.map((t, idx) => (
                  <div 
                     key={idx} 
-                    className="glass-panel p-8 rounded-xl cursor-pointer hover:border-[var(--primary)] hover:shadow-xl transition-all group"
-                    onClick={() => handleSelectTitle(t)}
+                    className="glass-panel p-8 rounded-xl cursor-default flex flex-col transition-all group"
                  >
-                   <h3 className="text-xl font-bold text-[var(--text-primary)] mb-3 leading-snug group-hover:text-[var(--primary)] transition-colors">{t.title}</h3>
-                   <p className="text-sm text-[var(--text-secondary)] mb-4 leading-relaxed">{t.description}</p>
-                   <div className="text-xs font-bold text-[var(--text-secondary)] bg-[var(--surface-color)] p-3 rounded-lg border border-[var(--border-color)]">
+                   <h3 className="text-xl font-bold text-[var(--text-primary)] mb-3 leading-snug">{t.title}</h3>
+                   <p className="text-sm text-[var(--text-secondary)] mb-4 leading-relaxed flex-1">{t.description}</p>
+                   
+                   <div className="flex flex-wrap gap-2 mb-4">
+                     {t.novelty && <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs font-bold rounded">Idea: {t.novelty}</span>}
+                     {t.difficulty && <span className="px-2 py-1 bg-red-100 text-red-800 text-xs font-bold rounded">Difficulty: {t.difficulty}</span>}
+                     {t.cost && <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded">Cost: {t.cost}</span>}
+                     {t.timeline && <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded">Timeline: {t.timeline}</span>}
+                   </div>
+
+                   <div className="text-xs font-bold text-[var(--text-secondary)] bg-[var(--surface-color)] p-3 rounded-lg border border-[var(--border-color)] mb-4">
                      REQUIRES: {t.requirements.slice(0, 3).join(', ')}
                    </div>
+
+                   {t.searchLinks && t.searchLinks.length > 0 && (
+                     <div className="mb-4">
+                       <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Google Search Links:</h4>
+                       <ul className="space-y-1">
+                         {t.searchLinks.map((link, lidx) => (
+                           <li key={lidx}>
+                             <a href={link} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline flex items-center gap-1 truncate" title={link}>
+                               <span className="material-icons text-[10px]">link</span> {link}
+                             </a>
+                           </li>
+                         ))}
+                       </ul>
+                     </div>
+                   )}
+                   
+                   <button onClick={() => handleSelectTitle(t)} className="w-full mt-auto btn-primary py-3 rounded-lg text-sm font-bold flex justify-center items-center gap-2">
+                     Select & Outline <span className="material-icons text-sm">arrow_forward</span>
+                   </button>
                  </div>
                ))}
              </div>

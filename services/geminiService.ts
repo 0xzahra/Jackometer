@@ -4,6 +4,12 @@ import { ProjectTitle, SlideDeck, CVData, AnalysisResult, YouTubeVideo, Citation
 // Always use process.env.API_KEY directly as per guidelines
 const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+const ANTI_SLOP_PROMPT = `
+CRITICAL CONSTRAINT: YOU MUST NEVER USE ANY OF THE FOLLOWING WORDS OR PHRASES (OR THEIR VARIATIONS) in your response:
+Delve, tap into, unlock, unleash, navigate, comprehensive, testament, vibrant, robust, landscape, crucial, architecture, curator, tactical, imagine, elite, realm, revolutionary, beacon, skyrocketing, game-changer, dive in, scaling, fluff, seamless.
+Avoid generic AI talk. Be precise, professional, and direct.
+`;
+
 // --- HELPER: ROBUST JSON PARSER ---
 const cleanAndParseJSON = (text: string | undefined, defaultVal: any) => {
   if (!text) return defaultVal;
@@ -101,14 +107,27 @@ export const generateResearchTitles = async (topic: string, qualification: strin
     ${qualification ? `Target Qualification Level: ${qualification}` : ''}
     ${discipline ? `Discipline/Field of Study: ${discipline}` : ''}
     Provide 3-5 distinct, high-level, unique project titles suitable for the specified level and discipline.
-    For each title, explain what is needed (requirements) to execute it.
+    CRITICAL: 
+    - You must use Google Search to find real search engine links related to these topics. Show genuine clickable search links from Google/other engines.
+    - Suggest topic ideas that aren't overly researched about.
+    - Differentiate them based on difficulty, cost (simple/less cost vs expensive research tools), and research timeline.
+    
+    For each title, explain:
+    - description: What it is.
+    - requirements: What is needed to execute it.
+    - searchLinks: An array of real URLs from search engines related to this topic.
+    - novelty: How novel/un-researched it is.
+    - difficulty: Simple vs Difficult.
+    - cost: Less Cost vs Expensive.
+    - timeline: Expected completion timeline.
     Output JSON.
-  `;
+  \n${ANTI_SLOP_PROMPT}`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: prompt,
     config: {
+      tools: [{ googleSearch: {} }],
       responseMimeType: 'application/json',
       responseSchema: {
         type: Type.ARRAY,
@@ -117,7 +136,12 @@ export const generateResearchTitles = async (topic: string, qualification: strin
           properties: {
             title: { type: Type.STRING },
             description: { type: Type.STRING },
-            requirements: { type: Type.ARRAY, items: { type: Type.STRING } }
+            requirements: { type: Type.ARRAY, items: { type: Type.STRING } },
+            searchLinks: { type: Type.ARRAY, items: { type: Type.STRING } },
+            novelty: { type: Type.STRING },
+            difficulty: { type: Type.STRING },
+            cost: { type: Type.STRING },
+            timeline: { type: Type.STRING }
           },
           required: ['title', 'description', 'requirements']
         }
@@ -146,7 +170,7 @@ export const generateStructuredOutline = async (topic: string): Promise<string[]
     
     The output must be a JSON array of strings, where each string is a distinct section or subheading title that needs to be written. 
     Ensure it flows logically from start to finish.
-  `;
+  \n${ANTI_SLOP_PROMPT}`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
@@ -181,7 +205,7 @@ export const generateDeepResearch = async (title: string, chapter: string, conte
 
     Use high-level vocabulary.
     Do NOT use markdown symbols for headers like **, ## inside the body text. Format as plain, beautifully written text.
-  `;
+  \n${ANTI_SLOP_PROMPT}`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
@@ -200,7 +224,7 @@ export const searchYouTubeVideos = async (topic: string): Promise<YouTubeVideo[]
     Find 3 high-quality educational YouTube videos related to: "${topic}".
     Return the title, a valid watch URL, and a short description for each.
     Output JSON.
-  `;
+  \n${ANTI_SLOP_PROMPT}`;
   
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
@@ -243,7 +267,7 @@ export const generateFieldTripGuide = async (topic: string, requirements: string
       "tables": [ {"name": "...", "headers": ["...", "..."]} ],
       "checklist": ["...", "..."]
     }
-  `;
+  \n${ANTI_SLOP_PROMPT}`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
@@ -297,7 +321,7 @@ export const generateFieldTripDocument = async (topic: string, tables: string, n
       - Use Google Search to back up ecological/geological facts.
       - Cite sources inline.
       - Generate a complete REFERENCES section at the end of the document in APA format with URLs.
-    `;
+    \n${ANTI_SLOP_PROMPT}`;
     const response = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt, config: { tools: [{ googleSearch: {} }] } });
     return response.text || "";
 }
@@ -311,7 +335,7 @@ export const generateRapidPresentation = async (topic: string, rawData: string):
     Create a "Rapid Defense" slide deck structure.
     It should be defense-ready.
     Output JSON.
-  `;
+  \n${ANTI_SLOP_PROMPT}`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
@@ -347,7 +371,7 @@ export const estimateWeatherConditions = async (lat: number, lng: number): Promi
     Based on the coordinates ${lat}, ${lng} and the current date ${new Date().toDateString()}, 
     provide a REALISTIC estimate of the weather conditions for a field report.
     Output JSON with 'temp' (e.g. '32°C'), 'humidity' (e.g. '45%'), and 'conditions' (e.g. 'Partly Cloudy, Dry').
-  `;
+  \n${ANTI_SLOP_PROMPT}`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
@@ -383,7 +407,7 @@ export const humanizeText = async (text: string): Promise<string> => {
     
     TEXT:
     ${text}
-  `;
+  \n${ANTI_SLOP_PROMPT}`;
   const response = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt });
   return response.text?.trim() || text;
 };
@@ -422,7 +446,7 @@ export const generateSectionContent = async (
     5. Cite sources inline (Author, Year).
     6. Return ONLY the content for this section. Do not wrap in "Here is the chapter".
     7. End with a "REFERENCES" section if specific new sources were used in this generation.
-  `;
+  \n${ANTI_SLOP_PROMPT}`;
 
   const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview', 
@@ -454,7 +478,7 @@ export const generateAcademicDocument = async (level: string, course: string, to
       - Inline citations (Author, Year).
       - Tone: Academic Expert.
       - **MANDATORY**: End with "REFERENCES" section in APA format listing all URLs found.
-    `;
+    \n${ANTI_SLOP_PROMPT}`;
     const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview', 
         contents: prompt,
@@ -482,7 +506,7 @@ export const enrichCitationFromUrl = async (url: string): Promise<Partial<Citati
     4. Context: A 1-sentence summary.
 
     Output JSON.
-  `;
+  \n${ANTI_SLOP_PROMPT}`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
@@ -517,7 +541,7 @@ export const verifyCitations = async (citations: Citation[]): Promise<{id: strin
     - id: string (from input)
     - status: 'VALID' or 'SUSPICIOUS'
     - note: A brief reason.
-  `;
+  \n${ANTI_SLOP_PROMPT}`;
   
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
@@ -552,7 +576,7 @@ export const scanReference = async (base64Image: string, style: string): Promise
     
     If the data is present, format the citation strictly according to ${style} rules.
     Output ONLY the final formatted citation text, nothing else.
-  `;
+  \n${ANTI_SLOP_PROMPT}`;
   
   const response = await ai.models.generateContent({
     model: 'gemini-2.5-flash-image',
@@ -577,7 +601,7 @@ export const getContextualQuotes = async (citation: Citation, userContext: strin
     Note: Since you cannot browse the live full text, infer the most likely key findings of this specific work.
     
     Output JSON string array.
-  `;
+  \n${ANTI_SLOP_PROMPT}`;
   
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
@@ -605,7 +629,7 @@ export const generateBibliography = async (citations: Citation[], style: string)
     2. After each citation, append the "Context" (URL preview) on a new line, indented.
     3. Ensure the URL is included and clickable (Markdown [Link](url) format).
     4. Output plain text.
-  `;
+  \n${ANTI_SLOP_PROMPT}`;
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview', 
     contents: prompt
@@ -626,7 +650,7 @@ export const generateTechnicalReport = async (topic: string, details: string, ta
     
     CITATIONS: Use Google Search. Hyperlink every external fact using [Source](URL) or (Author, Year).
     **CRITICAL**: Include a "REFERENCES" section at the end listing all sources found.
-  `;
+  \n${ANTI_SLOP_PROMPT}`;
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: prompt,
@@ -648,7 +672,7 @@ export const generateLabReport = async (experiment: string, observations: string
     
     CITATIONS: Use Google Search to back up scientific claims. Hyperlink sources inline.
     **CRITICAL**: Include a "REFERENCES" section at the end listing all sources found.
-  `;
+  \n${ANTI_SLOP_PROMPT}`;
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview', 
     contents: prompt,
@@ -669,7 +693,7 @@ export const analyzeMicroscopeImage = async (base64Image: string): Promise<strin
     4. CLASSIFICATION: Provide the scientific classification or compound identity.
     
     Be precise and academic.
-  `;
+  \n${ANTI_SLOP_PROMPT}`;
   
   const response = await ai.models.generateContent({
     model: 'gemini-2.5-flash-image',
@@ -689,7 +713,7 @@ export const generateImageCaption = async (base64Image: string): Promise<string>
   const prompt = `
     Generate a concise, academic caption for this image to be used in an Appendix.
     Identify what is shown (e.g., "Figure 1: Microscopic view of Spyrogyra...").
-  `;
+  \n${ANTI_SLOP_PROMPT}`;
   
   const response = await ai.models.generateContent({
     model: 'gemini-2.5-flash-image',
@@ -718,7 +742,7 @@ export const analyzeData = async (dataInput: string, tableData: string): Promise
     3. Output: Simplified JSON structure.
     
     Output JSON.
-  `;
+  \n${ANTI_SLOP_PROMPT}`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview', // Switched for speed/consistency
@@ -760,7 +784,7 @@ export const gradeEssay = async (essay: string, instruction: string): Promise<st
       6. Corrected Snippet: Rewrite the weakest paragraph to be perfect.
       
       Hyperlink any resources you suggest using [Resource Name](URL).
-    `;
+    \n${ANTI_SLOP_PROMPT}`;
     const response = await ai.models.generateContent({ 
         model: 'gemini-3-flash-preview', // Switched for speed
         contents: prompt,
@@ -784,7 +808,7 @@ export const synthesizeCritique = async (sourceMaterial: string): Promise<string
       - Use Google Search to cross-reference facts. 
       - CITE every external fact with an inline link: [Source](URL).
       - End with a "REFERENCES" section describing the sources.
-    `;
+    \n${ANTI_SLOP_PROMPT}`;
     const response = await ai.models.generateContent({ 
         model: 'gemini-3-flash-preview', // Switched for speed
         contents: prompt,
@@ -806,7 +830,7 @@ export const analyzeSupervisorStyle = async (text: string): Promise<string> => {
     3. Pet Peeves (deduce what they avoid).
     
     Output a concise summary profile of this supervisor's academic preferences to help a student write to please them.
-  `;
+  \n${ANTI_SLOP_PROMPT}`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
@@ -837,7 +861,7 @@ export const solveAssignment = async (question: string, biasProfile: string = ""
     - Avoid robotic transitions.
     - Use Google Search for facts. Cite them inline.
     - End with a "References" section listing the URLs.
-  `;
+  \n${ANTI_SLOP_PROMPT}`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview', // Switched for speed
@@ -850,7 +874,7 @@ export const solveAssignment = async (question: string, biasProfile: string = ""
 // --- CAREER STUDIO ---
 export const generatePassportEdit = async (base64Image: string, backgroundType: 'white' | 'red'): Promise<string> => {
   const ai = getAI();
-  const prompt = `Change the background of this person to a solid ${backgroundType} background suitable for an official passport photo. Crop to headshot if needed.`;
+  const prompt = `Change the background of this person to a solid ${backgroundType} background suitable for an official passport photo. Crop to headshot if needed.\n${ANTI_SLOP_PROMPT}`;
   
   const response = await ai.models.generateContent({
     model: 'gemini-2.5-flash-image',
@@ -876,7 +900,7 @@ export const generateOptimizedCV = async (data: CVData): Promise<string> => {
       Create a high-impact, "Old Money" academic CV (Curriculum Vitae) based on:
       ${JSON.stringify(data)}
       Format: Plain text, sophisticated layout, academic focus.
-    `;
+    \n${ANTI_SLOP_PROMPT}`;
     const response = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt });
     return response.text || "";
 }
@@ -887,7 +911,7 @@ export const generateResume = async (data: CVData): Promise<string> => {
       Create a professional, 1-page Industry Resume based on:
       ${JSON.stringify(data)}
       Format: Plain text, bullet points, action verbs.
-    `;
+    \n${ANTI_SLOP_PROMPT}`;
     const response = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt });
     return response.text || "";
 }
@@ -911,7 +935,7 @@ export const reviewCareerDocument = async (docData: { text?: string, fileData?: 
     4. At the very end, append a "Hiring Manager's Notes" section listing 3 specific critiques or improvements made, speaking directly to the applicant (e.g., "I tightened this section because it was too vague...").
 
     Output the full improved document text followed by the notes.
-  `;
+  \n${ANTI_SLOP_PROMPT}`;
 
   if (docData.fileData && docData.mimeType) {
     const response = await ai.models.generateContent({

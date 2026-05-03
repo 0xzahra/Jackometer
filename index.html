@@ -9,53 +9,61 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
     <style>
       :root {
-        /* Emerald Glass Palette - Light */
-        --bg-color: #e6f6ec; /* Noticeable Emerald Tint */
-        --surface-color: rgba(255, 255, 255, 0.6); /* True Frost Glass */
-        --panel-bg: rgba(255, 255, 255, 0.8);
-        --primary: #10b981; /* Emerald Green */
-        --accent: #059669; /* Darker Emerald for contrast */
+        /* Opus UI - Light */
+        --bg-color: #f7f9f8; /* Pearl Milk */
+        --surface-color: rgba(255, 255, 255, 0.7); /* True Frost Glass */
+        --panel-bg: rgba(255, 255, 255, 0.85);
+        --primary: #047857; /* Rich Emerald Green */
+        --accent: #059669; /* Rich Emerald */
         --on-primary: #ffffff;
-        --text-primary: #0f172a; /* Deep Charcoal */
-        --text-secondary: #475569; /* Slate Gray */
-        --border-color: rgba(16, 185, 129, 0.25);
-        --emerald-glow: 0 0 15px rgba(16, 185, 129, 0.15);
+        --text-primary: #1e293b; /* Deep Slate */
+        --text-secondary: #475569;
+        --border-color: rgba(255, 255, 255, 0.6);
+        --emerald-glow: 0 0 20px rgba(5, 150, 105, 0.08);
         
-        /* Modern 3D Shadows & Depth */
-        --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
-        --shadow-glass: 0 12px 36px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255,255,255,0.6);
-        --shadow-hover: 0 20px 40px rgba(0, 0, 0, 0.15), inset 0 0 0 1px rgba(255,255,255,0.8);
-        --glass-border: 1px solid rgba(255, 255, 255, 0.4);
+        /* Modern 3D Shadows & Depth Opus UI */
+        --shadow-sm: 0 3px 6px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.08);
+        --shadow-glass: 0 16px 32px rgba(0, 0, 0, 0.06), inset 0 2px 4px rgba(255,255,255,0.8), inset 0 -1px 2px rgba(0,0,0,0.02);
+        --shadow-hover: 0 24px 48px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(5, 150, 105, 0.15), inset 0 2px 4px rgba(255,255,255,1), transform scale(1.02);
+        --glass-border: 1px solid rgba(255, 255, 255, 0.7);
+        --btn-shadow: 0 4px 10px rgba(4, 120, 87, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.3), inset 0 -2px 4px rgba(0, 0, 0, 0.2);
       }
 
       [data-theme='dark'] {
-        /* Emerald Glass Palette - Dark */
-        --bg-color: #0f172a; /* Deep Slate/Charcoal */
-        --surface-color: rgba(16, 185, 129, 0.08); /* Emerald Tinted Dark Glass */
-        --panel-bg: rgba(15, 23, 42, 0.8);
+        /* Opus UI - Dark */
+        --bg-color: #0b0f19; /* Deep Pearl Dark */
+        --surface-color: rgba(20, 25, 35, 0.65); /* Pearl Glassy Dark */
+        --panel-bg: rgba(15, 20, 30, 0.85);
         --primary: #10b981; /* Emerald Green */
-        --accent: #34d399; /* Lighter Emerald for dark mode */
+        --accent: #34d399; /* Radiant Emerald */
         --on-primary: #ffffff;
         --text-primary: #f8fafc; /* Frost White */
-        --text-secondary: #94a3b8; /* Slate Gray */
-        --border-color: rgba(16, 185, 129, 0.3); 
-        --emerald-glow: 0 0 25px rgba(16, 185, 129, 0.2);
+        --text-secondary: #94a3b8;
+        --border-color: rgba(255, 255, 255, 0.08); 
+        --emerald-glow: 0 0 30px rgba(16, 185, 129, 0.12);
         
-        --shadow-glass: 0 12px 36px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(16, 185, 129, 0.15);
-        --shadow-hover: 0 20px 40px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(16, 185, 129, 0.25);
-        --glass-border: 1px solid rgba(16, 185, 129, 0.25);
+        --shadow-glass: 0 16px 32px rgba(0, 0, 0, 0.5), inset 0 1px 2px rgba(255,255,255,0.1), inset 0 -1px 2px rgba(0,0,0,0.2);
+        --shadow-hover: 0 24px 48px rgba(0, 0, 0, 0.6), 0 8px 16px rgba(16, 185, 129, 0.2), inset 0 1px 2px rgba(255,255,255,0.15);
+        --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+        --btn-shadow: 0 4px 12px rgba(16, 185, 129, 0.4), inset 0 1px 2px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.3);
+      }
+
+      /* Fallback for TransSans */
+      @font-face {
+        font-family: 'TransSans';
+        src: local('Inter Display'), local('Inter'), local('system-ui'), local('sans-serif');
       }
 
       body {
-        font-family: 'Inter', sans-serif;
+        font-family: 'TransSans', 'Inter', sans-serif;
+        font-weight: 600; /* bold transsans requirement */
         background-color: var(--bg-color);
-        /* Subtle Ambient Gradient */
         background-image: 
-          radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
-          radial-gradient(at 100% 100%, rgba(52, 211, 153, 0.08) 0px, transparent 50%);
+          radial-gradient(circle at top left, rgba(255, 255, 255, 0.03) 0%, transparent 60%),
+          radial-gradient(circle at bottom right, rgba(16, 185, 129, 0.06) 0%, transparent 50%);
         background-attachment: fixed;
         color: var(--text-primary);
-        transition: background-color 0.3s, color 0.3s;
+        transition: background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1), color 0.4s;
         overflow: hidden;
       }
 
@@ -95,20 +103,30 @@
         color: var(--on-primary);
         border-radius: 12px;
         padding: 12px 28px;
-        font-weight: 600;
-        transition: all 0.2s;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        font-weight: 700;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: var(--btn-shadow);
         border: none;
         letter-spacing: 0.01em;
         font-size: 0.9rem;
+        position: relative;
+        overflow: hidden;
+      }
+      .btn-primary::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: linear-gradient(to bottom, rgba(255,255,255,0.2) 0%, transparent 100%);
+        pointer-events: none;
       }
       .btn-primary:hover {
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
         transform: translateY(-2px);
-        opacity: 0.9;
+        box-shadow: 0 6px 16px rgba(4, 120, 87, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.4), inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+        opacity: 0.95;
       }
       .btn-primary:active {
-        transform: translateY(0);
+        transform: translateY(1px);
+        box-shadow: 0 2px 4px rgba(4, 120, 87, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.2);
       }
 
       /* Sticky Card Modernization */

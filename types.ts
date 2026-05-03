@@ -2,6 +2,7 @@
 export enum AppView {
   DASHBOARD = 'DASHBOARD',
   RESEARCH = 'RESEARCH',
+  PROJECTS = 'PROJECTS',
   DOCUMENT_WRITER = 'DOCUMENT_WRITER',
   FIELD_TRIP = 'FIELD_TRIP',
   TECHNICAL_REPORT = 'TECHNICAL_REPORT',
@@ -29,6 +30,11 @@ export interface ProjectTitle {
   title: string;
   description: string;
   requirements: string[];
+  searchLinks?: string[];
+  novelty?: string;
+  difficulty?: string;
+  cost?: string;
+  timeline?: string;
 }
 
 export interface SlideDeck {

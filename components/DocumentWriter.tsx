@@ -35,6 +35,7 @@ interface DocDraft {
   slides?: SlideDeck;
   timeSpentSeconds: number;
   activityLog: ActivityLog[];
+  isTrashed?: boolean;
 }
 
 interface DocumentWriterProps {
@@ -109,11 +110,14 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
 
   // Persist drafts
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_DRAFTS, JSON.stringify(drafts));
-    } catch (e) {
-      console.error("Storage quota exceeded", e);
-    }
+    const timeoutId = setTimeout(() => {
+      try {
+        localStorage.setItem(STORAGE_KEY_DRAFTS, JSON.stringify(drafts));
+      } catch (e) {
+        console.error("Storage quota exceeded", e);
+      }
+    }, 1000);
+    return () => clearTimeout(timeoutId);
   }, [drafts, STORAGE_KEY_DRAFTS]);
 
   useEffect(() => {
@@ -146,7 +150,11 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
 
   const activeSection = activeDraft?.sections?.find(s => s.id === activeSectionId) || activeDraft?.sections?.[0];
 
-  const [loading, setLoading] = useState(false);
+  const [loadingMap, setLoadingMap] = useState<Record<string, boolean>>({});
+  const loading = activeDraft ? !!loadingMap[activeDraft.id] : false;
+  const setDraftLoading = (id: string, isLoading: boolean) => {
+    setLoadingMap(prev => ({ ...prev, [id]: isLoading }));
+  };
   const [driveSaving, setDriveSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
@@ -158,6 +166,8 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
 
   // Ledger & Plagiarism Shield
   const [isPowModalOpen, setIsPowModalOpen] = useState(false);
+  const [isTrashOpen, setIsTrashOpen] = useState(false);
+  const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
   const [isExportScannerOpen, setIsExportScannerOpen] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [pendingExportFormat, setPendingExportFormat] = useState<'PDF'|'DOCX'|'TXT'|'DRIVE'|null>(null);
@@ -300,7 +310,7 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
       return;
     }
     
-    setLoading(true);
+    setDraftLoading(activeDraft.id, true);
     
     try {
       const appendixStr = activeDraft.appendix.map((a, i) => `Figure ${i+1}: ${a.caption}`).join('\n');
@@ -334,7 +344,7 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
       });
       updateDraft('citations', mergedCitations);
 
-      setLoading(false);
+      setDraftLoading(activeDraft.id, false);
 
       searchYouTubeVideos(activeDraft.topic).then(videos => {
         setDrafts(current => current.map(d => d.id === activeId ? { ...d, videos } : d));
@@ -349,7 +359,7 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
     } catch (e) {
       console.error(e);
       alert("Generation failed. Please check your connection.");
-      setLoading(false);
+      setDraftLoading(activeDraft.id, false);
     }
   };
 
@@ -363,7 +373,7 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
   };
 
   const handleGenerateSlides = async () => {
-     setLoading(true);
+     setDraftLoading(activeDraft.id, true);
      try {
          const fullText = activeDraft.sections.map(s => `${s.title}\n${s.content}`).join('\n\n');
          const deck = await generateRapidPresentation(activeDraft.topic || "Research Project", fullText);
@@ -372,7 +382,7 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
      } catch (e) {
          alert("Failed to generate slides.");
      }
-     setLoading(false);
+     setDraftLoading(activeDraft.id, false);
   };
 
   const handleUploadForSlides = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -380,7 +390,7 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
     if (file) {
       const reader = new FileReader();
       reader.onload = async (ev) => {
-        setLoading(true);
+        setDraftLoading(activeDraft.id, true);
         try {
           const text = ev.target?.result as string;
           const deck = await generateRapidPresentation(activeDraft.topic || "Uploaded Document Defense", text);
@@ -388,7 +398,7 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
         } catch (e) {
           alert("Failed to generate slides from document.");
         }
-        setLoading(false);
+        setDraftLoading(activeDraft.id, false);
       };
       reader.readAsText(file);
     }
@@ -456,12 +466,31 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
 
   const deleteDraft = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (drafts.length === 1) return;
-    if (window.confirm("Delete this document?")) {
+    if (window.confirm("Move this document to Trash?")) {
+      const updated = drafts.map(d => d.id === id ? { ...d, isTrashed: true } : d);
+      setDrafts(updated);
+      const remainingUnTrashed = updated.filter(d => !d.isTrashed);
+      if (activeId === id) {
+         if (remainingUnTrashed.length > 0) setActiveId(remainingUnTrashed[0].id);
+         else newDraft(); // create new if none left
+      }
+    }
+  };
+
+  const permanentlyDeleteDraft = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (window.confirm("Permanently delete this document? This cannot be undone.")) {
       const rem = drafts.filter(d => d.id !== id);
       setDrafts(rem);
-      if (activeId === id) setActiveId(rem[0].id);
+      if (activeId === id && rem.length > 0) setActiveId(rem[0].id);
     }
+  };
+
+  const restoreDraft = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updated = drafts.map(d => d.id === id ? { ...d, isTrashed: false } : d);
+    setDrafts(updated);
+    setActiveId(id);
   };
 
   const handleExportClick = (format: 'PDF' | 'DOCX' | 'TXT' | 'DRIVE') => {
@@ -571,23 +600,27 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b border-[var(--border-color)] pb-2 flex-shrink-0 gap-4">
          {/* Draft Tabs */}
          <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 custom-scrollbar whitespace-nowrap">
-            {drafts?.map(d => (
-              <div key={d.id} onClick={() => setActiveId(d.id)} className={`px-4 py-2 cursor-pointer text-sm font-medium border-b-2 flex items-center transition-colors shrink-0 ${activeId === d.id ? 'border-[var(--primary)] text-[var(--primary)] bg-[var(--surface-color)] rounded-t' : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--surface-color)]'}`}>
+            {drafts?.filter(d => !d.isTrashed).map(d => (
+              <div key={d.id} onClick={() => setActiveId(d.id)} className={`px-4 py-2 cursor-pointer text-sm font-medium border-b-2 flex items-center transition-colors shrink-0 ${activeId === d.id && !isTrashOpen ? 'border-[var(--primary)] text-[var(--primary)] bg-[var(--surface-color)] rounded-t' : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--surface-color)]'}`}>
                 <span className="mr-2 max-w-[100px] truncate">{d.topic || 'Untitled Doc'}</span>
                 <button onClick={(e) => deleteDraft(d.id, e)} className="hover:bg-red-100 hover:text-red-600 rounded-full p-1"><span className="material-icons text-[14px]">delete</span></button>
               </div>
             ))}
-            <button onClick={newDraft} className="p-2 text-[var(--text-secondary)] hover:text-[var(--primary)] bg-gray-50 rounded-full shadow-sm ml-2"><span className="material-icons text-xl">add</span></button>
+            <button onClick={newDraft} className="p-2 text-[var(--text-secondary)] hover:text-[var(--primary)] bg-gray-50 rounded-full shadow-sm ml-2" title="New Document"><span className="material-icons text-xl">add</span></button>
+            <button onClick={() => setIsTrashOpen(true)} className={`p-2 rounded-full shadow-sm ml-2 ${isTrashOpen ? 'text-red-600 bg-red-50' : 'text-[var(--text-secondary)] hover:text-red-500 bg-gray-50'}`} title="Trash">
+               <span className="material-icons text-xl">delete_outline</span>
+            </button>
          </div>
 
          {/* Toolbar Right: Undo/Redo, Collab, Export */}
          <div className="flex items-center gap-4 w-full md:w-auto justify-end flex-wrap">
              
              {/* View Toggle */}
-             <div className="flex bg-[var(--bg-color)] rounded p-1 border border-[var(--border-color)]">
-               <button onClick={() => setViewMode('WRITER')} className={`px-3 py-1 text-xs font-bold rounded ${viewMode === 'WRITER' ? 'bg-white shadow text-[var(--primary)]' : 'text-[var(--text-secondary)]'}`}>Writer</button>
-               <button onClick={() => setViewMode('SLIDES')} className={`px-3 py-1 text-xs font-bold rounded ${viewMode === 'SLIDES' ? 'bg-white shadow text-[var(--primary)]' : 'text-[var(--text-secondary)]'}`}>Defense</button>
-               <button onClick={() => setIsPowModalOpen(true)} className={`px-3 py-1 text-xs font-bold rounded text-[var(--text-secondary)] hover:text-green-600 flex items-center gap-1`} title="Proof of Work Ledger"><span className="material-icons text-[14px]">receipt_long</span> Ledger</button>
+             <div className="flex bg-[var(--bg-color)] rounded p-1 border border-[var(--border-color)] items-center">
+               <button onClick={() => {setViewMode('WRITER'); setIsTrashOpen(false);}} className={`px-3 py-1 text-xs font-bold rounded ${viewMode === 'WRITER' && !isTrashOpen ? 'bg-white shadow text-[var(--primary)]' : 'text-[var(--text-secondary)]'}`}>Writer</button>
+               <button onClick={() => {setViewMode('SLIDES'); setIsTrashOpen(false);}} className={`px-3 py-1 text-xs font-bold rounded ${viewMode === 'SLIDES' && !isTrashOpen ? 'bg-white shadow text-[var(--primary)]' : 'text-[var(--text-secondary)]'}`}>Defense</button>
+               <button onClick={() => setIsVersionHistoryOpen(true)} className={`px-3 py-1 text-xs font-bold rounded text-[var(--text-secondary)] hover:text-[var(--primary)] flex items-center gap-1`} title="Version History"><span className="material-icons text-[14px]">history</span> Version History</button>
+               <button onClick={() => setIsPowModalOpen(true)} className={`px-3 py-1 text-xs font-bold rounded text-[var(--text-secondary)] hover:text-green-600 flex items-center gap-1`} title="Proof of Work Ledger & Activity Log"><span className="material-icons text-[14px]">receipt_long</span> Activity Log</button>
              </div>
 
              {/* Collaborators */}
@@ -617,7 +650,31 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
          </div>
       </div>
 
-      {viewMode === 'WRITER' ? (
+      {isTrashOpen ? (
+        <div className="flex flex-col flex-1 h-full min-h-0 bg-gray-50 border border-gray-200 rounded-lg p-6 overflow-y-auto w-full">
+           <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2">
+              <span className="material-icons text-red-500">delete_outline</span> Trash
+           </h2>
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+             {drafts?.filter(d => d.isTrashed).map(d => (
+                <div key={d.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-col">
+                   <h3 className="font-bold text-gray-800 truncate mb-2">{d.topic || 'Untitled Doc'}</h3>
+                   <p className="text-xs text-gray-500 mb-4">{d.course || 'No course specified'}</p>
+                   <div className="flex justify-end gap-2 mt-auto">
+                      <button onClick={(e) => restoreDraft(d.id, e)} className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded hover:bg-green-200 transition">Restore</button>
+                      <button onClick={(e) => permanentlyDeleteDraft(d.id, e)} className="px-3 py-1 bg-red-100 text-red-700 text-xs font-bold rounded hover:bg-red-200 transition">Permanently Delete</button>
+                   </div>
+                </div>
+             ))}
+             {drafts?.filter(d => d.isTrashed).length === 0 && (
+                <div className="col-span-full p-10 text-center text-gray-400">
+                   <span className="material-icons text-5xl mb-2 opacity-50">auto_delete</span>
+                   <p>Trash is empty.</p>
+                </div>
+             )}
+           </div>
+        </div>
+      ) : viewMode === 'WRITER' ? (
         <div className="flex flex-col md:flex-row gap-6 flex-1 h-full min-h-0 md:overflow-hidden pb-20 md:pb-0">
           
           {/* LEFT COLUMN: Controls & Outline */}
@@ -822,6 +879,49 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
                        <div className="text-xs text-gray-500">{d.course} • {d.sections.length} Sections</div>
                      </div>
                    ))}
+                 </div>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* Version History Modal */}
+      {isVersionHistoryOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+           <div className="bg-slate-50 w-full max-w-3xl max-h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-fade-in-up">
+              <div className="bg-slate-900 text-white p-6 flex justify-between items-center shrink-0">
+                 <div className="flex items-center gap-3">
+                    <span className="material-icons text-3xl">history</span>
+                    <div>
+                       <h3 className="font-bold text-xl leading-none">Version History</h3>
+                       <p className="text-slate-400 text-xs mt-1">Restore older snapshots of this document</p>
+                    </div>
+                 </div>
+                 <button onClick={() => setIsVersionHistoryOpen(false)} className="text-slate-400 hover:text-white transition-colors">
+                    <span className="material-icons">close</span>
+                 </button>
+              </div>
+              <div className="p-6 overflow-y-auto flex-1">
+                 <div className="space-y-4">
+                    {activeDraft?.history.map((hSnapshot, index) => (
+                      <div key={index} className={`flex items-center justify-between p-4 rounded-lg border ${activeDraft.historyIndex === index ? 'bg-blue-50 border-blue-200' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
+                         <div>
+                            <h4 className="font-bold text-slate-800">Version {index + 1}</h4>
+                            <p className="text-xs text-slate-500">{index === activeDraft.historyIndex ? 'Current active version.' : 'Older snapshot.'}</p>
+                         </div>
+                         <button 
+                           disabled={activeDraft.historyIndex === index}
+                           onClick={() => {
+                              const restoredSections = JSON.parse(hSnapshot);
+                              setDrafts(drafts.map(dr => dr.id === activeId ? { ...dr, sections: restoredSections, historyIndex: index } : dr));
+                              setIsVersionHistoryOpen(false);
+                           }} 
+                           className={`px-4 py-2 rounded font-bold text-xs ${activeDraft.historyIndex === index ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-blue-100 text-blue-700 hover:bg-blue-200 shadow-sm'}`}
+                         >
+                            {activeDraft.historyIndex === index ? 'Current' : 'Restore'}
+                         </button>
+                      </div>
+                    ))}
                  </div>
               </div>
            </div>

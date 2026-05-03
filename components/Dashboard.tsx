@@ -31,7 +31,6 @@ const StickyCard: React.FC<{
     >
       <div className="flex justify-between items-start mb-4">
         <span className="material-icons text-3xl opacity-70 text-[var(--text-primary)]">{icon}</span>
-        <span className="text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest opacity-60">Module</span>
       </div>
       
       <div>
@@ -84,14 +83,37 @@ export const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
         <p className="text-xs font-bold text-[var(--accent)] uppercase tracking-widest mt-4">— {quote.author}</p>
       </div>
 
-      {/* CORE MISSION STATEMENT */}
-      <div className="max-w-4xl mx-auto px-4 mb-12">
-         <div className="paper-panel p-8 rounded-xl shadow-lg border border-[var(--primary)] text-center relative overflow-hidden group">
+      {/* CORE MISSION STATEMENT & STATS */}
+      <div className="max-w-4xl mx-auto px-4 mb-12 flex flex-col md:flex-row gap-6">
+         <div className="paper-panel p-8 rounded-xl flex-1 shadow-lg border border-[var(--primary)] text-center relative overflow-hidden group">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[var(--primary)]/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out"></div>
             <span className="material-icons text-5xl text-[var(--accent)] mb-4 opacity-80">workspace_premium</span>
-            <p className="text-[var(--text-primary)] text-lg leading-relaxed font-serif relative z-10">
-               With <strong className="text-[var(--accent)] font-sans tracking-tight">Jackometer</strong>, you do not have to worry about writing project documents, review essays, scholar assignments, journals, literature reviews, or technical reports from scratch and taking years to write one. Jackometer insulates your project. Between the <strong>Proof of Work Ledger</strong> and the defense preparation, we ensure you graduate with honors.
+            <p className="text-[var(--text-primary)] text-sm leading-relaxed font-serif relative z-10">
+               With <strong className="text-[var(--accent)] font-sans tracking-tight">Jackometer</strong>, you do not have to worry about writing project documents, review essays, scholar assignments, journals, literature reviews, or technical reports from scratch.
             </p>
+         </div>
+         
+         {/* Live Statistics */}
+         <div className="paper-panel p-6 rounded-xl md:w-1/3 border border-[var(--border-color)] flex flex-col justify-center">
+            <h3 className="text-xs font-bold font-sans text-[var(--text-secondary)] uppercase tracking-widest mb-4 border-b border-[var(--border-color)] pb-2">Active Scholars</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-[10px] text-[var(--text-secondary)] uppercase">Today</p>
+                <p className="text-xl font-bold text-[var(--primary)]">1,402</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-[var(--text-secondary)] uppercase">Yesterday</p>
+                <p className="text-xl font-bold text-[var(--text-primary)]">1,250</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-[var(--text-secondary)] uppercase">This Week</p>
+                <p className="text-xl font-bold text-[var(--text-primary)]">8,934</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-[var(--text-secondary)] uppercase">This Year</p>
+                <p className="text-xl font-bold text-[var(--accent)]">142K</p>
+              </div>
+            </div>
          </div>
       </div>
 
@@ -103,8 +125,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
           onClick={() => setView(AppView.RESEARCH)}
         />
         <StickyCard 
+          title="Projects" 
+          desc="View, edit, trace versions, and share all generated documents."
+          icon="folder"
+          onClick={() => setView(AppView.PROJECTS)}
+        />
+        <StickyCard 
           title="Document Writer" 
-          desc="Full academic document generator for any course."
+          desc="Draft comprehensive, strictly formatted academic documents."
           icon="description"
           onClick={() => setView(AppView.DOCUMENT_WRITER)}
         />

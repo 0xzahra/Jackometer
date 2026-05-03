@@ -253,10 +253,28 @@ export const FieldTripSuite: React.FC = () => {
     alert("Field report saved to Google Drive!");
   };
 
+  const clearProgress = () => {
+    if (window.confirm("Are you sure you want to erase all progress in Field Trip?")) {
+      setTopic('');
+      setLecturerReqs('');
+      setChecklist([]);
+      setIsGuideActive(false);
+      setNotes('');
+      setSlideInput('');
+      setDocInput('');
+      setDeck(null);
+      setDocumentContent('');
+      setSlideHistory([]);
+      setSlideHistoryIndex(-1);
+      setEvidence([]);
+    }
+  };
+
   return (
     <div className="w-full max-w-7xl mx-auto h-full flex flex-col">
-      <div className="flex space-x-2 md:space-x-4 mb-6 border-b border-[var(--border-color)] pb-1 overflow-x-auto">
-        {['ENVIRONMENT', 'DATA', 'SLIDES', 'DOCUMENT'].map((t) => (
+      <div className="flex justify-between items-center mb-6 border-b border-[var(--border-color)] overflow-x-auto">
+        <div className="flex space-x-2 md:space-x-4 pb-1">
+          {['ENVIRONMENT', 'DATA', 'SLIDES', 'DOCUMENT'].map((t) => (
           <button 
             key={t}
             onClick={() => setTab(t as any)}
@@ -265,6 +283,10 @@ export const FieldTripSuite: React.FC = () => {
             {t === 'ENVIRONMENT' ? 'Environment Monitor' : t === 'DATA' ? (isGuideActive ? 'Field Input' : 'Trip Setup') : t === 'SLIDES' ? 'Presentation' : 'Document'}
           </button>
         ))}
+        </div>
+        <button onClick={clearProgress} className="text-red-500 hover:bg-red-50 px-3 py-1 rounded text-xs font-bold border border-red-100 flex items-center gap-1 shrink-0 mb-2">
+            <span className="material-icons text-sm">delete_sweep</span> Erase
+        </button>
       </div>
 
       {tab === 'ENVIRONMENT' && (

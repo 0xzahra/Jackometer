@@ -201,6 +201,71 @@ export const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser }) => {
              </div>
           </div>
         </div>
+
+        {/* Support Dev Wrapper */}
+        <div className="glass-panel p-8 md:col-span-2 shadow-sm border border-emerald-100/50">
+           <div className="flex items-center gap-3 mb-6 border-b border-[var(--border-color)] pb-3">
+            <span className="material-icons text-emerald-500">favorite</span>
+            <h3 className="text-lg font-bold text-[var(--text-primary)]">Support Developer</h3>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+             <div className="bg-[var(--surface-color)] p-4 rounded-lg">
+                <p className="text-xs font-bold text-gray-500 uppercase mb-2">Bitcoin (BTC)</p>
+                <div className="text-sm font-mono break-all selection:bg-emerald-200">38vsxixBp1DzDuJ4J3re1rTERBzJ6au27a</div>
+             </div>
+             <div className="bg-[var(--surface-color)] p-4 rounded-lg">
+                <p className="text-xs font-bold text-gray-500 uppercase mb-2">Fractal Unisat</p>
+                <div className="text-sm font-mono break-all selection:bg-emerald-200">bc1qncuzw003jsnys5fq00jx3gxsdurp740zn0vzlh</div>
+             </div>
+             <div className="bg-[var(--surface-color)] p-4 rounded-lg">
+                <p className="text-xs font-bold text-gray-500 uppercase mb-2">Arewa.eth</p>
+                <div className="text-sm font-mono break-all selection:bg-emerald-200">0xb022b646724e3db39ec7b725de95b37e2a971a27</div>
+             </div>
+             <div className="bg-[var(--surface-color)] p-4 rounded-lg">
+                <p className="text-xs font-bold text-gray-500 uppercase mb-2">Zahranft1.crypto</p>
+                <div className="text-sm font-mono break-all selection:bg-emerald-200">0xc5c2bc5b9f11336d8ae79bb67ba7a21d0b825457</div>
+             </div>
+             <div className="bg-[var(--surface-color)] p-4 rounded-lg">
+                <p className="text-xs font-bold text-gray-500 uppercase mb-2">Farcaster Base</p>
+                <div className="text-sm font-mono break-all selection:bg-emerald-200">0xEBB6466D179bed52B00a1d186a7c26b35a635D5e</div>
+             </div>
+             <div className="bg-[var(--surface-color)] p-4 rounded-lg">
+                <p className="text-xs font-bold text-gray-500 uppercase mb-2">Base App</p>
+                <div className="text-sm font-mono break-all selection:bg-emerald-200">0xB6E30c3B7dD1fb09A3d2D4CDC94ac0a0bA961161</div>
+             </div>
+             <div className="bg-[var(--surface-color)] p-4 rounded-lg">
+                <p className="text-xs font-bold text-gray-500 uppercase mb-2">Main Sol Wallet</p>
+                <div className="text-sm font-mono break-all selection:bg-emerald-200">G4MdPDCZ98MApcQSFsC6AButjL7Jb4kS8mVoFqXFVsTS</div>
+             </div>
+             <div className="bg-[var(--surface-color)] p-4 rounded-lg">
+                <p className="text-xs font-bold text-gray-500 uppercase mb-2">Sol Wallets</p>
+                <div className="text-sm font-mono break-all space-y-2 selection:bg-emerald-200">
+                   <div>7rcNCvxKdoSB9uZsPmbUQ3kucZ1rMDxQc34o5arictht</div>
+                   <div>FMNn2BdyV24imiL1GVmEBgDQe4U6UiSC8ntwGuXbAyAV</div>
+                   <div>pumpCmXqMfrsAkQ5r49WcJnRayYRqmXz6ae8H7H9Dfn</div>
+                </div>
+             </div>
+             <div className="bg-[var(--surface-color)] p-4 rounded-lg">
+                <p className="text-xs font-bold text-gray-500 uppercase mb-2">Aptos</p>
+                <div className="text-sm font-mono break-all selection:bg-emerald-200">0x5320f25f7671012e716889491affa7625797d576429134126de490d5cfee05c9</div>
+             </div>
+          </div>
+          
+          <div className="mt-6">
+             <h4 className="text-sm font-bold text-gray-800 mb-3 border-b pb-2">Domain Names</h4>
+             <div className="flex flex-wrap gap-2">
+                <span className="px-3 py-1 bg-blue-50 text-blue-800 text-xs font-bold rounded-full border border-blue-100">zahrah.nft</span>
+                <span className="px-3 py-1 bg-blue-50 text-blue-800 text-xs font-bold rounded-full border border-blue-100">zahranft1.crypto</span>
+                <span className="px-3 py-1 bg-purple-50 text-purple-800 text-xs font-bold rounded-full border border-purple-100">arewa.eth</span>
+                <span className="px-3 py-1 bg-blue-50 text-blue-800 text-xs font-bold rounded-full border border-blue-100">arewa.base.eth</span>
+                <span className="px-3 py-1 bg-green-50 text-green-800 text-xs font-bold rounded-full border border-green-100">zahrah.near</span>
+                <span className="px-3 py-1 bg-orange-50 text-orange-800 text-xs font-bold rounded-full border border-orange-100">techbro.btc</span>
+                <span className="px-3 py-1 bg-cyan-50 text-cyan-800 text-xs font-bold rounded-full border border-cyan-100">realwordasset.ton</span>
+                <span className="px-3 py-1 bg-emerald-50 text-emerald-800 text-xs font-bold rounded-full border border-emerald-100">artemis0@tether.me</span>
+             </div>
+          </div>
+        </div>
       </div>
     </div>
   );

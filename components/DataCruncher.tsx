@@ -66,8 +66,21 @@ export const DataCruncher: React.FC = () => {
     a.click();
   };
 
+  const clearProgress = () => {
+    if (window.confirm("Are you sure you want to erase all progress in Data Cruncher?")) {
+      setTables([]);
+      setReport('');
+      setTopic('');
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto h-full flex flex-col">
+      <div className="flex justify-end mb-4">
+         <button onClick={clearProgress} className="text-red-500 hover:bg-red-50 px-3 py-1 rounded text-xs font-bold border border-red-100 flex items-center gap-1">
+            <span className="material-icons text-sm">delete_sweep</span> Erase Progress
+         </button>
+      </div>
       <div className="flex justify-between items-center mb-6">
          <div>
              <h2 className="text-2xl font-serif font-bold text-[var(--text-primary)]">Data Cruncher <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded ml-2 font-sans font-bold">OPTIMIZED</span></h2>
