@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { gradeEssay, synthesizeCritique, solveAssignment, analyzeSupervisorStyle } from '../services/geminiService';
+import { customAlert, customConfirm } from '../lib/dialogs';
+
 
 interface AssignmentSuiteProps {
   userId?: string;
@@ -106,13 +108,13 @@ export const AssignmentSuite: React.FC<AssignmentSuiteProps> = ({ userId }) => {
         }
       }, 300);
     } catch (e) {
-      alert("Operation failed.");
+      customAlert("Operation failed.");
     }
     setLoading(false);
   };
 
-  const clearProgress = () => {
-    if (window.confirm("Are you sure you want to erase all progress in Assignment Solver?")) {
+  const clearProgress = async () => {
+    if (await customConfirm("Are you sure you want to erase all progress in Assignment Solver?")) {
       localStorage.removeItem(STORAGE_KEY);
       setMode('SOLVER');
       setInput('');
@@ -131,7 +133,7 @@ export const AssignmentSuite: React.FC<AssignmentSuiteProps> = ({ userId }) => {
       const profile = await analyzeSupervisorStyle(supervisorText);
       setBiasProfile(profile);
     } catch (e) {
-      alert("Could not analyze text.");
+      customAlert("Could not analyze text.");
     }
     setAnalyzingBias(false);
   };

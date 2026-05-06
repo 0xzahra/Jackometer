@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { UserProfile } from '../types';
+import { customAlert, customConfirm } from '../lib/dialogs';
+
 
 interface AuthProps {
   onLogin: (user: UserProfile) => void;
@@ -40,7 +42,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     const safetyTimer = setTimeout(() => {
         if(isMounted.current && loading) {
             setLoading(false);
-            alert("Connection timed out. Please try again.");
+            customAlert("Connection timed out. Please try again.");
         }
     }, 8000);
     
@@ -82,7 +84,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     const safetyTimer = setTimeout(() => {
         if(isMounted.current && googleStep === 'PROCESSING') {
             setGoogleStep('IDLE');
-            alert("Google sign-in timed out. Please try again.");
+            customAlert("Google sign-in timed out. Please try again.");
         }
     }, 8000);
 

@@ -22,14 +22,17 @@ const NavButton: React.FC<{
     <div className="relative group w-full px-4 mb-2">
       <button
         onClick={onClick}
-        className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 group ${
+        className={`w-full flex items-center p-3 rounded-xl transition-all duration-300 group relative overflow-hidden ${
           active 
-            ? 'bg-[var(--accent)] text-white shadow-md border-l-4 border-white font-bold opacity-100' 
-            : 'text-[var(--text-secondary)] hover:bg-[var(--shadow-color)] hover:text-[var(--text-primary)] hover:font-semibold'
+            ? 'bg-white/20 text-white shadow-lg border-l-4 border-emerald-400 font-bold opacity-100 transform scale-[1.02]' 
+            : 'text-emerald-100/70 hover:bg-white/10 hover:text-white hover:font-semibold'
         }`}
       >
-        <span className={`material-icons text-xl mr-4 ${active ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--accent)]'}`}>{icon}</span>
-        <span className={`font-sans text-sm tracking-wide ${active ? 'font-bold' : 'font-normal'}`}>{label}</span>
+        {active && (
+           <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/20 to-transparent pointer-events-none rounded-xl"></div>
+        )}
+        <span className={`material-icons text-xl mr-4 relative z-10 transition-transform duration-300 ${active ? 'text-emerald-300 drop-shadow-md shadow-black scale-110' : 'text-emerald-200/70 group-hover:text-emerald-100 group-hover:rotate-6'}`}>{icon}</span>
+        <span className={`font-sans tracking-wide relative z-10 ${active ? 'font-bold text-sm drop-shadow-md' : 'font-medium text-[13px]'}`}>{label}</span>
       </button>
     </div>
   );
@@ -79,7 +82,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
     },
     {
       title: "Ecological Lens",
-      text: "Going on a field trip? The Field Trip module tracks GPS, weather, and builds your report on the go.",
+      text: "Going on a field trip? The Field Trip tool tracks GPS, weather, and builds your report on the go.",
       icon: "landscape",
       highlight: AppView.FIELD_TRIP
     },
@@ -108,15 +111,15 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
       
       {/* Sidebar - Opaque Background to fix transparency issues */}
       <nav 
-        className={`fixed inset-y-0 left-0 z-40 bg-white dark:bg-slate-900 border-r border-[var(--border-color)] flex flex-col py-8 shadow-2xl transition-transform duration-300 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} w-72`}
+        className={`fixed inset-y-0 left-0 z-40 bg-gradient-to-b from-emerald-900 to-emerald-950 dark:from-[#022c22] dark:to-[#064e3b] border-r border-[var(--border-color)] flex flex-col py-8 shadow-2xl transition-transform duration-300 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} w-72 backdrop-blur-xl`}
       >
         <div className="px-8 mb-6 flex justify-between items-center">
           <div>
-            <div className="text-2xl font-bold font-sans text-[var(--text-primary)] tracking-tight cursor-pointer" onClick={() => { setView(AppView.DASHBOARD); setSidebarOpen(false); }}>
+            <div className="text-2xl font-bold font-sans text-white tracking-tight cursor-pointer" onClick={() => { setView(AppView.DASHBOARD); setSidebarOpen(false); }}>
               Jackometer
             </div>
           </div>
-          <button onClick={() => setSidebarOpen(false)} className="md:hidden text-[var(--text-secondary)]">
+          <button onClick={() => setSidebarOpen(false)} className="md:hidden text-emerald-100/70 hover:text-white">
             <span className="material-icons">chevron_left</span>
           </button>
         </div>
@@ -141,22 +144,22 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
           <NavButton active={currentView === AppView.SETTINGS} onClick={() => { setView(AppView.SETTINGS); setSidebarOpen(false); }} icon="settings" label="Settings" />
         </div>
 
-        <div className="px-6 py-4 border-t border-[var(--border-color)]">
+        <div className="px-6 py-4 border-t border-emerald-800/50">
           <div 
-             className="flex items-center cursor-pointer hover:bg-[var(--shadow-color)] rounded p-2 transition-colors mb-2" 
+             className="flex items-center cursor-pointer hover:bg-white/10 rounded p-2 transition-colors mb-2" 
              onClick={() => setView(AppView.PROFILE)}
           >
-            <div className="w-8 h-8 rounded-full bg-[var(--accent)] flex items-center justify-center text-white font-bold font-sans">
+            <div className="w-8 h-8 rounded-full bg-emerald-400 flex items-center justify-center text-emerald-950 font-bold font-sans">
               {user.avatar === 'G' ? <span className="material-icons text-xs">google</span> : user.name[0]}
             </div>
             <div className="ml-3 overflow-hidden">
-              <p className="text-sm font-bold text-[var(--text-primary)] truncate">{user.name}</p>
-              <p className="text-xs text-[var(--text-secondary)] truncate">{user.role}</p>
+              <p className="text-sm font-bold text-white truncate">{user.name}</p>
+              <p className="text-xs text-emerald-200/70 truncate">{user.role}</p>
             </div>
           </div>
           <button 
              onClick={onLogout}
-             className="w-full text-xs text-red-500 font-bold hover:bg-red-50 p-1 rounded flex items-center justify-center"
+             className="w-full text-xs text-emerald-300 font-bold hover:bg-white/10 p-1 py-1.5 rounded flex items-center justify-center transition-colors"
           >
              <span className="material-icons text-sm mr-1">logout</span> Sign Out
           </button>
@@ -224,7 +227,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
         </header>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 relative">
+        <div className="flex-1 overflow-hidden relative">
           {children}
         </div>
 
@@ -237,7 +240,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
 
           {/* Right Sidebar - Tools Panel */}
       {currentView === AppView.DOCUMENT_WRITER && (
-        <aside className="hidden xl:flex w-80 flex-col border-l border-[var(--border-color)] bg-white dark:bg-slate-900 z-30 shadow-l">
+        <aside className="hidden xl:flex w-80 flex-col border-l border-[var(--border-color)] bg-white/90 dark:bg-[#061410] z-30 shadow-l backdrop-blur-xl">
           <div className="h-16 flex items-center px-6 border-b border-[var(--border-color)] bg-[var(--panel-bg)] flex-shrink-0">
             <h2 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Workspace Tools</h2>
           </div>

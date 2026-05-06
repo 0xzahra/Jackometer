@@ -18,6 +18,7 @@ import { AssignmentSuite } from './components/AssignmentSuite';
 import { FileCompressor } from './components/FileCompressor';
 import { Profile } from './components/Profile';
 import { Auth } from './components/Auth';
+import { GlobalDialogs } from './components/GlobalDialogs';
 import { AppView, UserProfile } from './types';
 
 // Mock Live API Context
@@ -172,8 +173,8 @@ export default function App() {
     return (
       <div 
         key={view} 
-        style={{ display: currentView === view ? 'block' : 'none', height: '100%' }}
-        className="animate-fade-in"
+        style={{ display: currentView === view ? 'flex' : 'none', flexDirection: 'column', height: '100%', overflow: 'hidden' }}
+        className="animate-fade-in w-full"
       >
         {Component}
       </div>
@@ -283,7 +284,8 @@ export default function App() {
               {renderPersistentView(AppView.NOTIFICATIONS, <Notifications setView={handleSetView} />)}
               {renderPersistentView(AppView.PROFILE, <Profile user={user} onUpdateUser={handleUpdateUser} />)}
             </Layout>
-
+            
+            <GlobalDialogs />
             <VoiceAssistant />
           </ErrorBoundary>
         </motion.div>

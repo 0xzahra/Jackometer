@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { generateRapidPresentation, generateFieldTripDocument, estimateWeatherConditions, generateFieldTripGuide, saveToGoogleDrive, downloadFile } from '../services/geminiService';
 import { SlideDeck, FieldTable } from '../types';
+import { customAlert, customConfirm } from '../lib/dialogs';
+
 
 interface ChecklistItem {
   id: string;
@@ -65,13 +67,13 @@ export const FieldTripSuite: React.FC = () => {
 
   // --- Weather Logic ---
   const fetchWeather = async () => {
-    if (coords.lat === 0) { alert("Acquire GPS signal first."); return; }
+    if (coords.lat === 0) { customAlert("Acquire GPS signal first."); return; }
     setAnalyzingWeather(true);
     try {
       const data = await estimateWeatherConditions(coords.lat, coords.lng);
       setWeather({ ...weather, ...data });
     } catch (e) {
-      alert("Weather analysis failed.");
+      customAlert("Weather analysis failed.");
     }
     setAnalyzingWeather(false);
   };
@@ -148,7 +150,7 @@ export const FieldTripSuite: React.FC = () => {
       setIsGuideActive(true);
       setTab('DATA');
     } catch (e) {
-      alert("Could not generate guide. Try again.");
+      customAlert("Could not generate guide. Try again.");
     }
     setInitializing(false);
   };
@@ -180,7 +182,7 @@ export const FieldTripSuite: React.FC = () => {
 
   const handleGenerateDeck = async () => {
     if (!slideInput && !topic) {
-        alert("Please provide a topic or some input data.");
+        customAlert("Please provide a topic or some input data.");
         return;
     }
     setLoading(true);
@@ -201,7 +203,7 @@ export const FieldTripSuite: React.FC = () => {
           const result = await generateRapidPresentation(topic || "Field Data Presentation", text);
           updateSlideHistory(result);
         } catch (e) {
-          alert("Failed to generate slides from document.");
+          customAlert("Failed to generate slides from document.");
         }
         setLoading(false);
       };
@@ -234,7 +236,7 @@ export const FieldTripSuite: React.FC = () => {
   // --- DOC GENERATION ---
   const handleGenerateDoc = async () => {
     if (!docInput && !topic) {
-        alert("Please provide a topic or some input data.");
+        customAlert("Please provide a topic or some input data.");
         return;
     }
     setLoading(true);
@@ -250,11 +252,11 @@ export const FieldTripSuite: React.FC = () => {
     const filename = `${topic || 'Field_Report'}.docx`;
     await saveToGoogleDrive(filename, documentContent, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     setDriveSaving(false);
-    alert("Field report saved to Google Drive!");
+    customAlert("Field report saved to Google Drive!");
   };
 
-  const clearProgress = () => {
-    if (window.confirm("Are you sure you want to erase all progress in Field Trip?")) {
+  const clearProgress = async () => {
+    if (await customConfirm("Are you sure you want to erase all progress in Field Trip?")) {
       setTopic('');
       setLecturerReqs('');
       setChecklist([]);

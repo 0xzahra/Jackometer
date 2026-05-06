@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { analyzeData } from '../services/geminiService';
 import { AnalysisResult, FieldTable } from '../types';
+import { customAlert, customConfirm } from '../lib/dialogs';
+
 
 export const DataCruncher: React.FC = () => {
   const [inputData, setInputData] = useState('');
@@ -52,7 +54,7 @@ export const DataCruncher: React.FC = () => {
       const res = await analyzeData(inputData, formatTables());
       setResult(res);
     } catch (e) {
-      alert("Analysis failed.");
+      customAlert("Analysis failed.");
     }
     setLoading(false);
   };
@@ -66,11 +68,11 @@ export const DataCruncher: React.FC = () => {
     a.click();
   };
 
-  const clearProgress = () => {
-    if (window.confirm("Are you sure you want to erase all progress in Data Cruncher?")) {
+  const clearProgress = async () => {
+    if (await customConfirm("Are you sure you want to erase all progress in Data Cruncher?")) {
       setTables([]);
-      setReport('');
-      setTopic('');
+      setResult(null);
+      setInputData('');
     }
   };
 

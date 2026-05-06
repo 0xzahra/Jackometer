@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { generateSectionContent, searchYouTubeVideos, downloadFile, generateImageCaption, enrichCitationFromUrl, generateRapidPresentation, saveToGoogleDrive, humanizeText } from '../services/geminiService';
 import { YouTubeVideo, Citation, Collaborator, AppendixItem, UserSearchResult, SlideDeck } from '../types';
 import { CollaborationModal } from './CollaborationModal';
+import { customAlert, customConfirm } from '../lib/dialogs';
+
 
 interface DocSection {
   id: string;
@@ -291,7 +293,7 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
   const deleteSection = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (activeDraft.sections.length <= 1) {
-      alert("Document must have at least one section.");
+      customAlert("Document must have at least one section.");
       return;
     }
     const filtered = activeDraft.sections.filter(s => s.id !== id);
@@ -306,7 +308,7 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
   // --- GENERATION LOGIC ---
   const handleGenerate = async () => {
     if (!activeDraft.topic || !activeDraft.course) {
-      alert("Please enter a Topic and Course.");
+      customAlert("Please enter a Topic and Course.");
       return;
     }
     
@@ -358,7 +360,7 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
       
     } catch (e) {
       console.error(e);
-      alert("Generation failed. Please check your connection.");
+      customAlert("Generation failed. Please check your connection.");
       setDraftLoading(activeDraft.id, false);
     }
   };
@@ -380,7 +382,7 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
          updateSlideHistory(deck);
          setViewMode('SLIDES');
      } catch (e) {
-         alert("Failed to generate slides.");
+         customAlert("Failed to generate slides.");
      }
      setDraftLoading(activeDraft.id, false);
   };
@@ -396,7 +398,7 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
           const deck = await generateRapidPresentation(activeDraft.topic || "Uploaded Document Defense", text);
           updateSlideHistory(deck);
         } catch (e) {
-          alert("Failed to generate slides from document.");
+          customAlert("Failed to generate slides from document.");
         }
         setDraftLoading(activeDraft.id, false);
       };
@@ -464,9 +466,9 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
     setActiveId(id);
   };
 
-  const deleteDraft = (id: string, e: React.MouseEvent) => {
+  const deleteDraft = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (window.confirm("Move this document to Trash?")) {
+    if (await customConfirm("Move this document to Trash?")) {
       const updated = drafts.map(d => d.id === id ? { ...d, isTrashed: true } : d);
       setDrafts(updated);
       const remainingUnTrashed = updated.filter(d => !d.isTrashed);
@@ -477,9 +479,9 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
     }
   };
 
-  const permanentlyDeleteDraft = (id: string, e: React.MouseEvent) => {
+  const permanentlyDeleteDraft = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (window.confirm("Permanently delete this document? This cannot be undone.")) {
+    if (await customConfirm("Permanently delete this document? This cannot be undone.")) {
       const rem = drafts.filter(d => d.id !== id);
       setDrafts(rem);
       if (activeId === id && rem.length > 0) setActiveId(rem[0].id);
@@ -525,7 +527,7 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
 
   const handleDriveSave = async () => {
     if (!activeDraft.topic) {
-        alert("Cannot save: Document title missing.");
+        customAlert("Cannot save: Document title missing.");
         return;
     }
     setDriveSaving(true);
@@ -533,7 +535,7 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
     const filename = `${activeDraft.topic || 'Document'}.docx`;
     await saveToGoogleDrive(filename, fullContent, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     setDriveSaving(false);
-    alert("Document saved to Google Drive!");
+    customAlert("Document saved to Google Drive!");
   };
 
   const runHumanizer = async () => {
@@ -546,9 +548,9 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
       );
       updateDraft('sections', updatedSections);
       logActivity('HUMAN_EDIT', `Syntax Humanizer bypassed AI detection in ${activeSection.title}`);
-      alert("Syntax Humanization Complete: Content rewritten to bypass detectors.");
+      customAlert("Syntax Humanization Complete: Content rewritten to bypass detectors.");
     } catch (e) {
-      alert("Failed to humanize text.");
+      customAlert("Failed to humanize text.");
     }
     setHumanizing(false);
   };

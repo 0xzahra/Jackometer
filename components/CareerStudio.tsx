@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { generatePassportEdit, generateOptimizedCV, generateResume, reviewCareerDocument } from '../services/geminiService';
 import { CVData } from '../types';
+import { customAlert, customConfirm } from '../lib/dialogs';
+
 
 export const CareerStudio: React.FC = () => {
   const [tool, setTool] = useState<'PASSPORT' | 'CV' | 'RESUME' | 'REVIEW'>('PASSPORT');
@@ -47,7 +49,7 @@ export const CareerStudio: React.FC = () => {
       const result = await generatePassportEdit(base64, bg);
       setProcessedImage(`data:image/png;base64,${result}`);
     } catch (e) {
-      alert("Passport generation failed.");
+      customAlert("Passport generation failed.");
     }
     setPassportLoading(false);
   };
@@ -58,7 +60,7 @@ export const CareerStudio: React.FC = () => {
   };
 
   const generateDoc = async () => {
-    if (!formData.fullName) { alert("Name required"); return; }
+    if (!formData.fullName) { customAlert("Name required"); return; }
     setDocLoading(true);
     try {
       const result = tool === 'CV' 
@@ -66,7 +68,7 @@ export const CareerStudio: React.FC = () => {
         : await generateResume(formData);
       setDocOutput(result);
     } catch (e) {
-      alert("Generation failed.");
+      customAlert("Generation failed.");
     }
     setDocLoading(false);
   };
@@ -103,13 +105,13 @@ export const CareerStudio: React.FC = () => {
       }
       setReviewOutput(result);
     } catch (e) {
-      alert("Review failed.");
+      customAlert("Review failed.");
     }
     setReviewLoading(false);
   };
 
-  const clearProgress = () => {
-    if (window.confirm("Are you sure you want to erase all progress in Career Studio?")) {
+  const clearProgress = async () => {
+    if (await customConfirm("Are you sure you want to erase all progress in Career Studio?")) {
       setSelectedImage(null);
       setProcessedImage(null);
       setDocOutput('');

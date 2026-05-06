@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserProfile } from '../types';
+import { customAlert, customConfirm } from '../lib/dialogs';
+
 
 interface SettingsProps {
   user: UserProfile;
@@ -44,30 +46,30 @@ export const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser }) => {
 
   const handleUpdatePassword = () => {
     if (!security.currentPass || !security.newPass || !security.confirmPass) {
-      alert("Please fill in all password fields.");
+      customAlert("Please fill in all password fields.");
       return;
     }
     if (security.newPass !== security.confirmPass) {
-      alert("New passwords do not match.");
+      customAlert("New passwords do not match.");
       return;
     }
     // Simulate API call
-    alert("Password updated successfully.");
+    customAlert("Password updated successfully.");
     setSecurity({ currentPass: '', newPass: '', confirmPass: '' });
   };
 
   const handleUpdateEmail = () => {
     if (!emailForm.newEmail) {
-      alert("Please enter a new email address.");
+      customAlert("Please enter a new email address.");
       return;
     }
     if (!emailForm.newEmail.includes('@')) {
-      alert("Please enter a valid email address.");
+      customAlert("Please enter a valid email address.");
       return;
     }
     // Logic to verify current email could go here
     onUpdateUser({ email: emailForm.newEmail });
-    alert(`Email address updated to ${emailForm.newEmail}`);
+    customAlert(`Email address updated to ${emailForm.newEmail}`);
     setEmailForm({ newEmail: '', currentEmailConfirm: '' });
   };
 

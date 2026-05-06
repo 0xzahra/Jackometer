@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { generateResearchTitles, generateDeepResearch, generateStructuredOutline, downloadFile } from '../services/geminiService';
 import { ProjectTitle } from '../types';
+import { customAlert, customConfirm } from '../lib/dialogs';
+
 
 interface ResearchEngineProps {
   userId?: string;
@@ -98,8 +100,8 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
     }
   }, [stage, topicInput, qualificationInput, disciplineInput, titles, selectedTitle, chapters, chapterContent, activeChapterIndex, STORAGE_KEY]);
 
-  const clearProgress = () => {
-    if (window.confirm("Are you sure you want to erase all progress in Topic Ideas?")) {
+  const clearProgress = async () => {
+    if (await customConfirm("Are you sure you want to erase all progress in Topic Ideas?")) {
       localStorage.removeItem(STORAGE_KEY);
       setStage('FORGE');
       setTopicInput('');
@@ -122,7 +124,7 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
       setTitles(results);
     } catch (e) {
       console.error(e);
-      alert("Failed to forge titles. Try again.");
+      customAlert("Failed to forge titles. Try again.");
     }
     setLoading(false);
   };
@@ -136,7 +138,7 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
        setChapters(outline);
        setStage('OUTLINE');
     } catch (e) {
-       alert("Failed to generate outline.");
+       customAlert("Failed to generate outline.");
     }
     setLoading(false);
   };
@@ -169,7 +171,7 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
     
     // Check if already generated
     if (chapterContent[chapters[index]]) {
-      if (!window.confirm("This chapter already has content. Regenerate and overwrite?")) return;
+      if (!await customConfirm("This chapter already has content. Regenerate and overwrite?")) return;
     }
 
     setLoading(true);
@@ -202,7 +204,7 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
       }, 300);
       
     } catch (e) {
-      alert("Failed to generate content.");
+      customAlert("Failed to generate content.");
     }
     setLoading(false);
   };
@@ -246,8 +248,8 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
 
       {/* STAGE 1: FORGE */}
       {stage === 'FORGE' && (
-        <div className="flex flex-col items-center justify-center min-h-[60vh] p-4">
-           <div className="w-full max-w-3xl glass-panel p-10 md:p-16 rounded-2xl relative overflow-hidden text-center shadow-2xl">
+        <div className={`flex flex-col items-center w-full h-full overflow-y-auto min-h-0 p-4 ${titles.length > 0 ? 'justify-start mt-4' : 'justify-center'}`}>
+           <div className="w-full max-w-3xl glass-panel p-10 md:p-16 rounded-2xl relative overflow-hidden text-center shadow-2xl flex-shrink-0">
              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[var(--primary)] to-[var(--accent)]"></div>
              <h2 className="text-4xl md:text-5xl font-bold text-[var(--text-primary)] mb-4 tracking-tight">Topic Ideas</h2>
              <p className="text-[var(--text-secondary)] mb-10 text-lg">Enter a research concept. We will architect the thesis.</p>
@@ -340,8 +342,8 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
 
       {/* STAGE 2: OUTLINE APPROVAL */}
       {stage === 'OUTLINE' && selectedTitle && (
-          <div className="max-w-4xl mx-auto w-full pt-10">
-             <div className="glass-panel p-8 rounded-2xl mb-8 border-l-8 border-[var(--primary)]">
+          <div className="max-w-4xl mx-auto w-full pt-4 flex-1 overflow-y-auto min-h-0">
+             <div className="glass-panel p-8 rounded-2xl mb-8 border-l-8 border-[var(--primary)] shrink-0">
                 <h2 className="text-2xl font-bold mb-2">Structure Approval</h2>
                 <p className="text-[var(--text-secondary)]">Review the generated outline for <strong>"{selectedTitle.title}"</strong>. This structure mimics a strict academic standard.</p>
              </div>

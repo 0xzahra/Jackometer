@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AppView } from '../types';
+import { customAlert, customConfirm } from '../lib/dialogs';
+
 
 interface ProjectsProps {
   setView: (view: AppView) => void;
@@ -67,8 +69,8 @@ export const Projects: React.FC<ProjectsProps> = ({ setView }) => {
     loadProjects();
   }, []);
 
-  const handleDuplicate = (id: string, type: string, data: any) => {
-    if (!window.confirm(`Are you sure you want to duplicate this ${type} project?`)) return;
+  const handleDuplicate = async (id: string, type: string, data: any) => {
+    if (!await customConfirm(`Are you sure you want to duplicate this ${type} project?`)) return;
     
     if (type === 'Document Writer') {
         const docStr = localStorage.getItem('jackometer_drafts');
@@ -79,14 +81,14 @@ export const Projects: React.FC<ProjectsProps> = ({ setView }) => {
             localStorage.setItem('jackometer_drafts', JSON.stringify(docs));
         }
     } else if (type === 'Research Engine') {
-        window.alert("Cannot duplicate a Research Engine session state directly, please save it into a Document.");
+        customAlert("Cannot duplicate a Research Engine session state directly, please save it into a Document.");
     }
     
     loadProjects();
   };
 
-  const handleDownload = (proj: any) => {
-    if (!window.confirm(`Download this ${proj.type} project?`)) return;
+  const handleDownload = async (proj: any) => {
+    if (!await customConfirm(`Download this ${proj.type} project?`)) return;
     const blob = new Blob([JSON.stringify(proj.data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -98,13 +100,13 @@ export const Projects: React.FC<ProjectsProps> = ({ setView }) => {
     URL.revokeObjectURL(url);
   };
 
-  const handleShare = (proj: any) => {
-    if (!window.confirm(`Generate shareable link for ${proj.title}?`)) return;
-    window.alert("Share URL generated and copied to clipboard!");
+  const handleShare = async (proj: any) => {
+    if (!await customConfirm(`Generate shareable link for ${proj.title}?`)) return;
+    customAlert("Share URL generated and copied to clipboard!");
   };
 
-  const handleDelete = (id: string, type: string) => {
-    if (!window.confirm(`Are you sure you want to delete this ${type} project?`)) return;
+  const handleDelete = async (id: string, type: string) => {
+    if (!await customConfirm(`Are you sure you want to delete this ${type} project?`)) return;
     
     if (type === 'Document Writer') {
         const realId = id.replace('doc_', '');
@@ -132,7 +134,7 @@ export const Projects: React.FC<ProjectsProps> = ({ setView }) => {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h2 className="text-3xl font-bold font-sans tracking-tight text-[var(--text-primary)]">Projects</h2>
-          <p className="text-[var(--text-secondary)]">Manage your saved work across all modules.</p>
+          <p className="text-[var(--text-secondary)]">Manage your saved work across the platform.</p>
         </div>
       </div>
       

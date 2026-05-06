@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { generateTechnicalReport, generateLabReport, analyzeMicroscopeImage, generateImageCaption, downloadFile, generateRapidPresentation, saveToGoogleDrive } from '../services/geminiService';
 import { AppendixItem, FieldTable, Collaborator, UserSearchResult, SlideDeck } from '../types';
 import { CollaborationModal } from './CollaborationModal';
+import { customAlert, customConfirm } from '../lib/dialogs';
+
 
 interface ReportSuiteProps {
   type: 'TECHNICAL' | 'LAB';
@@ -80,7 +82,7 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
     
     setCollaborators([...collaborators, newCollab]);
     setIsInviteModalOpen(false);
-    alert(`${user.name} has been added to the lab session.`);
+    customAlert(`${user.name} has been added to the lab session.`);
   };
 
   const activeDoc = docs.find(d => d.id === activeDocId) || docs[0];
@@ -233,7 +235,7 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
         : await generateLabReport(activeDoc.topic, activeDoc.details + (activeDoc.imageAnalysis ? `\n\nMicroscope Analysis:\n${activeDoc.imageAnalysis}` : ''), tableData, appendixData);
       pushHistory(result);
     } catch (e) {
-      alert("Report generation failed");
+      customAlert("Report generation failed");
     }
     setLoading(false);
   };
@@ -249,7 +251,7 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
 
   const handleGenerateSlides = async () => {
      if (!activeDoc.report) {
-         alert("Please generate or write a report first.");
+         customAlert("Please generate or write a report first.");
          return;
      }
      setLoading(true);
@@ -258,7 +260,7 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
          updateSlideHistory(deck);
          setViewMode('SLIDES');
      } catch (e) {
-         alert("Slide generation failed.");
+         customAlert("Slide generation failed.");
      }
      setLoading(false);
   };
@@ -274,7 +276,7 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
           const result = await generateRapidPresentation(activeDoc.topic || "Report Presentation", text);
           updateSlideHistory(result);
         } catch (e) {
-          alert("Failed to generate slides from document.");
+          customAlert("Failed to generate slides from document.");
         }
         setLoading(false);
       };
@@ -329,7 +331,7 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
     const filename = `${activeDoc.topic || 'Report'}.docx`;
     await saveToGoogleDrive(filename, activeDoc.report, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     setDriveSaving(false);
-    alert("Report saved to Google Drive!");
+    customAlert("Report saved to Google Drive!");
   };
 
   // --- Microscope Analysis ---
@@ -344,7 +346,7 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
            const analysis = await analyzeMicroscopeImage(base64.split(',')[1]);
            updateDoc('imageAnalysis', analysis);
            updateDoc('details', activeDoc.details + `\n\n[BIO/CHEM OBSERVATION]: ${analysis}`);
-        } catch (e) { alert("Analysis failed"); }
+        } catch (e) { customAlert("Analysis failed"); }
         setAnalyzingImage(false);
      };
      reader.readAsDataURL(file);
@@ -382,8 +384,8 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
     });
   };
 
-  const clearProgress = () => {
-    if (window.confirm("Are you sure you want to erase all progress in Technical Report?")) {
+  const clearProgress = async () => {
+    if (await customConfirm("Are you sure you want to erase all progress in Technical Report?")) {
       setDocs([{ id: '1', topic: '', details: '', report: '', history: [''], historyIndex: 0, tables: [], appendix: [] }]);
       setActiveDocId('1');
       setViewMode('REPORT');

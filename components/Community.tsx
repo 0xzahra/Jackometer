@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Group, Message, Member } from '../types';
+import { customAlert, customConfirm } from '../lib/dialogs';
+
 
 export const Community: React.FC = () => {
   const [mainTab, setMainTab] = useState<'GROUPS' | 'SHOWCASE'>('GROUPS');
@@ -108,7 +110,7 @@ export const Community: React.FC = () => {
 
   const sendDM = () => {
      if(!dmInput.trim()) return;
-     alert(`Message sent to ${selectedMember?.name}`);
+     customAlert(`Message sent to ${selectedMember?.name}`);
      setDmInput('');
      setModalTab('PROFILE');
   };
@@ -139,50 +141,100 @@ export const Community: React.FC = () => {
 
   return (
     <div className="w-full h-full max-w-6xl mx-auto flex gap-6 flex-col">
-       {/* Top Navigation */}
-       <div className="flex justify-center bg-[var(--surface-color)] p-2 rounded border border-[var(--border-color)]">
-          <button onClick={() => setMainTab('GROUPS')} className={`px-8 py-2 text-sm font-bold uppercase tracking-widest rounded transition-colors ${mainTab === 'GROUPS' ? 'bg-[var(--primary)] text-white shadow' : 'text-gray-500 hover:bg-gray-100'}`}>Study Groups</button>
-          <button onClick={() => setMainTab('SHOWCASE')} className={`px-8 py-2 text-sm font-bold uppercase tracking-widest rounded transition-colors ${mainTab === 'SHOWCASE' ? 'bg-[var(--primary)] text-white shadow' : 'text-gray-500 hover:bg-gray-100'}`}>Public Showcase</button>
-       </div>
+       <div className="flex flex-col md:flex-row gap-6 h-full min-h-0 relative flex-1">
+         {/* Sidebar List */}
+         <div className="w-full md:w-1/3 paper-panel flex flex-col overflow-hidden border border-[var(--border-color)] rounded-2xl shadow-xl">
+           <div className="p-4 border-b border-[var(--border-color)]">
+              <button 
+                 onClick={() => setActiveGroup('SHOWCASE')}
+                 className={`w-full flex items-center justify-between p-4 rounded-xl font-bold transition-all ${activeGroup === 'SHOWCASE' ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg border-transparent' : 'bg-[var(--surface-color)] text-[var(--text-primary)] hover:border-emerald-500 border border-[var(--border-color)]'}`}
+              >
+                 <div className="flex items-center gap-3">
+                    <span className="material-icons">public</span>
+                    <span>Global Showcase</span>
+                 </div>
+                 <span className="material-icons text-sm">arrow_forward</span>
+              </button>
+           </div>
+           <div className="p-4 border-b border-[var(--border-color)] bg-gradient-to-r from-[var(--surface-color)] to-transparent">
+             <h2 className="text-lg font-bold font-sans text-[var(--text-primary)] tracking-tight">Active Communities</h2>
+             <p className="text-[var(--text-secondary)] text-[10px] uppercase tracking-widest mt-1">Discover & Join</p>
+           </div>
+           <div className="flex-1 overflow-y-auto p-3 space-y-3">
+             {groups.map(g => (
+               <div 
+                 key={g.id} 
+                 className={`p-4 rounded-xl cursor-pointer border transition-all duration-300 group ${activeGroup === g.id ? 'bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] text-white shadow-[var(--btn-shadow)] border-transparent transform scale-[1.02]' : 'bg-[var(--surface-color)] border-[var(--border-color)] hover:border-[var(--primary)]/30 hover:shadow-md'}`}
+                 onClick={() => { if(g.isJoined) { setActiveGroup(g.id); setViewMode('CHAT'); } }}
+               >
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className={`font-bold text-base leading-tight ${activeGroup === g.id ? 'text-white' : 'text-[var(--text-primary)] group-hover:text-[var(--primary)] transition-colors'}`}>{g.name}</h3>
+                    {!g.isJoined && <span className="material-icons text-xs opacity-50">lock</span>}
+                  </div>
+                  <p className={`text-xs mb-3 leading-snug line-clamp-2 ${activeGroup === g.id ? 'text-white/90' : 'text-[var(--text-secondary)]'}`}>{g.description}</p>
+                  <div className="flex justify-between items-center mt-auto pt-2 border-t border-[var(--border-color)] border-opacity-30">
+                    <span className={`text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${activeGroup === g.id ? 'text-white/90' : 'text-[var(--text-secondary)]'}`}><span className="material-icons text-[12px]">people</span> {g.memberCount} Mbrs</span>
+                    {!g.isJoined && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); joinGroup(g.id); }}
+                        className="text-[10px] bg-[var(--accent)] text-white px-3 py-1 rounded-md font-bold shadow hover:opacity-90 transition-transform hover:scale-105"
+                      >
+                        Join
+                      </button>
+                    )}
+                  </div>
+               </div>
+             ))}
+           </div>
+        </div>
 
-       {mainTab === 'GROUPS' ? (
-         <div className="flex gap-6 h-full min-h-0 relative flex-1">
-           {/* Groups List */}
-           <div className="w-1/3 paper-panel flex flex-col overflow-hidden">
-         <div className="p-4 border-b border-[var(--border-color)] bg-[var(--surface-color)]">
-           <h2 className="text-xl font-serif font-bold text-[var(--text-primary)]">Groups</h2>
-         </div>
-         <div className="flex-1 overflow-y-auto p-2 space-y-2">
-           {groups.map(g => (
-             <div 
-               key={g.id} 
-               className={`p-4 rounded-lg cursor-pointer border transition-colors ${activeGroup === g.id ? 'bg-[var(--primary)] text-white border-transparent' : 'bg-[var(--surface-color)] border-[var(--border-color)] hover:bg-[var(--bg-color)]'}`}
-               onClick={() => { if(g.isJoined) { setActiveGroup(g.id); setViewMode('CHAT'); } }}
-             >
-                <div className="flex justify-between items-start">
-                  <h3 className={`font-bold ${activeGroup === g.id ? 'text-white' : 'text-[var(--text-primary)]'}`}>{g.name}</h3>
-                  {!g.isJoined && <span className="material-icons text-xs opacity-50">lock</span>}
-                </div>
-                <p className={`text-xs mt-1 ${activeGroup === g.id ? 'text-white opacity-80' : 'text-[var(--text-secondary)]'}`}>{g.description}</p>
-                <div className="flex justify-between items-center mt-3">
-                  <span className={`text-[10px] ${activeGroup === g.id ? 'text-white' : 'text-[var(--text-secondary)]'}`}>{g.memberCount} Members</span>
-                  {!g.isJoined && (
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); joinGroup(g.id); }}
-                      className="text-xs bg-[var(--accent)] text-white px-3 py-1 rounded font-bold hover:opacity-90"
-                    >
-                      Join
-                    </button>
-                  )}
-                </div>
+        {/* Main Content Area */}
+        <div className="w-full md:w-2/3 paper-panel flex flex-col overflow-hidden bg-[var(--surface-color)] relative rounded-2xl shadow-xl border border-[var(--border-color)]">
+           {activeGroup === 'SHOWCASE' ? (
+             <div className="flex flex-col h-full overflow-y-auto p-6 md:p-8">
+               <div className="mb-8">
+                 <h2 className="text-3xl font-bold font-serif text-[var(--text-primary)] mb-2">Community Showcase</h2>
+                 <p className="text-[var(--text-secondary)]">Explore outstanding projects published by fellow scholars.</p>
+               </div>
+               
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                 {showcaseItems.map(item => (
+                   <div key={item.id} className="glass-panel p-6 rounded-2xl border border-[var(--border-color)] flex flex-col hover:border-[var(--accent)] hover:shadow-lg transition-all group">
+                     <div className="absolute top-4 right-4 bg-[var(--surface-color)] px-2 py-0.5 rounded text-[10px] font-bold uppercase border border-[var(--border-color)] text-[var(--primary)] shadow-sm">
+                       {item.type}
+                     </div>
+                     <h3 className="font-bold text-lg text-[var(--text-primary)] mb-2 mt-4 leading-snug">{item.title}</h3>
+                     
+                     <div className="mt-auto pt-4 border-t border-[var(--border-color)] flex items-center justify-between">
+                       <div className="flex items-center gap-2">
+                         <div className="w-6 h-6 rounded-full bg-[var(--primary)]/20 flex items-center justify-center">
+                           <span className="material-icons text-[10px] text-[var(--primary)]">person</span>
+                         </div>
+                         <span className="text-xs font-bold text-[var(--text-secondary)]">{item.author}</span>
+                       </div>
+                       
+                       <div className="flex items-center gap-3">
+                         <button 
+                           className="flex items-center gap-1 text-xs font-bold text-[var(--text-secondary)] hover:text-red-500 transition-colors"
+                         >
+                           <span className="material-icons text-[14px]">favorite_border</span>
+                           {item.likes}
+                         </button>
+                         <button className="flex items-center gap-1 text-xs font-bold text-[var(--text-secondary)] hover:text-[var(--primary)] transition-colors">
+                           <span className="material-icons text-[14px]">chat_bubble_outline</span>
+                           {item.discussion}
+                         </button>
+                         <button className="flex items-center gap-1 text-xs font-bold text-[var(--text-secondary)] hover:text-blue-500 transition-colors">
+                           <span className="material-icons text-[14px]">file_download</span>
+                           {item.downloads}
+                         </button>
+                       </div>
+                     </div>
+                   </div>
+                 ))}
+               </div>
              </div>
-           ))}
-         </div>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="w-2/3 paper-panel flex flex-col overflow-hidden bg-[var(--surface-color)] relative">
-         {!activeGroup ? (
+           ) : !activeGroup ? (
            <div className="flex-1 flex flex-col items-center justify-center text-[var(--text-secondary)] opacity-50 p-8 text-center">
              <span className="material-icons text-6xl mb-4">groups</span>
              <p className="font-serif text-xl">Select a joined group to view messages.</p>
@@ -406,38 +458,7 @@ export const Community: React.FC = () => {
            </div>
          )}
        </div>
-       </div>
-       ) : (
-         /* SHOWCASE VIEW */
-         <div className="paper-panel p-6 flex-1 overflow-y-auto">
-            <div className="flex justify-between items-center mb-8 border-b pb-4">
-               <div>
-                 <h2 className="text-3xl font-bold font-serif text-[var(--text-primary)]">The Jackometer Forge Showcase</h2>
-                 <p className="text-[var(--text-secondary)]">Read, discuss, and download elite academic papers published by the community.</p>
-               </div>
-               <button className="bg-[var(--accent)] text-white px-6 py-2 rounded font-bold shadow-md hover:opacity-90 flex items-center gap-2">
-                 <span className="material-icons">publish</span> Publish Work
-               </button>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-               {showcaseItems.map(item => (
-                 <div key={item.id} className="bg-[var(--bg-color)] border border-[var(--border-color)] rounded-xl p-6 hover:shadow-xl hover:border-[var(--primary)] transition-all cursor-pointer flex flex-col relative group">
-                    <div className="absolute top-4 right-4 bg-white px-2 py-0.5 rounded text-[10px] font-bold uppercase border border-gray-200 text-[var(--primary)] shadow-sm">
-                      {item.type}
-                    </div>
-                    <h3 className="font-bold text-lg text-[var(--text-primary)] mt-4 mb-2 line-clamp-2 leading-tight group-hover:text-[var(--primary)] transition-colors">{item.title}</h3>
-                    <p className="text-sm text-gray-500 mb-6 italic">By {item.author}</p>
-                    <div className="mt-auto flex justify-between items-center text-gray-500 text-xs font-bold border-t pt-4">
-                       <span className="flex items-center gap-1 hover:text-red-500"><span className="material-icons text-sm">favorite</span> {item.likes}</span>
-                       <span className="flex items-center gap-1 hover:text-blue-500"><span className="material-icons text-sm">forum</span> {item.discussion}</span>
-                       <span className="flex items-center gap-1 hover:text-green-500"><span className="material-icons text-sm">file_download</span> {item.downloads}</span>
-                    </div>
-                 </div>
-               ))}
-            </div>
-         </div>
-       )}
-    </div>
+     </div>
+   </div>
   );
 };

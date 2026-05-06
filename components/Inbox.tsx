@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Message, AppView } from '../types';
+import { customAlert, customConfirm } from '../lib/dialogs';
+
 
 interface InboxProps {
   setView: (view: AppView) => void;
@@ -70,7 +72,7 @@ export const Inbox: React.FC<InboxProps> = ({ setView }) => {
     if (!selectedMessage || !replyText.trim()) return;
     
     // Simulate sending reply
-    alert(`Reply sent to ${selectedMessage.sender} successfully.`);
+    customAlert(`Reply sent to ${selectedMessage.sender} successfully.`);
     setReplyMode(false);
     setReplyText('');
   };
@@ -78,7 +80,7 @@ export const Inbox: React.FC<InboxProps> = ({ setView }) => {
   const handleSendCompose = () => {
     if (!composeData.to || !composeData.subject) return;
     
-    alert(`Message sent to ${composeData.to}`);
+    customAlert(`Message sent to ${composeData.to}`);
     setComposeOpen(false);
     setComposeData({ to: '', subject: '', body: '' });
   };
