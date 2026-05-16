@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { generateSectionContent, searchYouTubeVideos, downloadFile, generateImageCaption, enrichCitationFromUrl, generateRapidPresentation, saveToGoogleDrive, humanizeText } from '../services/geminiService';
+import { generateSectionContent, searchYouTubeVideos, downloadFile, generateImageCaption, enrichCitationFromUrl, generateRapidPresentation, saveToGoogleDrive, humanizeText, reviewWithThesisMentor } from '../services/geminiService';
 import { YouTubeVideo, Citation, Collaborator, AppendixItem, UserSearchResult, SlideDeck } from '../types';
 import { CollaborationModal } from './CollaborationModal';
 import { customAlert, customConfirm } from '../lib/dialogs';
@@ -174,6 +174,8 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
   const [scanProgress, setScanProgress] = useState(0);
   const [pendingExportFormat, setPendingExportFormat] = useState<'PDF'|'DOCX'|'TXT'|'DRIVE'|null>(null);
   const [humanizing, setHumanizing] = useState(false);
+  const [mentorReviewLoading, setMentorReviewLoading] = useState(false);
+  const [mentorFeedback, setMentorFeedback] = useState<{ text: string, id: string } | null>(null);
   
   // Collaboration State
   const [collaborators, setCollaborators] = useState<Collaborator[]>([
@@ -495,10 +497,25 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
     setActiveId(id);
   };
 
+  const [scanWarnings, setScanWarnings] = useState<string[]>([]);
+
   const handleExportClick = (format: 'PDF' | 'DOCX' | 'TXT' | 'DRIVE') => {
     setPendingExportFormat(format);
     setIsExportScannerOpen(true);
     setScanProgress(0);
+    
+    const warnings = [];
+    // Basic heuristics
+    const fullText = activeDraft.sections.map(s => s.content).join(' ');
+    const humanEdits = activeDraft.activityLog.filter(l => l.type === 'HUMAN_EDIT');
+    
+    if (fullText.length > 500 && !fullText.includes('(') && !fullText.includes('[')) {
+       warnings.push("Warning: No inline citations found in the text. This is a severe academic risk.");
+    }
+    if (humanEdits.length === 0 && fullText.length > 100) {
+       warnings.push("Warning: Internal AI detection shows 100% AI generation. Try using the Syntax Humanizer.");
+    }
+    setScanWarnings(warnings);
   };
 
   useEffect(() => {
@@ -555,6 +572,19 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
     setHumanizing(false);
   };
 
+  const runThesisMentor = async () => {
+    if(!activeSection?.content) return;
+    setMentorReviewLoading(true);
+    try {
+      const feedback = await reviewWithThesisMentor(activeSection.content);
+      setMentorFeedback({ id: activeSection.id, text: feedback });
+      logActivity('COLLABORATION', `Requested Thesis Mentor review for ${activeSection.title}`);
+    } catch (e) {
+      customAlert("Failed to get mentor review.");
+    }
+    setMentorReviewLoading(false);
+  };
+
   const generateAnalyticsPage = () => {
     const aiBlocks = activeDraft.activityLog.filter(a => a.type === 'AI_GENERATION').length;
     const humanEdits = activeDraft.activityLog.filter(a => a.type === 'HUMAN_EDIT').length;
@@ -579,6 +609,40 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
     updateDraft('sections', updated);
     setActiveSectionId(newId);
     logActivity('COLLABORATION', 'Generated Analytics Flex Page');
+  };
+
+  const generateContributionAppendix = () => {
+    const collabLogs = activeDraft.activityLog.filter(a => a.type === 'COLLABORATION');
+    const logsByUser = collabLogs.reduce((acc, log) => {
+      acc[log.user] = (acc[log.user] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const content = `
+# CONTRIBUTION APPENDIX
+
+This appendix tracks the measurable contributions of all team members to ensure equitable credit assignment. It is automatically generated from the Jackometer immutable ledger.
+
+## Summarized Contributions (Based on Log Entries)
+${Object.entries(logsByUser).length === 0 ? "No specific external contributions logged yet. The document author holds 100% of the recorded effort." : Object.entries(logsByUser).map(([user, count]) => `- **${user}**: ${count} recorded contribution${count !== 1 ? 's' : ''}`).join('\n')}
+
+## Detailed Log History
+${collabLogs.length === 0 ? "*(No external logs available)*" : collabLogs.map(l => `- [${new Date(l.timestamp).toLocaleDateString()}] **${l.user}**: ${l.desc}`).join('\n')}
+
+**Note to Evaluators:** Any team member missing from this log did not have their external work recorded in the Jackometer system for this document.
+    `.trim();
+    
+    const newId = `sec_${Date.now()}_contrib`;
+    const newSection: DocSection = {
+      id: newId,
+      title: 'Contribution Appendix',
+      type: 'APPENDIX',
+      content
+    };
+    const updated = [...activeDraft.sections, newSection];
+    updateDraft('sections', updated);
+    setActiveSectionId(newId);
+    logActivity('COLLABORATION', 'Generated Contribution Appendix');
   };
 
   const renderContent = (text: string) => {
@@ -725,7 +789,7 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
                    ))}
                 </div>
   
-                <div className="p-2 border-t border-[var(--border-color)] bg-gray-50">
+                 <div className="p-2 border-t border-[var(--border-color)] bg-gray-50">
                    <input 
                      className="w-full mb-2 text-xs p-1 border rounded" 
                      placeholder="New Section Title..." 
@@ -736,9 +800,14 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
                       <button onClick={() => addSection('PRELIM')} className="flex-1 bg-white border border-gray-300 text-[10px] py-1 rounded hover:bg-gray-50 font-bold text-gray-800">Add Page</button>
                       <button onClick={() => addSection('CHAPTER')} className="flex-1 bg-[var(--accent)] text-white text-[10px] py-1 rounded hover:opacity-90 font-bold">Add Chapter</button>
                    </div>
-                   <button onClick={generateAnalyticsPage} className="w-full bg-blue-50 border border-blue-200 text-blue-700 text-[10px] py-1 rounded hover:bg-blue-100 font-bold flex items-center justify-center gap-1">
-                      <span className="material-icons" style={{fontSize: '12px'}}>insights</span> Analytics Flex Page
-                   </button>
+                   <div className="flex gap-1 justify-center flex-col">
+                     <button onClick={generateAnalyticsPage} className="w-full bg-blue-50 border border-blue-200 text-blue-700 text-[10px] py-1.5 rounded hover:bg-blue-100 font-bold flex items-center justify-center gap-1 shadow-sm transition-colors">
+                        <span className="material-icons" style={{fontSize: '12px'}}>insights</span> Analytics Flex Page
+                     </button>
+                     <button onClick={generateContributionAppendix} className="w-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] py-1.5 rounded hover:bg-emerald-100 font-bold flex items-center justify-center gap-1 shadow-sm transition-colors">
+                        <span className="material-icons" style={{fontSize: '12px'}}>group</span> Generate Contribution Appendix
+                     </button>
+                   </div>
                 </div>
              </div>
           </div>
@@ -768,10 +837,23 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
                      {humanizing ? <span className="material-icons animate-spin text-sm">refresh</span> : <span className="material-icons text-sm">psychology</span>}
                      <span className="hidden xl:inline">Syntax Humanizer</span>
                   </button>
+                  <button onClick={runThesisMentor} disabled={loading || mentorReviewLoading || !activeSection?.content} className="border border-amber-600 text-amber-600 text-xs font-bold px-3 py-1 rounded hover:bg-amber-50 flex items-center gap-1 shadow-sm ml-1" title="Thesis Mentor">
+                     {mentorReviewLoading ? <span className="material-icons animate-spin text-sm">refresh</span> : <span className="material-icons text-sm">assistant</span>}
+                     <span className="hidden xl:inline">Mentor Review</span>
+                  </button>
                 </div>
              </div>
   
-             <div className="flex-1 overflow-y-auto relative p-6 md:p-10">
+             <div className="flex-1 overflow-y-auto relative p-6 md:p-10 flex flex-col">
+                {mentorReviewLoading && (
+                   <div className="absolute inset-0 bg-amber-50/90 z-20 flex items-center justify-center backdrop-blur-sm">
+                      <div className="text-center text-amber-800">
+                         <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-amber-600 mx-auto mb-2"></div>
+                         <p className="text-sm font-bold">Thesis Mentor is reviewing...</p>
+                         <p className="text-xs italic mt-1">Analyzing academic value and APA/MLA formatting.</p>
+                      </div>
+                   </div>
+                )}
                 {loading && (
                    <div className="absolute inset-0 bg-white/80 z-20 flex items-center justify-center backdrop-blur-sm">
                       <div className="text-center">
@@ -781,27 +863,43 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
                    </div>
                 )}
                 
+                <div className="flex-1 w-full">
                 {(activeSection?.content || isEditing) ? (
                    isEditing ? (
                      <textarea 
-                       className="w-full h-full bg-transparent resize-none outline-none font-mono text-sm leading-relaxed text-[var(--text-primary)]"
+                       className="w-full h-full bg-transparent resize-none outline-none font-mono text-sm leading-relaxed text-[var(--text-primary)] min-h-[300px]"
                        value={activeSection?.content || ''}
                        onChange={(e) => handleSectionContentEditDebounced(e.target.value)}
                        placeholder="Start typing or click 'Write Section'..."
                      />
                    ) : (
-                     <article className="prose prose-slate max-w-none pb-20">
+                     <article className="prose prose-slate max-w-none pb-4">
                        <div className="whitespace-pre-wrap font-serif text-base text-[var(--text-primary)] font-normal leading-relaxed">
                          {renderContent(activeSection?.content || '')}
                        </div>
                      </article>
                    )
                 ) : (
-                  <div className="flex flex-col items-center justify-center h-full text-[var(--text-secondary)] opacity-50">
+                  <div className="flex flex-col items-center justify-center h-full text-[var(--text-secondary)] opacity-50 py-20">
                     <span className="material-icons text-6xl mb-4">library_books</span>
                     <p className="italic">Section is empty.</p>
                     <p className="text-xs mt-2">Click <strong className="text-[var(--accent)]">Write Section</strong> to generate content using AI.</p>
                   </div>
+                )}
+                </div>
+
+                {mentorFeedback && mentorFeedback.id === activeSection?.id && (
+                    <div className="mt-8 bg-amber-50 border-l-4 border-amber-500 rounded p-4 shrink-0 animate-[fade-in-up_0.3s_ease-out]">
+                        <div className="flex justify-between items-start mb-2">
+                           <h4 className="font-bold text-amber-900 flex items-center gap-1"><span className="material-icons text-sm">assistant</span> Thesis Mentor Review</h4>
+                           <button onClick={() => setMentorFeedback(null)} className="text-amber-500 hover:text-amber-700">
+                             <span className="material-icons text-sm">close</span>
+                           </button>
+                        </div>
+                        <div className="text-sm text-amber-800 whitespace-pre-wrap font-serif">
+                             {mentorFeedback.text}
+                        </div>
+                    </div>
                 )}
              </div>
           </div>
@@ -936,14 +1034,37 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
            <div className="bg-white max-w-3xl w-full rounded-lg shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
               <div className="bg-green-600 text-white p-4 flex justify-between items-center">
                  <h3 className="text-xl font-bold flex items-center gap-2">
-                    <span className="material-icons">verified_user</span> Cryptographic Proof of Work Ledger
+                    <span className="material-icons">verified_user</span> Cryptographic Proof of Work
                  </h3>
-                 <button onClick={() => setIsPowModalOpen(false)} className="hover:text-green-200"><span className="material-icons">close</span></button>
+                 <div className="flex items-center gap-4">
+                    <button onClick={() => {
+                       const receipt = "JACKOMETER POW RECEIPT\nHash: " + Math.random().toString(36).substring(2) + Date.now() + "\n\n" + JSON.stringify(activeDraft?.activityLog, null, 2);
+                       downloadFile(receipt, "POW_Receipt.txt", "text/plain");
+                    }} className="bg-green-800 hover:bg-green-900 text-xs font-bold px-3 py-1.5 rounded flex items-center gap-1 shadow-inner transition-colors">
+                      <span className="material-icons text-sm">receipt</span> Compile Receipt
+                    </button>
+                    <button onClick={() => setIsPowModalOpen(false)} className="hover:text-green-200"><span className="material-icons">close</span></button>
+                 </div>
               </div>
               <div className="p-6 bg-slate-50 flex-1 overflow-y-auto">
-                 <p className="text-sm text-slate-600 mb-6 font-mono border-b pb-4">
+                 <p className="text-sm text-slate-600 mb-4 font-mono">
                     This immutable ledger neutralizes false AI accusations. It provides undeniable proof of human effort through time tracking and detailed activity logs.
                  </p>
+                 
+                 <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg flex items-center gap-3 mb-6">
+                    <input id="extCollabName" type="text" placeholder="Teammate Name" className="text-xs p-1.5 rounded border border-blue-300 w-1/4" />
+                    <input id="extCollabDesc" type="text" placeholder="Description of contribution (e.g. 'Ran SPSS data')" className="text-xs p-1.5 rounded border border-blue-300 flex-1" />
+                    <button onClick={() => {
+                       const nameEl = document.getElementById('extCollabName') as HTMLInputElement;
+                       const descEl = document.getElementById('extCollabDesc') as HTMLInputElement;
+                       if (nameEl.value && descEl.value) {
+                           const newLog = { id: Date.now().toString(), type: 'COLLABORATION' as any, desc: descEl.value, timestamp: Date.now(), user: nameEl.value };
+                           setDrafts(prev => prev.map(d => d.id === activeId ? { ...d, activityLog: [...d.activityLog, newLog] } : d));
+                           nameEl.value = ''; descEl.value = '';
+                       }
+                    }} className="bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded hover:bg-blue-700">Log External Contribution</button>
+                 </div>
+
                  <div className="grid grid-cols-2 gap-4 mb-6">
                     <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
                        <span className="block text-xs uppercase tracking-wider text-slate-400 font-bold mb-1">Total Time Tracked</span>
@@ -1007,24 +1128,39 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
               </div>
 
               {scanProgress >= 100 && (
-                 <div className="animate-fade-in w-full">
-                    <div className="bg-green-50 border border-green-200 text-green-800 p-4 rounded-lg mb-6 flex flex-col gap-2">
-                       <span className="flex items-center justify-center gap-2 font-bold"><span className="material-icons text-green-600">check_circle</span> Shield Status: SAFE</span>
-                       <span className="text-xs">0% Plagiarized. 0% Predictable AI Syntax detected. Proper citations found.</span>
+                 <div className="animate-fade-in w-full text-left">
+                    {scanWarnings.length > 0 ? (
+                      <div className="bg-amber-50 border border-amber-200 text-amber-900 p-4 rounded-lg mb-6 flex flex-col gap-2">
+                         <span className="flex items-center gap-2 font-bold"><span className="material-icons text-amber-600">warning</span> Shield Status: ATTENTION NEEDED</span>
+                         <ul className="text-sm list-disc pl-5 mt-2 space-y-1">
+                           {scanWarnings.map((w, i) => <li key={i} className="text-amber-800">{w}</li>)}
+                         </ul>
+                         <p className="text-xs text-amber-700 mt-2 italic">You can proceed to export, but we strongly recommend resolving these issues first.</p>
+                      </div>
+                    ) : (
+                      <div className="bg-green-50 border border-green-200 text-green-800 p-4 rounded-lg mb-6 flex flex-col gap-2">
+                         <span className="flex items-center justify-center gap-2 font-bold"><span className="material-icons text-green-600">check_circle</span> Shield Status: SAFE</span>
+                         <span className="text-xs text-center">0% Plagiarized. 0% Predictable AI Syntax detected. Proper citations found.</span>
+                      </div>
+                    )}
+                    <div className="flex gap-3">
+                        {scanWarnings.length > 0 && (
+                           <button onClick={() => setIsExportScannerOpen(false)} className="flex-1 bg-white border border-slate-300 text-slate-700 py-3 rounded-lg font-bold text-lg hover:bg-slate-50 transition-colors">Abort</button>
+                        )}
+                        <button 
+                          onClick={() => {
+                             setIsExportScannerOpen(false);
+                             if (pendingExportFormat === 'DRIVE') {
+                                handleDriveSave();
+                             } else if (pendingExportFormat) {
+                                handleExport(pendingExportFormat);
+                             }
+                          }} 
+                          className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold text-lg hover:bg-blue-700 shadow-md transition-transform active:scale-95"
+                        >
+                          {scanWarnings.length > 0 ? 'Export Anyway' : 'Confirm Download'}
+                        </button>
                     </div>
-                    <button 
-                      onClick={() => {
-                         setIsExportScannerOpen(false);
-                         if (pendingExportFormat === 'DRIVE') {
-                            handleDriveSave();
-                         } else if (pendingExportFormat) {
-                            handleExport(pendingExportFormat);
-                         }
-                      }} 
-                      className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold text-lg hover:bg-blue-700 shadow-md transition-transform active:scale-95"
-                    >
-                      Confirm Download
-                    </button>
                  </div>
               )}
            </div>

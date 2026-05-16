@@ -76,6 +76,7 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
 
   // Track currently active chapter for writing/viewing
   const [activeChapterIndex, setActiveChapterIndex] = useState(0);
+  const [stemMode, setStemMode] = useState<'DEEP_ANALYSIS' | 'PROBLEM_SOLVING'>('DEEP_ANALYSIS');
 
   const resultRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(false);
@@ -189,7 +190,8 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
       const content = await generateDeepResearch(
         selectedTitle.title, 
         chapters[index], 
-        previousContext
+        previousContext,
+        stemMode
       );
       
       setChapterContent(prev => ({
@@ -416,16 +418,22 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
 
              {/* Editor Area */}
              <div className="col-span-1 md:col-span-9 glass-panel flex flex-col h-full relative overflow-hidden">
-                <div className="p-4 border-b border-[var(--border-color)] flex justify-between items-center bg-[var(--surface-color)]">
-                   <h3 className="font-bold text-lg text-[var(--text-primary)]">{chapters[activeChapterIndex]}</h3>
-                   <button 
-                     onClick={() => handleGenerateChapter(activeChapterIndex)}
-                     disabled={loading}
-                     className="btn-primary flex items-center gap-2 transition-all px-4 py-2 text-sm rounded-lg shadow-md"
-                   >
-                     {loading ? <span className="material-icons animate-spin text-sm">refresh</span> : <span className="material-icons text-sm">auto_awesome</span>}
-                     {chapterContent[chapters[activeChapterIndex]] ? 'Regenerate' : 'Generate Chapter'}
-                   </button>
+                <div className="p-4 border-b border-[var(--border-color)] flex justify-between items-center bg-[var(--surface-color)] gap-4">
+                   <h3 className="font-bold text-lg text-[var(--text-primary)] truncate flex-1">{chapters[activeChapterIndex]}</h3>
+                   <div className="flex items-center gap-3">
+                     <div className="flex bg-gray-100 rounded p-1 border border-gray-200 shadow-inner">
+                       <button onClick={() => setStemMode('DEEP_ANALYSIS')} className={`text-[10px] uppercase tracking-wider px-2 py-1 rounded font-bold transition-colors ${stemMode === 'DEEP_ANALYSIS' ? 'bg-white text-blue-700 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700'}`}>Analysis</button>
+                       <button onClick={() => setStemMode('PROBLEM_SOLVING')} className={`text-[10px] uppercase tracking-wider px-2 py-1 rounded font-bold transition-colors ${stemMode === 'PROBLEM_SOLVING' ? 'bg-white text-emerald-700 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700'}`}>Problem-Solving</button>
+                     </div>
+                     <button 
+                       onClick={() => handleGenerateChapter(activeChapterIndex)}
+                       disabled={loading}
+                       className="btn-primary flex items-center gap-2 transition-all px-4 py-2 text-sm rounded-lg shadow-md shrink-0"
+                     >
+                       {loading ? <span className="material-icons animate-spin text-sm">refresh</span> : <span className="material-icons text-sm">auto_awesome</span>}
+                       {chapterContent[chapters[activeChapterIndex]] ? 'Regenerate' : 'Generate Chapter'}
+                     </button>
+                   </div>
                 </div>
                 
                 <div ref={resultRef} className="flex-1 overflow-y-auto p-8 md:p-12 bg-white/50 dark:bg-black/20">

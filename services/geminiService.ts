@@ -187,12 +187,40 @@ export const generateStructuredOutline = async (topic: string): Promise<string[]
   return cleanAndParseJSON(response.text, []);
 };
 
-export const generateDeepResearch = async (title: string, chapter: string, context: string) => {
+export const generateDeepResearch = async (title: string, chapter: string, context: string, mode: 'DEEP_ANALYSIS' | 'PROBLEM_SOLVING' = 'DEEP_ANALYSIS') => {
   const ai = getAI();
+  
+  let modePrompt = "";
+  if (mode === 'PROBLEM_SOLVING') {
+      modePrompt = `
+      MODE: "Problem-Solving Mode" (For specific technical problems, LLM engineering, algorithms, mathematics, systems engineering)
+      You MUST strictly structure your output with these headers:
+      - Source of Intuition
+      - Supporting Principles
+      - Method Transfer
+      - Applicability Boundaries
+      - Further Thinking
+      * Explicitly mark uncertainties and clarify any assumptions made during problem-solving.
+      `;
+  } else {
+      modePrompt = `
+      MODE: "Deep Analysis Mode" (For open research questions)
+      You MUST strictly structure your output with these headers:
+      - Background Overview
+      - Main Directions
+      - Key Comparisons
+      - Frontier Developments
+      * Explicitly mark uncertainties and clarify any assumptions made.
+      `;
+  }
+
   const prompt = `
+    Act as a specialized Deep Research & STEM Assistant.
     Title: ${title}
     Section: ${chapter}
     Project Context: ${context}
+    
+    ${modePrompt}
     
     Write the content for this specific section/chapter. 
     Style: Academic, "Old Money" authority, 20+ years experience.
@@ -204,7 +232,7 @@ export const generateDeepResearch = async (title: string, chapter: string, conte
     3. If this is the "References" section, compile a list of all sources used in previous chapters if possible, or generate a list of highly relevant real sources for this topic.
 
     Use high-level vocabulary.
-    Do NOT use markdown symbols for headers like **, ## inside the body text. Format as plain, beautifully written text.
+    Do NOT use markdown symbols for headers like **, ## inside the body text. Format as plain, beautifully written text, except for the mandatory headers required by your Mode.
   \n${ANTI_SLOP_PROMPT}`;
 
   const response = await ai.models.generateContent({
@@ -410,6 +438,29 @@ export const humanizeText = async (text: string): Promise<string> => {
   \n${ANTI_SLOP_PROMPT}`;
   const response = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt });
   return response.text?.trim() || text;
+};
+
+export const reviewWithThesisMentor = async (text: string): Promise<string> => {
+  const ai = getAI();
+  const prompt = `
+    Act as an experienced university supervisor guiding students (the "Thesis Mentor Engine").
+    Your goals:
+    - Maintain a student-centered approach. Do not write the final paper for them.
+    - Break complex tasks into small steps and provide positive reinforcement to reduce anxiety.
+    - Evaluate academic value, flow, and formatting for APA/MLA standards.
+    
+    CRITICAL: Format all revision suggestions EXACTLY using this strict structure: 
+    [Problem] + [Reason] + [Improvement Suggestion].
+
+    Review the following section text:
+    ${text}
+  \n${ANTI_SLOP_PROMPT}`;
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: prompt
+  });
+  return response.text || "";
 };
 
 export const generateSectionContent = async (

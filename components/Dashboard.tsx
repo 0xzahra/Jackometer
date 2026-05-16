@@ -70,6 +70,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
   }, []);
 
   return (
+    <div className="w-full h-full overflow-y-auto">
     <div className="max-w-7xl mx-auto pb-10 relative">
       <div className="mb-12 text-center pt-8">
         <h1 className="text-5xl font-sans font-bold text-[var(--text-primary)] mb-2 tracking-tight">
@@ -179,6 +180,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
           onClick={() => setView(AppView.CAREER)}
         />
       </div>
+    </div>
     </div>
   );
 };

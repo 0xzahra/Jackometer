@@ -126,7 +126,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
         
         <div className="flex-1 overflow-y-auto pt-2">
           <NavButton active={currentView === AppView.RESEARCH} onClick={() => { setView(AppView.RESEARCH); setSidebarOpen(false); }} icon="lightbulb" label="Topic Ideas" />
-          <NavButton active={currentView === AppView.DOCUMENT_WRITER} onClick={() => { setView(AppView.DOCUMENT_WRITER); setSidebarOpen(false); }} icon="folder" label="Projects" />
+          <NavButton active={currentView === AppView.DOCUMENT_WRITER} onClick={() => { setView(AppView.DOCUMENT_WRITER); setSidebarOpen(false); }} icon="history_edu" label="Document Writer" />
+          <NavButton active={currentView === AppView.PROJECTS} onClick={() => { setView(AppView.PROJECTS); setSidebarOpen(false); }} icon="folder" label="Projects" />
           <NavButton active={currentView === AppView.ASSIGNMENT} onClick={() => { setView(AppView.ASSIGNMENT); setSidebarOpen(false); }} icon="assignment" label="Assignment Solver" />
           <NavButton active={currentView === AppView.FIELD_TRIP} onClick={() => { setView(AppView.FIELD_TRIP); setSidebarOpen(false); }} icon="landscape" label="Field Trip" />
           <NavButton active={currentView === AppView.TECHNICAL_REPORT} onClick={() => { setView(AppView.TECHNICAL_REPORT); setSidebarOpen(false); }} icon="engineering" label="Technical Report" />
