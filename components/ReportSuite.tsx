@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { generateTechnicalReport, generateLabReport, analyzeMicroscopeImage, generateImageCaption, downloadFile, generateRapidPresentation, saveToGoogleDrive } from '../services/geminiService';
+import { generateTechnicalReport, generateLabReport, analyzeMicroscopeImage, generateImageCaption, downloadFile, generateRapidPresentation, saveToGoogleDrive, generateDefenseQuestions } from '../services/geminiService';
 import { AppendixItem, FieldTable, Collaborator, UserSearchResult, SlideDeck } from '../types';
 import { CollaborationModal } from './CollaborationModal';
 import { customAlert, customConfirm } from '../lib/dialogs';
@@ -33,7 +33,26 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
   const [captionLoading, setCaptionLoading] = useState(false);
   
   // View State
-  const [viewMode, setViewMode] = useState<'REPORT' | 'SLIDES'>('REPORT');
+  const [viewMode, setViewMode] = useState<'REPORT' | 'SLIDES' | 'DEFENSE'>('REPORT');
+  const [defenseLoading, setDefenseLoading] = useState(false);
+  const [defenseContent, setDefenseContent] = useState('');
+
+  const handleGenerateDefense = async () => {
+    if (!activeDoc.report) {
+      customAlert("Cannot generate defense questions without a report.");
+      return;
+    }
+    setDefenseLoading(true);
+    setViewMode('DEFENSE');
+    try {
+      const qna = await generateDefenseQuestions(activeDoc.report);
+      setDefenseContent(qna);
+    } catch (e) {
+      customAlert("Failed to generate defense questions.");
+      setViewMode('REPORT');
+    }
+    setDefenseLoading(false);
+  };
 
   // Slide History
   const [slideHistory, setSlideHistory] = useState<SlideDeck[]>([]);
@@ -482,6 +501,12 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
             >
                <span className="material-icons text-sm">slideshow</span> Slides
             </button>
+            <button 
+              onClick={handleGenerateDefense}
+              className={`px-4 py-1.5 rounded text-xs font-bold flex items-center gap-1 transition-colors ${viewMode === 'DEFENSE' ? 'bg-white shadow text-[var(--primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--primary)]'}`}
+            >
+               {defenseLoading ? <span className="material-icons animate-spin text-sm">refresh</span> : <span className="material-icons text-sm">security</span>} Defense
+            </button>
          </div>
        </div>
 
@@ -649,6 +674,30 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
            </div>
          </div>
        ) : (
+          /* DEFENSE OR SLIDES */
+          viewMode === 'DEFENSE' ? (
+             <div className="flex-1 bg-white rounded-lg border border-[var(--border-color)] p-8 overflow-y-auto relative shadow-inner text-left">
+               <div className="flex justify-between items-center mb-6 border-b border-[var(--border-color)] pb-4">
+                  <h3 className="font-bold text-xl text-amber-900 flex items-center gap-2">
+                     <span className="material-icons text-amber-600">security</span> Defense Interrogator
+                  </h3>
+               </div>
+               {defenseLoading ? (
+                  <div className="flex flex-col items-center justify-center p-20 opacity-70">
+                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mb-4"></div>
+                     <p className="text-amber-800 font-bold">Interrogator Panel analyzing report...</p>
+                  </div>
+               ) : defenseContent ? (
+                  <div className="prose prose-slate max-w-none text-base font-serif bg-amber-50 rounded p-6 shadow-sm border border-amber-100">
+                     <div className="whitespace-pre-wrap">{defenseContent}</div>
+                  </div>
+               ) : (
+                  <div className="flex flex-col items-center justify-center p-20 opacity-50">
+                     <p>No defense questions generated.</p>
+                  </div>
+               )}
+            </div>
+          ) : (
           /* SLIDES VIEW */
           <div className="flex-1 bg-slate-200/50 rounded-lg border-2 border-dashed border-slate-300 p-4 relative overflow-hidden flex flex-col">
              {/* Slide Controls */}
@@ -702,7 +751,7 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
                 </div>
              )}
           </div>
-       )}
+       ))}
     </div>
   );
 };

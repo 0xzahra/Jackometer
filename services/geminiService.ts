@@ -1,9 +1,55 @@
 import { GoogleGenAI, Type, FunctionDeclaration, Modality, Schema } from "@google/genai";
 import { ProjectTitle, SlideDeck, CVData, AnalysisResult, YouTubeVideo, Citation } from "../types";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
+
+export const exportToDocx = async (sections: any[], filename: string) => {
+  const doc = new Document({
+    sections: [{
+      properties: {},
+      children: sections.flatMap(s => [
+        new Paragraph({
+          text: s.title,
+          heading: HeadingLevel.HEADING_1,
+        }),
+        ...s.content.split('\n').filter((p: string) => p.trim()).map((p: string) => new Paragraph({
+          children: [new TextRun(p)],
+        }))
+      ]),
+    }],
+  });
+  const blob = await Packer.toBlob(doc);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+};
 
 // Always use process.env.API_KEY directly as per guidelines
-const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
+const getAI = () => {
+    const key = process.env.API_KEY;
+    if (!key) {
+        document.dispatchEvent(new CustomEvent('app-toast', { detail: "⚠️ API key missing. Add GEMINI_API_KEY to .env.local" }));
+        throw new Error("API Key missing");
+    }
+    return new GoogleGenAI({ apiKey: key });
+};
 
+export const generateDefenseQuestions = async (reportContent: string): Promise<string> => {
+  const ai = getAI();
+  const prompt = `
+    You are a brutal, highly experienced university examiner panel member.
+    Review the following technical/academic report and generate the 10 hardest questions a panel would ask during a defense presentation.
+    Provide brutal, realistic questions, followed by model answers based strictly on the data in the document.
+    Format your response clearly.
+
+    Report Content:
+    ${reportContent}
+  `;
+  const response = await ai.models.generateContent({ model: 'gemini-3.1-8b', contents: prompt });
+  return response.text || "";
+};
 const ANTI_SLOP_PROMPT = `
 CRITICAL CONSTRAINT: YOU MUST NEVER USE ANY OF THE FOLLOWING WORDS OR PHRASES (OR THEIR VARIATIONS) in your response:
 Delve, tap into, unlock, unleash, navigate, comprehensive, testament, vibrant, robust, landscape, crucial, architecture, curator, tactical, imagine, elite, realm, revolutionary, beacon, skyrocketing, game-changer, dive in, scaling, fluff, seamless.

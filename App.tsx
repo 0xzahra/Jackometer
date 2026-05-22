@@ -15,6 +15,7 @@ import { Notifications } from './components/Notifications';
 import { Projects } from './components/Projects';
 import { DocumentWriter } from './components/DocumentWriter';
 import { AssignmentSuite } from './components/AssignmentSuite';
+import { LiteratureEngine } from './components/LiteratureEngine';
 import { FileCompressor } from './components/FileCompressor';
 import { Profile } from './components/Profile';
 import { Auth } from './components/Auth';
@@ -40,7 +41,6 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 
   constructor(props: ErrorBoundaryProps) {
     super(props);
-    this.props = props;
     this.state = { hasError: false };
   }
 
@@ -269,6 +269,7 @@ export default function App() {
             >
               {renderPersistentView(AppView.DASHBOARD, <Dashboard setView={handleSetView} />)}
               {renderPersistentView(AppView.RESEARCH, <ResearchEngine userId={user.email} />)}
+              {renderPersistentView(AppView.LIT_REVIEW, <LiteratureEngine />)}
               {renderPersistentView(AppView.PROJECTS, <Projects setView={handleSetView} />)}
               {renderPersistentView(AppView.DOCUMENT_WRITER, <DocumentWriter userId={user.email} />)}
               {renderPersistentView(AppView.ASSIGNMENT, <AssignmentSuite userId={user.email} />)}

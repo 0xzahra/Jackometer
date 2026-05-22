@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { generateSectionContent, searchYouTubeVideos, downloadFile, generateImageCaption, enrichCitationFromUrl, generateRapidPresentation, saveToGoogleDrive, humanizeText, reviewWithThesisMentor } from '../services/geminiService';
+import { generateSectionContent, searchYouTubeVideos, downloadFile, generateImageCaption, enrichCitationFromUrl, generateRapidPresentation, saveToGoogleDrive, humanizeText, reviewWithThesisMentor, exportToDocx } from '../services/geminiService';
 import { YouTubeVideo, Citation, Collaborator, AppendixItem, UserSearchResult, SlideDeck } from '../types';
 import { CollaborationModal } from './CollaborationModal';
 import { customAlert, customConfirm } from '../lib/dialogs';
@@ -534,12 +534,15 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
   }, [isExportScannerOpen]);
 
   const handleExport = (format: 'PDF' | 'DOCX' | 'RTF' | 'TXT') => {
-    const fullContent = activeDraft.sections.map(s => `${s.title.toUpperCase()}\n\n${s.content}\n\n`).join('***\n\n');
     const filename = `${activeDraft.topic || 'Document'}.${format.toLowerCase()}`;
-    let mime = 'text/plain';
-    if (format === 'DOCX') mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-    if (format === 'PDF') mime = 'application/pdf'; 
-    downloadFile(fullContent, filename, mime);
+    if (format === 'DOCX') {
+      exportToDocx(activeDraft.sections, filename);
+    } else {
+      const fullContent = activeDraft.sections.map(s => `${s.title.toUpperCase()}\n\n${s.content}\n\n`).join('***\n\n');
+      let mime = 'text/plain';
+      if (format === 'PDF') mime = 'application/pdf'; 
+      downloadFile(fullContent, filename, mime);
+    }
   };
 
   const handleDriveSave = async () => {
