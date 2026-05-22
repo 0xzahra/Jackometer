@@ -1,20 +1,19 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Jackometer
 
-# Run and deploy your AI Studio app
+Your AI-powered academic fortress.
 
-This contains everything you need to run your app locally.
+## Vercel Setup
 
-View your app in AI Studio: https://ai.studio/apps/f87e17a5-e666-415c-b29c-c7cb9e686b1c
+To deploy Jackometer on Vercel, follow these instructions:
 
-## Run Locally
+1. Connect your repository to Vercel.
+2. Under "Environment Variables" in your Vercel project settings, add the following key:
+   - `GEMINI_API_KEY`: Your Google Gemini API Key.
+3. Vercel automatically matches the Node.js version to 20 based on the `.nvmrc` file provided inside this repository.
+4. Deploy the application.
 
-**Prerequisites:**  Node.js
+## Local Setup
 
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+1. Copy `.env.local.example` to `.env.local`
+2. Add your Gemini API key in `.env.local`.
+3. Run `npm install` and `npm run dev`.

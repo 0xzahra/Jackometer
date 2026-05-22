@@ -26,15 +26,15 @@ export const exportToDocx = async (sections: any[], filename: string) => {
   URL.revokeObjectURL(url);
 };
 
-// Always use process.env.API_KEY directly as per guidelines
-const getAI = () => {
-    const key = process.env.API_KEY;
+const getGeminiApiKey = () => {
+    const key = process.env.GEMINI_API_KEY || process.env.VITE_API_KEY || process.env.API_KEY;
     if (!key) {
-        document.dispatchEvent(new CustomEvent('app-toast', { detail: "⚠️ API key missing. Add GEMINI_API_KEY to .env.local" }));
-        throw new Error("API Key missing");
+        throw new Error("Gemini API key is missing. Add GEMINI_API_KEY in your Vercel environment variables.");
     }
-    return new GoogleGenAI({ apiKey: key });
+    return key;
 };
+
+const getAI = () => new GoogleGenAI({ apiKey: getGeminiApiKey() });
 
 export const generateDefenseQuestions = async (reportContent: string): Promise<string> => {
   const ai = getAI();

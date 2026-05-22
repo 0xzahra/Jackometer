@@ -16,7 +16,8 @@ export enum AppView {
   SETTINGS = 'SETTINGS',
   PROFILE = 'PROFILE',
   ASSIGNMENT = 'ASSIGNMENT',
-  COMPRESSOR = 'COMPRESSOR'
+  COMPRESSOR = 'COMPRESSOR',
+  DEFENSE_PREP = 'DEFENSE_PREP'
 }
 
 export interface UserProfile {

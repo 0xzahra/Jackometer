@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { GoogleGenAI } from "@google/genai";
-import { customAlert } from '../lib/dialogs';
+import { showToast } from '../lib/dialogs';
 
 export const LiteratureEngine: React.FC = () => {
     const [concept, setConcept] = useState('');
     const [searchStrings, setSearchStrings] = useState<string>('');
     const [loading, setLoading] = useState(false);
     
-    // Stage 1
+    // Stage 2
+    const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+
     const handleGenerateStrategy = async () => {
         if (!concept) return;
         setLoading(true);
@@ -17,9 +19,25 @@ export const LiteratureEngine: React.FC = () => {
             const res = await ai.models.generateContent({ model: 'gemini-3.1-8b', contents: p });
             setSearchStrings(res.text || '');
         } catch(e) {
-            customAlert("Failed to generate search keywords.");
+            showToast("Failed to generate search keywords.", "error");
         }
         setLoading(false);
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files) return;
+        const newFiles = Array.from(e.target.files);
+        if (uploadedFiles.length + newFiles.length > 10) {
+            showToast("You can upload up to 10 files at once.", "warning");
+            return;
+        }
+        setUploadedFiles(prev => [...prev, ...newFiles]);
+        // Reset the input so the same files can be selected again if removed
+        e.target.value = '';
+    };
+
+    const removeFile = (index: number) => {
+        setUploadedFiles(prev => prev.filter((_, i) => i !== index));
     };
 
     return (
@@ -33,47 +51,71 @@ export const LiteratureEngine: React.FC = () => {
                 </div>
 
                 {/* Stage 1 */}
-                <div className="glass-panel p-6 shadow-sm">
-                    <h2 className="text-xl font-bold text-[var(--text-primary)] border-b pb-2 mb-4">Stage 1: The Strategy (Keyword Builder)</h2>
+                <div className="glass-panel p-6 shadow-sm border border-[var(--border-color)]">
+                    <h2 className="text-xl font-bold text-[var(--text-primary)] border-b pb-2 mb-4 drop-shadow-sm">1. Find Search Words</h2>
+                    <p className="text-sm text-gray-500 mb-4 font-medium">Helper: Get useful search phrases for Google Scholar.</p>
                     <input type="text" placeholder="Enter research concept..." className="w-full mb-4" value={concept} onChange={e => setConcept(e.target.value)} />
                     <button onClick={handleGenerateStrategy} disabled={loading} className="btn-primary">Build My Search Keywords</button>
                     {searchStrings && (
-                        <div className="mt-4 p-4 bg-white/50 rounded font-mono text-xs whitespace-pre-wrap">{searchStrings}</div>
+                        <div className="mt-4 p-4 bg-white/50 rounded flex-1 font-mono text-xs whitespace-pre-wrap">{searchStrings}</div>
                     )}
                 </div>
 
                 {/* Stage 2 */}
-                <div className="glass-panel p-6 shadow-sm">
-                    <h2 className="text-xl font-bold text-[var(--text-primary)] border-b pb-2 mb-4">Stage 2: Your Paper Summary Table</h2>
-                    <p className="text-sm text-gray-500 mb-4">Upload your research papers (PDF) or photos of printed documents (JPG/PNG). You can select multiple files at once.</p>
-                    <input type="file" multiple accept=".pdf,image/*" className="mb-4" />
-                    <div className="text-xs text-teal-700 bg-teal-50 p-2 rounded">Tip: You can upload photos of printed papers too.</div>
+                <div className="glass-panel p-6 shadow-sm border border-[var(--border-color)]">
+                    <h2 className="text-xl font-bold text-[var(--text-primary)] border-b pb-2 mb-4 drop-shadow-sm">2. Upload Papers or Photos</h2>
+                    <p className="text-sm text-gray-500 mb-4 font-medium">Helper: Add PDF papers or clear photos of printed documents.</p>
+                    <input type="file" multiple accept=".pdf,image/*" className="mb-4 text-sm" onChange={handleFileChange} />
+                    <p className="text-xs text-[var(--text-secondary)] mb-4">Upload your research papers (PDF) or photos of printed documents (JPG/PNG). You can select multiple files at once.</p>
+                    <div className="text-xs text-teal-700 bg-teal-50 p-2 rounded mb-4 shadow-sm border border-teal-100">Tip: You can upload photos of printed papers too.</div>
+                    
+                    {uploadedFiles.length > 0 && (
+                        <div className="bg-slate-50 border border-[var(--border-color)] rounded-lg overflow-hidden">
+                            <ul className="divide-y divide-slate-200">
+                                {uploadedFiles.map((f, i) => (
+                                    <li key={i} className="p-3 flex justify-between items-center bg-white hover:bg-slate-50 transition-colors">
+                                        <div className="flex flex-col truncate pr-4">
+                                            <span className="font-bold text-sm text-slate-800 truncate">{f.name}</span>
+                                            <span className="text-xs text-slate-500">{f.type || 'Unknown'} • {(f.size / 1024).toFixed(1)} KB</span>
+                                        </div>
+                                        <button onClick={() => removeFile(i)} className="text-red-500 hover:text-red-700 flex-shrink-0">
+                                            <span className="material-icons text-sm">delete</span>
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
                 </div>
 
                 {/* Stage 3 & 4 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="glass-panel p-6 shadow-sm">
-                        <h2 className="text-xl font-bold text-[var(--text-primary)] border-b pb-2 mb-4">Stage 3: The Detective (Theme Spotter)</h2>
-                        <button className="bg-slate-200 text-slate-700 font-bold py-2 px-4 rounded text-sm mb-4">Find Common Themes</button>
+                    <div className="glass-panel p-6 shadow-sm border border-[var(--border-color)]">
+                        <h2 className="text-xl font-bold text-[var(--text-primary)] border-b pb-2 mb-4 drop-shadow-sm">3. Summarize Your Sources</h2>
+                        <p className="text-sm text-gray-500 mb-4 font-medium">Helper: Turn each paper into a short table.</p>
+                        <button className="bg-slate-200 text-slate-700 font-bold py-2 px-4 rounded text-sm mb-4 shadow-sm hover:bg-slate-300">Summarize Papers</button>
                     </div>
-                    <div className="glass-panel p-6 shadow-sm">
-                        <h2 className="text-xl font-bold text-[var(--text-primary)] border-b pb-2 mb-4">Stage 4: Find Research Gaps</h2>
-                        <button className="bg-slate-200 text-slate-700 font-bold py-2 px-4 rounded text-sm mb-4">Show What's Missing</button>
+                    <div className="glass-panel p-6 shadow-sm border border-[var(--border-color)]">
+                        <h2 className="text-xl font-bold text-[var(--text-primary)] border-b pb-2 mb-4 drop-shadow-sm">4. Find Common Themes</h2>
+                        <p className="text-sm text-gray-500 mb-4 font-medium">Helper: See what ideas appear again and again.</p>
+                        <button className="bg-slate-200 text-slate-700 font-bold py-2 px-4 rounded text-sm mb-4 shadow-sm hover:bg-slate-300">Find Common Themes</button>
                     </div>
                 </div>
                 
                 {/* Stage 5 & 6 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="glass-panel p-6 shadow-sm">
-                        <h2 className="text-xl font-bold text-[var(--text-primary)] border-b pb-2 mb-4">Stage 5: The Skeleton (Outline Builder)</h2>
-                        <button className="bg-slate-200 text-slate-700 font-bold py-2 px-4 rounded text-sm mb-4">Generate Outline</button>
+                    <div className="glass-panel p-6 shadow-sm border border-[var(--border-color)]">
+                        <h2 className="text-xl font-bold text-[var(--text-primary)] border-b pb-2 mb-4 drop-shadow-sm">5. Find Research Gaps</h2>
+                        <p className="text-sm text-gray-500 mb-4 font-medium">Helper: See what is missing in the studies you found.</p>
+                        <button className="bg-slate-200 text-slate-700 font-bold py-2 px-4 rounded text-sm mb-4 shadow-sm hover:bg-slate-300">Show What's Missing</button>
                     </div>
-                    <div className="glass-panel p-6 shadow-sm">
-                        <h2 className="text-xl font-bold text-[var(--text-primary)] border-b pb-2 mb-4">Stage 6: Check My Writing</h2>
-                        <button className="bg-slate-200 text-slate-700 font-bold py-2 px-4 rounded text-sm mb-4">Check My Writing</button>
+                    <div className="glass-panel p-6 shadow-sm border border-[var(--border-color)]">
+                        <h2 className="text-xl font-bold text-[var(--text-primary)] border-b pb-2 mb-4 drop-shadow-sm">6. Check My Writing</h2>
+                        <p className="text-sm text-gray-500 mb-4 font-medium">Helper: Check if your paragraph is just listing sources or actually comparing ideas.</p>
+                        <button className="bg-slate-200 text-slate-700 font-bold py-2 px-4 rounded text-sm mb-4 shadow-sm hover:bg-slate-300">Check My Writing</button>
                     </div>
                 </div>
             </div>
         </div>
     );
-}
+};
