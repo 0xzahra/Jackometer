@@ -92,7 +92,7 @@ export default function App() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowSplash(false);
-    }, 2000);
+    }, 1000);
     return () => clearTimeout(timer);
   }, []);
   
@@ -191,12 +191,13 @@ export default function App() {
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           className="flex flex-col items-center gap-6"
         >
-          <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center shadow-[var(--btn-shadow)]">
-            <span className="material-icons text-white text-5xl">auto_awesome</span>
+          <div className="flex items-center justify-center p-4">
+            <img src="/jackometer-logo.svg" alt="Jackometer logo" className="w-20 h-20" />
           </div>
-          <h1 className="text-4xl font-sans font-bold text-[var(--text-primary)] tracking-tight">Jackometer</h1>
+          <h1 className="text-3xl md:text-4xl font-sans font-bold text-[var(--text-primary)] tracking-tight">Jackometer</h1>
+          <p className="text-sm text-[var(--text-secondary)]">Loading your workspace...</p>
           <motion.div 
-            className="w-48 h-1 bg-[var(--border-color)] overflow-hidden rounded-full"
+            className="w-48 h-1 bg-[var(--border-color)] overflow-hidden rounded-full mt-2"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}

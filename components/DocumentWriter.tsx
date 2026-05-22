@@ -744,10 +744,10 @@ ${collabLogs.length === 0 ? "*(No external logs available)*" : collabLogs.map(l 
            </div>
         </div>
       ) : viewMode === 'WRITER' ? (
-        <div className="flex flex-col md:flex-row gap-6 flex-1 h-full min-h-0 md:overflow-hidden pb-20 md:pb-0">
+        <div className="flex flex-col md:flex-row gap-6 flex-1 min-h-0 pb-20 md:pb-0">
           
           {/* LEFT COLUMN: Controls & Outline */}
-          <div className="w-full md:w-1/3 flex flex-col gap-4 md:overflow-hidden h-full">
+          <div className="w-full md:w-1/3 flex flex-col gap-4 h-auto md:h-full">
              
              {/* Document Details Card */}
              <div className="paper-panel p-4 rounded-sm flex-shrink-0">
@@ -816,7 +816,7 @@ ${collabLogs.length === 0 ? "*(No external logs available)*" : collabLogs.map(l 
           </div>
   
           {/* RIGHT COLUMN: Editor Area */}
-          <div ref={editorRef} className="w-full md:w-2/3 paper-panel rounded-sm overflow-hidden bg-white border border-[var(--border-color)] shadow-inner relative flex flex-col md:h-full min-h-[500px]">
+          <div ref={editorRef} className="w-full md:w-2/3 paper-panel rounded-lg bg-white border border-[var(--border-color)] shadow-inner relative flex flex-col min-h-[500px] mb-8">
              {/* Editor Toolbar */}
              <div className="h-12 bg-[var(--surface-color)] border-b border-[var(--border-color)] flex items-center justify-between px-4 flex-shrink-0">
                 <div className="flex items-center gap-2 overflow-hidden">
@@ -847,7 +847,7 @@ ${collabLogs.length === 0 ? "*(No external logs available)*" : collabLogs.map(l 
                 </div>
              </div>
   
-             <div className="flex-1 overflow-y-auto relative p-6 md:p-10 flex flex-col">
+             <div className="p-6 md:p-10 flex flex-col">
                 {mentorReviewLoading && (
                    <div className="absolute inset-0 bg-amber-50/90 z-20 flex items-center justify-center backdrop-blur-sm">
                       <div className="text-center text-amber-800">

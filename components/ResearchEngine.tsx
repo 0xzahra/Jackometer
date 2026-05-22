@@ -380,7 +380,7 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
 
       {/* STAGE 3: WRITER */}
       {stage === 'WRITER' && selectedTitle && (
-        <div className="flex flex-col flex-1 h-full min-h-0 pt-4">
+        <div className="flex flex-col flex-1 min-h-0 pt-4">
           {/* Header */}
           <div className="flex justify-between items-center mb-6 px-2">
              <div>
@@ -395,10 +395,10 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
              </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 flex-1 h-full min-h-0">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 flex-1 min-h-0 mb-8">
              
              {/* Chapter Sidebar */}
-             <div className="col-span-1 md:col-span-3 glass-panel flex flex-col overflow-hidden h-full">
+             <div className="col-span-1 md:col-span-3 glass-panel flex flex-col h-auto md:h-full max-h-[400px] md:max-h-none overflow-hidden">
                 <div className="p-4 bg-[var(--surface-color)] border-b border-[var(--border-color)]">
                    <h3 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Table of Contents</h3>
                 </div>
@@ -417,7 +417,7 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
              </div>
 
              {/* Editor Area */}
-             <div className="col-span-1 md:col-span-9 glass-panel flex flex-col h-full relative overflow-hidden">
+             <div className="col-span-1 md:col-span-9 glass-panel flex flex-col min-h-[500px] relative">
                 <div className="p-4 border-b border-[var(--border-color)] flex justify-between items-center bg-[var(--surface-color)] gap-4">
                    <h3 className="font-bold text-lg text-[var(--text-primary)] truncate flex-1">{chapters[activeChapterIndex]}</h3>
                    <div className="flex items-center gap-3">
@@ -436,7 +436,7 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
                    </div>
                 </div>
                 
-                <div ref={resultRef} className="flex-1 overflow-y-auto p-8 md:p-12 bg-white/50 dark:bg-black/20">
+                <div ref={resultRef} className="p-8 md:p-12 bg-white/50 dark:bg-black/20">
                    {loading && (
                       <div className="absolute inset-0 bg-white/80 z-20 flex flex-col items-center justify-center backdrop-blur-sm animate-fade-in">
                          <div className="w-16 h-16 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin mb-4"></div>

@@ -114,7 +114,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
         className={`fixed inset-y-0 left-0 z-40 bg-gradient-to-b from-emerald-900 to-emerald-950 dark:from-[#022c22] dark:to-[#064e3b] border-r border-[var(--border-color)] flex flex-col py-8 shadow-2xl transition-transform duration-300 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} w-72 backdrop-blur-xl`}
       >
         <div className="px-8 mb-6 flex justify-between items-center">
-          <div>
+          <div className="flex items-center gap-3">
+            <img src="/jackometer-logo.svg" alt="Jackometer" className="w-8 h-8 rounded-lg" />
             <div className="text-2xl font-bold font-sans text-white tracking-tight cursor-pointer" onClick={() => { setView(AppView.DASHBOARD); setSidebarOpen(false); }}>
               Jackometer
             </div>
@@ -229,7 +230,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
         </header>
 
         {/* Content */}
-        <div className="flex-1 overflow-hidden relative">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden relative min-h-0">
           {children}
         </div>
 

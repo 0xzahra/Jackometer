@@ -53,8 +53,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
           </h1>
         </div>
 
-        {/* 4 Main Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+        {/* Main Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           <StickyCard 
             title="Start Research" 
             desc="Generate topic ideas & structured outlines."

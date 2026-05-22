@@ -511,9 +511,9 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
        </div>
 
        {viewMode === 'REPORT' ? (
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 overflow-hidden">
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 min-h-0 pb-10">
            {/* Input Side */}
-           <div className="paper-panel p-6 rounded-sm overflow-y-auto space-y-6">
+           <div className="paper-panel p-6 rounded-sm overflow-y-auto space-y-6 md:h-full h-auto">
              
              {/* Basic Info */}
              <div>
@@ -648,7 +648,7 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
            </div>
   
            {/* Output Side */}
-           <div className="paper-panel p-10 rounded-sm flex-1 overflow-y-auto bg-white border border-[var(--border-color)] relative">
+           <div className="paper-panel p-10 rounded-sm flex-1 mb-8 overflow-y-auto bg-white border border-[var(--border-color)] relative min-h-[600px] md:h-full max-h-[80vh] md:max-h-none">
              {activeDoc.report ? (
                <>
                  <div className="absolute top-4 right-4 flex gap-2">
