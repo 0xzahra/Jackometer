@@ -12,30 +12,19 @@ const StickyCard: React.FC<{
   color?: string;
   onClick: () => void;
 }> = ({ title, desc, icon, color = 'var(--surface-color)', onClick }) => {
-  // Generate random rotation on mount for realism
-  const [rotation, setRotation] = useState(0);
-  
-  useEffect(() => {
-    // Random rotation between -1.5 and 1.5 degrees
-    setRotation((Math.random() * 3) - 1.5);
-  }, []);
-
   return (
     <div 
       onClick={onClick}
-      className="sticky-card p-6 rounded-sm h-64 flex flex-col justify-between cursor-pointer select-none border-t-2 border-t-white/50"
-      style={{ 
-        backgroundColor: color,
-        transform: `rotate(${rotation}deg)` 
-      }}
+      className="sticky-card p-6 rounded-sm h-48 flex flex-col justify-between cursor-pointer select-none border-t-2 border-t-[var(--primary)] hover:shadow-lg transition-all"
+      style={{ backgroundColor: color }}
     >
-      <div className="flex justify-between items-start mb-4">
+      <div className="flex justify-between items-start">
         <span className="material-icons text-3xl opacity-70 text-[var(--text-primary)]">{icon}</span>
       </div>
       
-      <div>
-        <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2 font-sans leading-tight">{title}</h3>
-        <p className="text-xs text-[var(--text-secondary)] leading-relaxed line-clamp-3">{desc}</p>
+      <div className="mt-4 flex-1">
+        <h3 className="text-xl font-bold text-[var(--text-primary)] mb-1 font-sans leading-tight">{title}</h3>
+        <p className="text-sm text-[var(--text-secondary)] line-clamp-1">{desc}</p>
       </div>
 
       <div className="flex items-center text-xs font-bold text-[var(--accent)] uppercase tracking-widest mt-2 group">
@@ -54,9 +43,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
     { text: "Research is creating new knowledge.", author: "Neil Armstrong" },
     { text: "The best way to predict the future is to create it.", author: "Peter Drucker" },
     { text: "Excellence is not an act, but a habit.", author: "Aristotle" },
-    { text: "It always seems impossible until it's done.", author: "Nelson Mandela" },
-    { text: "Knowledge is power.", author: "Francis Bacon" },
-    { text: "What we know is a drop, what we don't know is an ocean.", author: "Isaac Newton" }
+    { text: "It always seems impossible until it's done.", author: "Nelson Mandela" }
   ];
 
   useEffect(() => {
@@ -71,116 +58,106 @@ export const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
 
   return (
     <div className="w-full h-full overflow-y-auto">
-    <div className="max-w-7xl mx-auto pb-10 relative">
-      <div className="mb-12 text-center pt-8">
-        <h1 className="text-5xl font-sans font-bold text-[var(--text-primary)] mb-2 tracking-tight">
-          {greeting}, Scholar.
-        </h1>
-        <p className="text-[var(--text-secondary)] max-w-2xl mx-auto text-lg font-sans italic mb-2 relative inline-block">
-          <span className="text-4xl text-[var(--border-color)] absolute -left-6 -top-2">"</span>
-          {quote.text}
-          <span className="text-4xl text-[var(--border-color)] absolute -right-6 -bottom-4">"</span>
-        </p>
-        <p className="text-xs font-bold text-[var(--accent)] uppercase tracking-widest mt-4">— {quote.author}</p>
-      </div>
+      <div className="max-w-7xl mx-auto pb-10 relative px-4">
+        <div className="mb-20 text-center pt-16">
+          <h1 className="text-5xl font-sans font-bold text-[var(--text-primary)] mb-6 tracking-tight">
+            {greeting}, Scholar.
+          </h1>
+          <p className="text-[var(--text-secondary)] max-w-2xl mx-auto text-lg font-sans italic relative inline-block">
+            <span className="text-4xl text-[var(--border-color)] absolute -left-6 -top-2">"</span>
+            {quote.text}
+            <span className="text-4xl text-[var(--border-color)] absolute -right-6 -bottom-4">"</span>
+          </p>
+          <p className="text-xs font-bold text-[var(--accent)] uppercase tracking-widest mt-4">— {quote.author}</p>
+        </div>
 
-      {/* CORE MISSION STATEMENT & STATS */}
-      <div className="max-w-4xl mx-auto px-4 mb-12 flex flex-col md:flex-row gap-6">
-         <div className="paper-panel p-8 rounded-xl flex-1 shadow-lg border border-[var(--primary)] text-center relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[var(--primary)]/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out"></div>
-            <span className="material-icons text-5xl text-[var(--accent)] mb-4 opacity-80">workspace_premium</span>
-            <p className="text-[var(--text-primary)] text-sm leading-relaxed font-serif relative z-10">
-               With <strong className="text-[var(--accent)] font-sans tracking-tight">Jackometer</strong>, you do not have to worry about writing project documents, review essays, scholar assignments, journals, literature reviews, or technical reports from scratch.
-            </p>
-         </div>
-         
-         {/* Live Statistics */}
-         <div className="paper-panel p-6 rounded-xl md:w-1/3 border border-[var(--border-color)] flex flex-col justify-center">
-            <h3 className="text-xs font-bold font-sans text-[var(--text-secondary)] uppercase tracking-widest mb-4 border-b border-[var(--border-color)] pb-2">Active Scholars</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-[10px] text-[var(--text-secondary)] uppercase">Today</p>
-                <p className="text-xl font-bold text-[var(--primary)]">1,402</p>
-              </div>
-              <div>
-                <p className="text-[10px] text-[var(--text-secondary)] uppercase">Yesterday</p>
-                <p className="text-xl font-bold text-[var(--text-primary)]">1,250</p>
-              </div>
-              <div>
-                <p className="text-[10px] text-[var(--text-secondary)] uppercase">This Week</p>
-                <p className="text-xl font-bold text-[var(--text-primary)]">8,934</p>
-              </div>
-              <div>
-                <p className="text-[10px] text-[var(--text-secondary)] uppercase">This Year</p>
-                <p className="text-xl font-bold text-[var(--accent)]">142K</p>
-              </div>
-            </div>
-         </div>
-      </div>
+        <div className="max-w-4xl mx-auto mb-16">
+           <div className="paper-panel p-8 rounded-xl w-full shadow-md border border-[var(--primary)] text-center relative overflow-hidden group">
+              <span className="material-icons text-4xl text-[var(--accent)] mb-3 opacity-80">workspace_premium</span>
+              <p className="text-[var(--text-primary)] text-sm leading-relaxed font-serif relative z-10">
+                 With <strong className="text-[var(--accent)] font-sans tracking-tight">Jackometer</strong>, you do not have to worry about writing project documents, review essays, scholar assignments, journals, literature reviews, or technical reports from scratch.
+              </p>
+           </div>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 px-4">
-        <StickyCard 
-          title="Topic Ideas" 
-          desc="Generate topics and research structured outlines."
-          icon="lightbulb"
-          onClick={() => setView(AppView.RESEARCH)}
-        />
-        <StickyCard 
-          title="Projects" 
-          desc="View, edit, trace versions, and share all generated documents."
-          icon="folder"
-          onClick={() => setView(AppView.PROJECTS)}
-        />
-        <StickyCard 
-          title="Document Writer" 
-          desc="Draft comprehensive, strictly formatted academic documents."
-          icon="description"
-          onClick={() => setView(AppView.DOCUMENT_WRITER)}
-        />
-        <StickyCard 
-          title="Assignment Solver" 
-          desc="Solve assignments, summarize, and review essays."
-          icon="assignment"
-          onClick={() => setView(AppView.ASSIGNMENT)}
-        />
-        <StickyCard 
-          title="Field Trip" 
-          desc="GPS, Weather & Rapid Presentation."
-          icon="landscape"
-          onClick={() => setView(AppView.FIELD_TRIP)}
-        />
-        <StickyCard 
-          title="Technical Report" 
-          desc="SIWES & Industrial Reports."
-          icon="engineering"
-          onClick={() => setView(AppView.TECHNICAL_REPORT)}
-        />
-        <StickyCard 
-          title="Lab Report" 
-          desc="Experiment analysis & tabulation."
-          icon="science"
-          onClick={() => setView(AppView.LAB_REPORT)}
-        />
-        <StickyCard 
-          title="Data Cruncher" 
-          desc="Statistical & Bio-systematic analysis."
-          icon="analytics"
-          onClick={() => setView(AppView.DATA_CRUNCHER)}
-        />
-        <StickyCard 
-          title="File Compressor" 
-          desc="Universal file compressor & optimizer."
-          icon="folder_zip"
-          onClick={() => setView(AppView.COMPRESSOR)}
-        />
-        <StickyCard 
-          title="Career Growth" 
-          desc="Personal refinement, CV, Resume & Passport builder."
-          icon="work_outline"
-          onClick={() => setView(AppView.CAREER)}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 px-2 mb-20">
+          <StickyCard 
+            title="Topic Ideas" 
+            desc="Generate topics & structured outlines."
+            icon="lightbulb"
+            onClick={() => setView(AppView.RESEARCH)}
+          />
+          <StickyCard 
+            title="Lit Review Engine" 
+            desc="6-Stage Literature Review Assembly."
+            icon="library_books"
+            onClick={() => setView(AppView.LIT_REVIEW)}
+          />
+          <StickyCard 
+            title="Projects" 
+            desc="Manage & share all generated docs."
+            icon="folder"
+            onClick={() => setView(AppView.PROJECTS)}
+          />
+          <StickyCard 
+            title="Document Writer" 
+            desc="Draft academic documents."
+            icon="description"
+            onClick={() => setView(AppView.DOCUMENT_WRITER)}
+          />
+          <StickyCard 
+            title="Assignment Solver" 
+            desc="Solve assignments & review essays."
+            icon="assignment"
+            onClick={() => setView(AppView.ASSIGNMENT)}
+          />
+          <StickyCard 
+            title="Field Trip" 
+            desc="GPS & Rapid Presentation."
+            icon="landscape"
+            onClick={() => setView(AppView.FIELD_TRIP)}
+          />
+          <StickyCard 
+            title="Technical Report" 
+            desc="SIWES & Industrial Reports."
+            icon="engineering"
+            onClick={() => setView(AppView.TECHNICAL_REPORT)}
+          />
+          <StickyCard 
+            title="Data Cruncher" 
+            desc="Statistical & Bio-systematic analysis."
+            icon="analytics"
+            onClick={() => setView(AppView.DATA_CRUNCHER)}
+          />
+        </div>
+
+        {/* Platform Stats at the bottom */}
+        <div className="max-w-4xl mx-auto">
+           <details className="paper-panel p-6 rounded-xl border border-[var(--border-color)] cursor-pointer outline-none">
+              <summary className="text-xs font-bold font-sans text-[var(--text-secondary)] uppercase tracking-widest outline-none list-none text-center flex items-center justify-center gap-2">
+                 <span className="material-icons text-sm">insights</span> Platform Stats
+              </summary>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-6 mt-6 border-t border-[var(--border-color)] text-center">
+                <div>
+                  <p className="text-[10px] text-[var(--text-secondary)] uppercase">Today</p>
+                  <p className="text-xl font-bold text-[var(--primary)]">1,402</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-[var(--text-secondary)] uppercase">Yesterday</p>
+                  <p className="text-xl font-bold text-[var(--text-primary)]">1,250</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-[var(--text-secondary)] uppercase">This Week</p>
+                  <p className="text-xl font-bold text-[var(--text-primary)]">8,934</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-[var(--text-secondary)] uppercase">This Year</p>
+                  <p className="text-xl font-bold text-[var(--accent)]">142K</p>
+                </div>
+              </div>
+           </details>
+        </div>
       </div>
-    </div>
     </div>
   );
 };

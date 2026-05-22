@@ -235,8 +235,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
 
         {/* Footer */}
         <footer className="h-10 border-t border-[var(--border-color)] bg-[var(--panel-bg)] flex items-center justify-between px-8 text-xs font-sans text-[var(--text-secondary)] flex-shrink-0">
-           <span>Jackometer v2050</span>
-           <span className="font-bold opacity-70">Vibe coded by arewa.base.eth</span>
+           <span>© 2025 Jackometer. All rights reserved.</span>
         </footer>
       </main>
 

@@ -751,7 +751,8 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
                 </div>
              )}
           </div>
-       ))}
-    </div>
-  );
-};
+          )
+        )}
+     </div>
+   );
+ };
