@@ -133,10 +133,12 @@ export const Community: React.FC = () => {
 
   const currentGroupData = groups.find(g => g.id === activeGroup);
 
+  const [selectedShowcaseId, setSelectedShowcaseId] = useState<string | null>(null);
+
   const [showcaseItems, setShowcaseItems] = useState([
-    { id: 's1', title: 'The Ethics of Machine Sentience', author: 'Dr. Sarah Connor', type: 'Journal', likes: 142, discussion: 23, downloads: 400 },
-    { id: 's2', title: 'CRISPR Applications in Agriculture', author: 'John Doe', type: 'Research Report', likes: 89, discussion: 12, downloads: 156 },
-    { id: 's3', title: 'Macroeconomic Shifts Post-2020', author: 'Jane Goodall', type: 'Essay', likes: 54, discussion: 5, downloads: 40 },
+    { id: 's1', title: 'The Ethics of Machine Sentience', author: 'Dr. Sarah Connor', type: 'Journal', likes: 142, discussion: 23, downloads: 400, content: 'This is the full text of the ethical implications of machine learning and sentience. It discusses the various challenges...' },
+    { id: 's2', title: 'CRISPR Applications in Agriculture', author: 'John Doe', type: 'Research Report', likes: 89, discussion: 12, downloads: 156, content: 'Analysis of CRISPR applications in improving crop resilience against prolonged droughts.' },
+    { id: 's3', title: 'Macroeconomic Shifts Post-2020', author: 'Jane Goodall', type: 'Essay', likes: 54, discussion: 5, downloads: 40, content: 'An essay on the swift changes in macroeconomic indicators following global supply chain disruptions.' },
   ]);
 
   return (
@@ -191,48 +193,90 @@ export const Community: React.FC = () => {
         {/* Main Content Area */}
         <div className="w-full md:w-2/3 paper-panel flex flex-col overflow-hidden bg-[var(--surface-color)] relative rounded-2xl shadow-xl border border-[var(--border-color)]">
            {activeGroup === 'SHOWCASE' ? (
-             <div className="flex flex-col h-full overflow-y-auto p-6 md:p-8">
-               <div className="mb-8">
-                 <h2 className="text-3xl font-bold font-serif text-[var(--text-primary)] mb-2">Community Showcase</h2>
-                 <p className="text-[var(--text-secondary)]">Explore outstanding projects published by fellow scholars.</p>
-               </div>
-               
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                 {showcaseItems.map(item => (
-                   <div key={item.id} className="glass-panel p-6 rounded-2xl border border-[var(--border-color)] flex flex-col hover:border-[var(--accent)] hover:shadow-lg transition-all group">
-                     <div className="absolute top-4 right-4 bg-[var(--surface-color)] px-2 py-0.5 rounded text-[10px] font-bold uppercase border border-[var(--border-color)] text-[var(--primary)] shadow-sm">
-                       {item.type}
-                     </div>
-                     <h3 className="font-bold text-lg text-[var(--text-primary)] mb-2 mt-4 leading-snug">{item.title}</h3>
-                     
-                     <div className="mt-auto pt-4 border-t border-[var(--border-color)] flex items-center justify-between">
-                       <div className="flex items-center gap-2">
-                         <div className="w-6 h-6 rounded-full bg-[var(--primary)]/20 flex items-center justify-center">
-                           <span className="material-icons text-[10px] text-[var(--primary)]">person</span>
+             <div className="flex flex-col h-full overflow-y-auto p-4 md:p-8">
+               {selectedShowcaseId ? (() => {
+                  const item = showcaseItems.find(i => i.id === selectedShowcaseId);
+                  if (!item) return null;
+                  return (
+                    <div className="flex flex-col h-full bg-white rounded-lg shadow-inner overflow-hidden border border-[var(--border-color)]">
+                      <div className="p-4 border-b border-[var(--border-color)] bg-[var(--surface-color)] shrink-0 flex items-center justify-between flex-wrap gap-2">
+                         <button onClick={() => setSelectedShowcaseId(null)} className="btn-outline-sketch px-3 py-1 flex items-center gap-1 opacity-80 hover:opacity-100 transition-opacity">
+                            <span className="material-icons text-sm">arrow_back</span> Back
+                         </button>
+                         <h3 className="font-bold text-[var(--text-primary)] text-lg truncate flex-1 md:text-center w-full md:w-auto mt-2 md:mt-0">{item.title}</h3>
+                         <div className="flex gap-2 w-full justify-end md:w-auto flex-wrap mt-2 md:mt-0">
+                           <button className="btn-outline-sketch px-3 py-1 text-xs gap-1 flex items-center">
+                             <span className="material-icons text-sm">favorite</span> {item.likes}
+                           </button>
+                           <button className="btn-3d px-3 py-1 text-xs gap-1 flex items-center">
+                             <span className="material-icons text-sm">download</span> {item.downloads}
+                           </button>
                          </div>
-                         <span className="text-xs font-bold text-[var(--text-secondary)]">{item.author}</span>
-                       </div>
-                       
-                       <div className="flex items-center gap-3">
-                         <button 
-                           className="flex items-center gap-1 text-xs font-bold text-[var(--text-secondary)] hover:text-red-500 transition-colors"
-                         >
-                           <span className="material-icons text-[14px]">favorite_border</span>
-                           {item.likes}
-                         </button>
-                         <button className="flex items-center gap-1 text-xs font-bold text-[var(--text-secondary)] hover:text-[var(--primary)] transition-colors">
-                           <span className="material-icons text-[14px]">chat_bubble_outline</span>
-                           {item.discussion}
-                         </button>
-                         <button className="flex items-center gap-1 text-xs font-bold text-[var(--text-secondary)] hover:text-blue-500 transition-colors">
-                           <span className="material-icons text-[14px]">file_download</span>
-                           {item.downloads}
-                         </button>
-                       </div>
-                     </div>
+                      </div>
+                      
+                      <div className="flex flex-col md:flex-row flex-1 min-h-0">
+                        {/* Document View */}
+                        <div className="w-full md:w-2/3 h-full overflow-y-auto p-6 md:p-8 border-b md:border-b-0 md:border-r border-[var(--border-color)]">
+                           <div className="whitespace-pre-wrap break-words leading-relaxed font-serif text-[var(--text-primary)] pb-10">
+                              {item.content || "Empty document"}
+                           </div>
+                        </div>
+                        
+                        {/* Comments Sidebar */}
+                        <div className="w-full md:w-1/3 h-full bg-[var(--bg-color)] p-4 overflow-y-auto min-h-[300px]">
+                           <h4 className="font-bold text-sm text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                             <span className="material-icons text-sm">forum</span> Discussion ({item.discussion})
+                           </h4>
+                           <div className="text-center italic text-xs text-[var(--text-secondary)] py-10 opacity-70">
+                              No comments yet. Be the first to discuss!
+                           </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+               })() : (
+                 <>
+                   <div className="mb-8">
+                     <h2 className="text-3xl font-bold font-serif text-[var(--text-primary)] mb-2">Community Showcase</h2>
+                     <p className="text-[var(--text-secondary)] text-sm md:text-base">Explore outstanding projects published by fellow scholars.</p>
                    </div>
-                 ))}
-               </div>
+                   
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                     {showcaseItems.map(item => (
+                       <div key={item.id} className="sketch-card p-6 flex flex-col hover:border-[var(--accent)] hover:shadow-lg transition-all group cursor-pointer" onClick={() => setSelectedShowcaseId(item.id)}>
+                         <div className="absolute top-4 right-4 bg-[var(--surface-color)] px-2 py-0.5 rounded text-[10px] font-bold uppercase border border-[var(--border-color)] text-[var(--primary)] shadow-sm">
+                           {item.type}
+                         </div>
+                         <h3 className="font-bold text-lg text-[var(--text-primary)] mb-2 mt-4 leading-snug">{item.title}</h3>
+                         
+                         <div className="mt-auto pt-4 border-t border-[var(--border-color)] flex items-center justify-between">
+                           <div className="flex items-center gap-2">
+                             <div className="w-6 h-6 rounded-full bg-[var(--primary)]/20 flex items-center justify-center">
+                               <span className="material-icons text-[10px] text-[var(--primary)]">person</span>
+                             </div>
+                             <span className="text-xs font-bold text-[var(--text-secondary)]">{item.author}</span>
+                           </div>
+                           
+                           <div className="flex items-center gap-3">
+                             <button className="flex items-center gap-1 text-xs font-bold text-[var(--text-secondary)] hover:text-red-500 transition-colors">
+                               <span className="material-icons text-[14px]">favorite_border</span>
+                               {item.likes}
+                             </button>
+                             <button className="flex items-center gap-1 text-xs font-bold text-[var(--text-secondary)] hover:text-[var(--primary)] transition-colors">
+                               <span className="material-icons text-[14px]">chat_bubble_outline</span>
+                               {item.discussion}
+                             </button>
+                             <button className="flex items-center gap-1 text-xs font-bold text-[var(--text-secondary)] hover:text-blue-500 transition-colors">
+                               <span className="material-icons text-[14px]">file_download</span>
+                               {item.downloads}
+                             </button>
+                           </div>
+                         </div>
+                       </div>
+                     ))}
+                   </div>
+                 </>
+               )}
              </div>
            ) : !activeGroup ? (
            <div className="flex-1 flex flex-col items-center justify-center text-[var(--text-secondary)] opacity-50 p-8 text-center">

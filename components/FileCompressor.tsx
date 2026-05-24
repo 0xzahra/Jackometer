@@ -193,7 +193,7 @@ export const FileCompressor: React.FC = () => {
             <div className="bg-[var(--surface-color)] p-4 rounded-xl border border-[var(--border-color)] text-xs text-[var(--text-primary)] shadow-sm">
                <p className="font-bold mb-2 flex items-center"><span className="material-icons text-sm align-middle mr-1 text-[var(--primary)]">info</span> How it works:</p>
                <ul className="list-disc pl-5 space-y-2 opacity-80">
-                 <li><strong>Images (JPG, PNG, WebP):</strong> Compressed seamlessly in the background (Web Workers) without freezing the UI.</li>
+                 <li><strong>Images (JPG, PNG, WebP):</strong> Compressed quietly in the background (Web Workers) without freezing the UI.</li>
                  <li><strong>Documents (PDF, DOCX) & Other:</strong> Losslessly archived into ZIP format for optimal delivery.</li>
                </ul>
             </div>

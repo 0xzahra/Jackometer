@@ -79,6 +79,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
             icon="record_voice_over"
             onClick={() => setView(AppView.DEFENSE_PREP)}
           />
+          <StickyCard 
+            title="Slop Shield" 
+            desc="Detect and remove academic filler text."
+            icon="security"
+            onClick={() => setView(AppView.SLOP_SHIELD)}
+          />
+          <StickyCard 
+            title="Statistics" 
+            desc="Usage timeline and insights."
+            icon="bar_chart"
+            onClick={() => setView(AppView.STATISTICS)}
+          />
         </div>
 
         {/* Secondary Tools */}

@@ -299,8 +299,11 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                 <span className="material-icons skill-symbol" style={{ right: '80%', top: '50%', animationDelay: '3.5s', fontSize: '40px' }}>biotech</span>
                 <span className="material-icons skill-symbol" style={{ left: '80%', top: '40%', animationDelay: '1.5s', fontSize: '22px' }}>calculate</span>
             </div>
-
-            <h2 className="text-4xl font-sans font-bold text-[var(--text-primary)] mb-2 relative z-10">Jackometer</h2>
+            
+            <div className="flex flex-col items-center justify-center relative z-10 mb-2">
+              <img src="/jackometer-logo.svg" alt="Jackometer logo" className="w-16 h-16 mb-4 drop-shadow-md" />
+              <h2 className="text-4xl font-sans font-bold text-[var(--text-primary)] mb-2">Jackometer</h2>
+            </div>
             <p className="text-[var(--text-secondary)] uppercase tracking-widest text-xs font-bold relative z-10">Academic Intelligence Suite</p>
           </div>
 

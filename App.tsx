@@ -20,6 +20,9 @@ import { FileCompressor } from './components/FileCompressor';
 import { Profile } from './components/Profile';
 import { Auth } from './components/Auth';
 import { GlobalDialogs } from './components/GlobalDialogs';
+import { Statistics } from './components/Statistics';
+import { Onboarding } from './components/Onboarding';
+import { SlopShieldPage } from './components/SlopShieldPage';
 import { AppView, UserProfile } from './types';
 
 // Mock Live API Context
@@ -173,7 +176,7 @@ export default function App() {
     return (
       <div 
         key={view} 
-        style={{ display: currentView === view ? 'flex' : 'none', flexDirection: 'column', height: '100%', overflow: 'hidden' }}
+        style={{ display: currentView === view ? 'flex' : 'none', flexDirection: 'column', minHeight: 0, flex: 1, overflowY: 'auto', overflowX: 'hidden' }}
         className="animate-fade-in w-full"
       >
         {Component}
@@ -285,9 +288,12 @@ export default function App() {
               {renderPersistentView(AppView.INBOX, <Inbox setView={handleSetView} />)}
               {renderPersistentView(AppView.NOTIFICATIONS, <Notifications setView={handleSetView} />)}
               {renderPersistentView(AppView.PROFILE, <Profile user={user} onUpdateUser={handleUpdateUser} />)}
+              {renderPersistentView(AppView.SLOP_SHIELD, <SlopShieldPage />)}
+              {renderPersistentView(AppView.STATISTICS, <Statistics />)}
             </Layout>
             
             <GlobalDialogs />
+            <Onboarding />
             <VoiceAssistant />
           </ErrorBoundary>
         </motion.div>

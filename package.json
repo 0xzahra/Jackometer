@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@google/genai": "^1.38.0",
+    "@supabase/supabase-js": "^2.106.1",
     "browser-image-compression": "^2.0.2",
     "docx": "^9.6.1",
     "framer-motion": "11.3.0",
@@ -30,7 +31,7 @@
     "vite": "^6.2.0"
   },
   "optionalDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "latest",
-    "@rollup/rollup-linux-arm64-gnu": "latest"
+    "@rollup/rollup-linux-arm64-gnu": "latest",
+    "@rollup/rollup-linux-x64-gnu": "latest"
   }
 }

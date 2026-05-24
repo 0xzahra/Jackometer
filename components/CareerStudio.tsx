@@ -130,7 +130,7 @@ export const CareerStudio: React.FC = () => {
   };
 
   return (
-    <div className="w-full h-full flex flex-col pt-2">
+    <div className="w-full flex flex-col pt-2 max-w-7xl mx-auto px-4 md:px-8 pb-10">
       <div className="flex justify-between items-center mb-6 border-b border-[var(--border-color)] overflow-x-auto">
         <div className="flex">
           {['PASSPORT', 'CV', 'RESUME', 'REVIEW'].map((t) => (
@@ -186,8 +186,8 @@ export const CareerStudio: React.FC = () => {
       )}
 
       {(tool === 'CV' || tool === 'RESUME') && (
-        <div className="grid grid-cols-12 gap-8 h-full">
-           <div className="col-span-5 paper-panel p-8 rounded-sm overflow-y-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+           <div className="lg:col-span-4 paper-panel p-6 md:p-8 rounded-sm">
              <h3 className="text-xl font-serif font-bold text-[var(--text-primary)] mb-6">{tool} Inputs</h3>
              <div className="space-y-4">
                <input name="fullName" value={formData.fullName} onChange={handleDataChange} className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] p-3 rounded text-[var(--text-primary)] outline-none" placeholder="Full Name" />
@@ -200,9 +200,11 @@ export const CareerStudio: React.FC = () => {
              </div>
            </div>
 
-           <div className="col-span-7 paper-panel p-12 rounded-sm overflow-y-auto bg-white border border-[var(--border-color)] shadow-2xl relative min-h-[600px]">
+           <div className="lg:col-span-8 paper-panel p-8 md:p-12 rounded-sm bg-white border border-[var(--border-color)] shadow-2xl relative min-h-[400px]">
               {docOutput ? (
-                <pre className="whitespace-pre-wrap font-serif text-sm leading-relaxed text-black">{docOutput}</pre>
+                <div className="w-full max-w-4xl mx-auto overflow-y-auto max-h-[70vh]">
+                  <pre className="whitespace-pre-wrap font-serif text-sm leading-relaxed text-black break-words">{docOutput}</pre>
+                </div>
               ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-[var(--text-secondary)] opacity-30"><span className="material-icons text-6xl mb-4">description</span><p className="font-serif text-xl">Preview Canvas</p></div>
               )}
@@ -211,8 +213,8 @@ export const CareerStudio: React.FC = () => {
       )}
 
       {tool === 'REVIEW' && (
-         <div className="grid grid-cols-12 gap-8 h-full">
-            <div className="col-span-12 md:col-span-5 paper-panel p-8 rounded-sm overflow-y-auto">
+         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className="lg:col-span-5 paper-panel p-6 md:p-8 rounded-sm">
                <h3 className="text-xl font-serif font-bold text-[var(--text-primary)] mb-2">Upload Existing</h3>
                <p className="text-xs text-[var(--text-secondary)] mb-6">Upload your CV/Resume (PDF, Image, or Word) or paste the text directly for an AI critique & rewrite.</p>
                
@@ -267,18 +269,20 @@ export const CareerStudio: React.FC = () => {
                </div>
             </div>
 
-            <div className="col-span-12 md:col-span-7 paper-panel p-12 rounded-sm overflow-y-auto bg-white border border-[var(--border-color)] shadow-2xl relative min-h-[600px]">
+            <div className="lg:col-span-7 paper-panel p-6 md:p-12 rounded-sm bg-white border border-[var(--border-color)] shadow-2xl relative min-h-[400px]">
                {reviewOutput ? (
-                 <article className="prose prose-sm max-w-none">
-                   <div className="whitespace-pre-wrap font-serif text-sm leading-relaxed text-black">
-                     {reviewOutput}
-                   </div>
-                 </article>
+                 <div className="w-full max-w-4xl mx-auto overflow-y-auto max-h-[70vh]">
+                   <article className="prose prose-sm max-w-none">
+                     <div className="whitespace-pre-wrap font-serif text-sm leading-relaxed text-black break-words">
+                       {reviewOutput}
+                     </div>
+                   </article>
+                 </div>
                ) : (
                  <div className="absolute inset-0 flex flex-col items-center justify-center text-[var(--text-secondary)] opacity-30">
                    <span className="material-icons text-6xl mb-4">rate_review</span>
                    <p className="font-serif text-xl">Review Output Canvas</p>
-                   <p className="text-xs mt-2">Improved version will appear here.</p>
+                   <p className="text-xs mt-2">Improved draft will appear here.</p>
                  </div>
                )}
             </div>

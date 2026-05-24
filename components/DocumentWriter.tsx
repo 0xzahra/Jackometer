@@ -3,7 +3,7 @@ import { generateSectionContent, searchYouTubeVideos, downloadFile, generateImag
 import { YouTubeVideo, Citation, Collaborator, AppendixItem, UserSearchResult, SlideDeck } from '../types';
 import { CollaborationModal } from './CollaborationModal';
 import { customAlert, customConfirm } from '../lib/dialogs';
-
+import { SlopShield } from './SlopShield';
 
 interface DocSection {
   id: string;
@@ -876,11 +876,19 @@ ${collabLogs.length === 0 ? "*(No external logs available)*" : collabLogs.map(l 
                        placeholder="Start typing or click 'Write Section'..."
                      />
                    ) : (
-                     <article className="prose prose-slate max-w-none pb-4">
-                       <div className="whitespace-pre-wrap font-serif text-base text-[var(--text-primary)] font-normal leading-relaxed">
-                         {renderContent(activeSection?.content || '')}
-                       </div>
-                     </article>
+                     <div>
+                       <article className="prose prose-slate max-w-none pb-4">
+                         <div className="whitespace-pre-wrap font-serif text-base text-[var(--text-primary)] font-normal leading-relaxed">
+                           {renderContent(activeSection?.content || '')}
+                         </div>
+                       </article>
+                       <SlopShield
+                         text={activeSection?.content || ''}
+                         onSharpened={(sharpened) => {
+                           handleSectionContentEditDebounced(sharpened);
+                         }}
+                       />
+                     </div>
                    )
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full text-[var(--text-secondary)] opacity-50 py-20">

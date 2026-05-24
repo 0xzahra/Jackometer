@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserProfile } from '../types';
 import { customAlert, customConfirm } from '../lib/dialogs';
-
+import { isSupabaseConfigured } from '../services/supabaseClient';
 
 interface SettingsProps {
   user: UserProfile;
@@ -97,6 +97,19 @@ export const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser }) => {
                </div>
             </div>
          </div>
+      </div>
+
+      <div className="sketch-card p-4 my-4">
+        <div className="font-bold text-xs uppercase tracking-wide text-[var(--accent)]">
+          {isSupabaseConfigured
+            ? "Cloud sync active"
+            : "Local-only mode"}
+        </div>
+        <div className="text-xs text-[var(--text-secondary)] mt-1">
+          {isSupabaseConfigured
+            ? "Your login and progress are saved securely."
+            : "Add Supabase environment variables to enable cloud sync."}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

@@ -5,64 +5,58 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Jackometer</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;700&family=Material+Icons&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Inter:wght@300;400;500;600;700&family=Material+Icons&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
     <style>
       :root {
-        /* Opus UI - Light */
-        --bg-color: #f7f9f8; /* Pearl Milk */
-        --surface-color: rgba(255, 255, 255, 0.7); /* True Frost Glass */
-        --panel-bg: rgba(255, 255, 255, 0.85);
-        --primary: #047857; /* Rich Emerald Green */
-        --accent: #059669; /* Rich Emerald */
-        --on-primary: #ffffff;
-        --text-primary: #1e293b; /* Deep Slate */
-        --text-secondary: #475569;
-        --border-color: rgba(255, 255, 255, 0.6);
-        --emerald-glow: 0 0 20px rgba(5, 150, 105, 0.08);
-        
-        /* Modern 3D Shadows & Depth Opus UI */
-        --shadow-sm: 0 3px 6px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.08);
-        --shadow-glass: 0 16px 32px rgba(0, 0, 0, 0.06), inset 0 2px 4px rgba(255,255,255,0.8), inset 0 -1px 2px rgba(0,0,0,0.02);
-        --shadow-hover: 0 24px 48px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(5, 150, 105, 0.15), inset 0 2px 4px rgba(255,255,255,1), transform scale(1.02);
-        --glass-border: 1px solid rgba(255, 255, 255, 0.7);
-        --btn-shadow: 0 4px 10px rgba(4, 120, 87, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.3), inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+        --primary: #111111;
+        --accent: #007aff;
+        --accent-deep: #005bb5;
+        --accent-light: #4da6ff;
+        --bg-color: #f2f2f7;
+        --surface-color: rgba(255, 255, 255, 0.6);
+        --panel-bg: rgba(255, 255, 255, 0.7);
+        --text-primary: #1d1d1f;
+        --text-secondary: #86868b;
+        --border-color: rgba(0, 0, 0, 0.1);
+        --card-bg: rgba(255, 255, 255, 0.6);
+        --button-primary: #007aff;
+        --button-primary-dark: #005bb5;
+        --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+        --glass-border: 1px solid rgba(255, 255, 255, 0.4);
+        --btn-shadow: 0 6px 0 var(--button-primary-dark), 0 10px 18px rgba(0,0,0,0.18);
+        --emerald-glow: inset 0 0 0 1px rgba(255,255,255,0.5);
       }
 
       [data-theme='dark'] {
-        /* Opus UI - Dark */
-        --bg-color: #0b0f19; /* Deep Pearl Dark */
-        --surface-color: rgba(20, 25, 35, 0.65); /* Pearl Glassy Dark */
-        --panel-bg: rgba(15, 20, 30, 0.85);
-        --primary: #10b981; /* Emerald Green */
-        --accent: #34d399; /* Radiant Emerald */
-        --on-primary: #ffffff;
-        --text-primary: #f8fafc; /* Frost White */
-        --text-secondary: #94a3b8;
-        --border-color: rgba(255, 255, 255, 0.08); 
-        --emerald-glow: 0 0 30px rgba(16, 185, 129, 0.12);
-        
-        --shadow-glass: 0 16px 32px rgba(0, 0, 0, 0.5), inset 0 1px 2px rgba(255,255,255,0.1), inset 0 -1px 2px rgba(0,0,0,0.2);
-        --shadow-hover: 0 24px 48px rgba(0, 0, 0, 0.6), 0 8px 16px rgba(16, 185, 129, 0.2), inset 0 1px 2px rgba(255,255,255,0.15);
+        --primary: #f5f5f7;
+        --accent: #0a84ff;
+        --accent-deep: #0066cc;
+        --accent-light: #5e9bff;
+        --bg-color: #000000;
+        --surface-color: rgba(28, 28, 30, 0.6);
+        --panel-bg: rgba(44, 44, 46, 0.7);
+        --text-primary: #f5f5f7;
+        --text-secondary: #a1a1a6;
+        --border-color: rgba(255, 255, 255, 0.1);
+        --card-bg: rgba(28, 28, 30, 0.6);
+        --button-primary: #0a84ff;
+        --button-primary-dark: #0066cc;
+        --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
         --glass-border: 1px solid rgba(255, 255, 255, 0.1);
-        --btn-shadow: 0 4px 12px rgba(16, 185, 129, 0.4), inset 0 1px 2px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.3);
-      }
-
-      /* Fallback for TransSans */
-      @font-face {
-        font-family: 'TransSans';
-        src: local('Inter Display'), local('Inter'), local('system-ui'), local('sans-serif');
+        --btn-shadow: 0 6px 0 var(--button-primary-dark), 0 10px 18px rgba(0,0,0,0.35);
+        --emerald-glow: inset 0 0 0 1px rgba(255,255,255,0.05);
       }
 
       body {
-        font-family: 'TransSans', 'Inter', sans-serif;
-        font-weight: 600; /* bold transsans requirement */
+        font-family: 'Architects Daughter', cursive, sans-serif;
         background-color: var(--bg-color);
         background-image: 
-          radial-gradient(circle at top left, rgba(255, 255, 255, 0.03) 0%, transparent 60%),
-          radial-gradient(circle at bottom right, rgba(16, 185, 129, 0.06) 0%, transparent 50%);
+          radial-gradient(circle at top left, rgba(0, 122, 255, 0.1) 0%, transparent 40%),
+          radial-gradient(circle at bottom right, rgba(94, 155, 255, 0.1) 0%, transparent 50%);
         background-attachment: fixed;
         color: var(--text-primary);
+        font-weight: 400;
         transition: background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1), color 0.4s;
         overflow: hidden;
       }
@@ -76,75 +70,70 @@
       }
 
       /* Typography */
-      h1, h2, h3, .font-serif {
-        font-family: 'Inter', sans-serif; 
-        letter-spacing: -0.02em;
+      h1, h2, h3, .font-serif, .font-sans, .font-mono {
+        font-family: 'Architects Daughter', cursive, sans-serif !important; 
+        letter-spacing: 0.02em;
       }
       
       /* Glass Panel - The Core UI Element */
-      .paper-panel, .glass-panel {
+      .paper-panel, .glass-panel, .sketch-card, .sketch-card-soft, .sticky-card {
         background: var(--surface-color);
         backdrop-filter: blur(24px);
         -webkit-backdrop-filter: blur(24px);
         border: var(--glass-border);
         box-shadow: var(--shadow-glass), var(--emerald-glow);
-        border-radius: 16px; /* Modern rounded corners */
+        border-radius: 16px;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
         z-index: 10;
+        overflow: hidden;
       }
-      .paper-panel:hover, .glass-panel:hover {
-        box-shadow: var(--shadow-hover), var(--emerald-glow);
-        border-color: var(--primary);
+      .paper-panel:hover, .glass-panel:hover, .sketch-card:hover, .sketch-card-soft:hover, .sticky-card:hover {
+        box-shadow: var(--shadow-glass), 0 0 20px rgba(0, 122, 255, 0.15);
+        border-color: rgba(0, 122, 255, 0.3);
       }
       
-      .btn-primary {
-        background: linear-gradient(135deg, var(--primary), var(--accent));
-        color: var(--on-primary);
+      /* 3D Hyper Realistic Buttons */
+      .btn-primary, .btn-3d {
+        background: linear-gradient(135deg, var(--button-primary), var(--accent-light));
+        color: white;
         border-radius: 12px;
         padding: 12px 28px;
         font-weight: 700;
-        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-        box-shadow: var(--btn-shadow);
+        transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: 0 4px 0 var(--button-primary-dark), 0 8px 16px rgba(0,0,0,0.2), inset 0 1px 1px rgba(255,255,255,0.4);
         border: none;
-        letter-spacing: 0.01em;
-        font-size: 0.9rem;
+        letter-spacing: 0.02em;
+        font-size: 1rem;
         position: relative;
         overflow: hidden;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
       }
-      .btn-primary::after {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background: linear-gradient(to bottom, rgba(255,255,255,0.2) 0%, transparent 100%);
-        pointer-events: none;
-      }
-      .btn-primary:hover {
+      .btn-primary:hover, .btn-3d:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(4, 120, 87, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.4), inset 0 -2px 4px rgba(0, 0, 0, 0.2);
-        opacity: 0.95;
+        box-shadow: 0 6px 0 var(--button-primary-dark), 0 12px 20px rgba(0,0,0,0.25), inset 0 1px 1px rgba(255,255,255,0.5);
       }
-      .btn-primary:active {
-        transform: translateY(1px);
-        box-shadow: 0 2px 4px rgba(4, 120, 87, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.2);
+      .btn-primary:active, .btn-3d:active {
+        transform: translateY(4px);
+        box-shadow: 0 0 0 var(--button-primary-dark), 0 4px 8px rgba(0,0,0,0.2), inset 0 1px 1px rgba(255,255,255,0.2);
       }
 
-      /* Sticky Card Modernization */
-      .sticky-card {
-        background: var(--surface-color);
-        backdrop-filter: blur(24px);
-        box-shadow: var(--shadow-glass), var(--emerald-glow);
-        border: var(--glass-border);
-        border-radius: 16px;
-        position: relative;
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
-        z-index: 10;
+      .btn-outline-sketch {
+        background: var(--panel-bg);
+        backdrop-filter: blur(12px);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.1);
+        font-weight: 600;
+        transition: all 0.2s ease;
       }
-      .sticky-card:hover {
-        transform: translateY(-8px) scale(1.02);
-        z-index: 20;
-        box-shadow: var(--shadow-hover), 0 0 25px rgba(16, 185, 129, 0.4);
-        border-color: var(--primary);
+      .btn-outline-sketch:hover {
+        background: rgba(0, 122, 255, 0.05);
+        border-color: rgba(0, 122, 255, 0.3);
       }
       
       /* Inputs Modernization */
@@ -152,32 +141,33 @@
         border-radius: 12px; 
         border: 1px solid var(--border-color);
         padding: 14px;
-        background: rgba(125, 125, 125, 0.05); /* Adaptive background */
+        background: var(--panel-bg);
+        backdrop-filter: blur(8px);
         color: var(--text-primary);
         transition: all 0.2s;
-        font-family: 'Inter', sans-serif;
+        font-family: 'Architects Daughter', cursive, sans-serif;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
       }
       input:focus, select:focus, textarea:focus {
-        border-color: var(--primary);
-        background: rgba(125, 125, 125, 0.1);
+        border-color: var(--accent);
         outline: none;
-        box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.2);
+        box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2), inset 0 2px 4px rgba(0,0,0,0.02);
       }
 
       /* Scrollbar */
       ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+        width: 6px;
+        height: 6px;
       }
       ::-webkit-scrollbar-track {
         background: transparent; 
       }
       ::-webkit-scrollbar-thumb {
-        background: rgba(125, 125, 125, 0.2); 
+        background: var(--border-color); 
         border-radius: 10px;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: rgba(125, 125, 125, 0.4); 
+        background: var(--text-secondary); 
       }
     </style>
   <script type="importmap">

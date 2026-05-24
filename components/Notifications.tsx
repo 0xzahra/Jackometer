@@ -32,7 +32,7 @@ export const Notifications: React.FC<NotificationsProps> = ({ setView }) => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-4xl mx-auto w-full px-4 py-8">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-serif font-bold text-[var(--text-primary)]">Notifications</h2>
         <button onClick={markAllRead} className="text-xs text-[var(--accent)] font-bold hover:underline">Mark all as read</button>
@@ -42,7 +42,7 @@ export const Notifications: React.FC<NotificationsProps> = ({ setView }) => {
         {notifications.map((n) => (
           <div 
             key={n.id} 
-            className={`paper-panel rounded-sm cursor-pointer transition-all duration-200 border-l-4 ${n.read ? 'border-transparent opacity-80' : 'border-[var(--accent)] shadow-md'}`}
+            className={`sketch-card cursor-pointer transition-all duration-200 border-l-4 ${n.read ? 'border-transparent opacity-80' : 'border-[var(--accent)] shadow-md'}`}
             onClick={() => toggleExpand(n.id)}
           >
              <div className="p-4 flex items-start">

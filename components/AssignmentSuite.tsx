@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { gradeEssay, synthesizeCritique, solveAssignment, analyzeSupervisorStyle } from '../services/geminiService';
 import { customAlert, customConfirm } from '../lib/dialogs';
-
+import { SlopShield } from './SlopShield';
 
 interface AssignmentSuiteProps {
   userId?: string;
@@ -317,6 +317,12 @@ export const AssignmentSuite: React.FC<AssignmentSuiteProps> = ({ userId }) => {
                      Generated as plain text. Supervisor bias {biasProfile ? 'APPLIED' : 'NOT APPLIED'}.
                   </div>
                )}
+               <SlopShield
+                 text={output}
+                 onSharpened={(sharpened) => {
+                   setOutput(sharpened);
+                 }}
+               />
              </div>
            ) : (
              <div className="flex flex-col items-center justify-center h-full text-[var(--text-secondary)] opacity-50">

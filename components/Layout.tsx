@@ -83,7 +83,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
     {
       title: "Ecological Lens",
       text: "Going on a field trip? The Field Trip tool tracks GPS, weather, and builds your report on the go.",
-      icon: "landscape",
+      icon: "map",
       highlight: AppView.FIELD_TRIP
     },
     {
@@ -107,7 +107,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
   };
 
   return (
-    <div className="flex h-screen w-full overflow-hidden">
+    <div className="min-h-screen flex flex-row bg-[var(--bg-color)] text-[var(--text-primary)] w-full">
       
       {/* Sidebar - Opaque Background to fix transparency issues */}
       <nav 
@@ -131,12 +131,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
           <NavButton active={currentView === AppView.DOCUMENT_WRITER} onClick={() => { setView(AppView.DOCUMENT_WRITER); setSidebarOpen(false); }} icon="history_edu" label="Document Writer" />
           <NavButton active={currentView === AppView.PROJECTS} onClick={() => { setView(AppView.PROJECTS); setSidebarOpen(false); }} icon="folder" label="Projects" />
           <NavButton active={currentView === AppView.ASSIGNMENT} onClick={() => { setView(AppView.ASSIGNMENT); setSidebarOpen(false); }} icon="assignment" label="Assignment Solver" />
-          <NavButton active={currentView === AppView.FIELD_TRIP} onClick={() => { setView(AppView.FIELD_TRIP); setSidebarOpen(false); }} icon="landscape" label="Field Trip" />
+          <NavButton active={currentView === AppView.FIELD_TRIP} onClick={() => { setView(AppView.FIELD_TRIP); setSidebarOpen(false); }} icon="map" label="Field Trip" />
           <NavButton active={currentView === AppView.TECHNICAL_REPORT} onClick={() => { setView(AppView.TECHNICAL_REPORT); setSidebarOpen(false); }} icon="engineering" label="Technical Report" />
           <NavButton active={currentView === AppView.LAB_REPORT} onClick={() => { setView(AppView.LAB_REPORT); setSidebarOpen(false); }} icon="science" label="Lab Report" />
           <NavButton active={currentView === AppView.DATA_CRUNCHER} onClick={() => { setView(AppView.DATA_CRUNCHER); setSidebarOpen(false); }} icon="analytics" label="Data Cruncher" />
           <NavButton active={currentView === AppView.COMPRESSOR} onClick={() => { setView(AppView.COMPRESSOR); setSidebarOpen(false); }} icon="folder_zip" label="File Compressor" />
+          <NavButton active={currentView === AppView.SLOP_SHIELD} onClick={() => { setView(AppView.SLOP_SHIELD); setSidebarOpen(false); }} icon="security" label="Slop Shield" />
           <NavButton active={currentView === AppView.CAREER} onClick={() => { setView(AppView.CAREER); setSidebarOpen(false); }} icon="work_outline" label="Career Growth" />
+          <NavButton active={currentView === AppView.STATISTICS} onClick={() => { setView(AppView.STATISTICS); setSidebarOpen(false); }} icon="bar_chart" label="Statistics" />
           
           <div className="my-2 border-t border-[var(--border-color)] mx-4"></div>
           <NavButton active={currentView === AppView.COMMUNITY} onClick={() => { setView(AppView.COMMUNITY); setSidebarOpen(false); }} icon="forum" label="Community Groups" />
@@ -173,7 +175,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
       {sidebarOpen && <div className="fixed inset-0 bg-black/50 z-30" onClick={() => setSidebarOpen(false)}></div>}
 
       {/* Main Content */}
-      <main className="relative z-10 flex-1 flex flex-col h-full overflow-hidden bg-transparent">
+      <main className="flex flex-col flex-1 min-h-0 min-w-0 bg-transparent">
         {/* Header */}
         <header className="h-16 flex items-center justify-between px-6 border-b border-[var(--border-color)] bg-[var(--panel-bg)] z-30 flex-shrink-0">
           <div className="flex items-center">

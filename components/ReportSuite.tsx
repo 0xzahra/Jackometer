@@ -3,7 +3,7 @@ import { generateTechnicalReport, generateLabReport, analyzeMicroscopeImage, gen
 import { AppendixItem, FieldTable, Collaborator, UserSearchResult, SlideDeck } from '../types';
 import { CollaborationModal } from './CollaborationModal';
 import { customAlert, customConfirm } from '../lib/dialogs';
-
+import { SlopShield } from './SlopShield';
 
 interface ReportSuiteProps {
   type: 'TECHNICAL' | 'LAB';
@@ -664,6 +664,12 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
                      {renderContent(activeDoc.report)}
                    </div>
                  </article>
+                 <SlopShield
+                   text={activeDoc.report}
+                   onSharpened={(sharpened) => {
+                     setActiveDoc({ ...activeDoc, report: sharpened });
+                   }}
+                 />
                </>
              ) : (
                <div className="flex flex-col items-center justify-center h-full text-[var(--text-secondary)] opacity-50">

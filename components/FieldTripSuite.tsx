@@ -406,7 +406,7 @@ export const FieldTripSuite: React.FC = () => {
                     disabled={initializing || !topic}
                     className="w-full btn-primary flex items-center justify-center gap-2"
                   >
-                    {initializing ? <span className="material-icons animate-spin">refresh</span> : <span className="material-icons">architecture</span>}
+                    {initializing ? <span className="material-icons animate-spin">refresh</span> : <span className="material-icons">build</span>}
                     {initializing ? 'Analyzing Requirements...' : 'Generate Field Guide'}
                   </button>
                </div>
