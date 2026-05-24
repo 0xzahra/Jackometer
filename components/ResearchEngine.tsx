@@ -239,7 +239,7 @@ export const ResearchEngine: React.FC<ResearchEngineProps> = ({ userId }) => {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto h-full flex flex-col pb-10">
+    <div className="w-full max-w-7xl mx-auto min-h-full md:h-full flex flex-col pb-10">
       
       {/* Top Header Controls */}
       <div className="flex justify-end mb-4">

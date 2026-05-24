@@ -414,7 +414,7 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto h-full flex flex-col">
+    <div className="max-w-6xl mx-auto min-h-full md:h-full flex flex-col">
        <div className="flex justify-end mb-4">
          <button onClick={clearProgress} className="text-red-500 hover:bg-red-50 px-3 py-1 rounded text-xs font-bold border border-red-100 flex items-center gap-1">
             <span className="material-icons text-sm">delete_sweep</span> Erase Progress

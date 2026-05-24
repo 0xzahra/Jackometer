@@ -104,7 +104,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   // --- SIMULATED GOOGLE OAUTH FLOW ---
   if (googleStep !== 'IDLE') {
     return (
-      <div className="min-h-screen w-full bg-white flex flex-col items-center justify-center font-sans text-[#202124] animate-fade-in">
+      <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center font-sans text-slate-800 animate-fade-in bg-white">
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
         `}</style>
@@ -222,7 +222,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
 
   // --- MAIN APP LOGIN PAGE ---
   return (
-    <div className="min-h-screen w-full flex overflow-hidden bg-[var(--bg-color)]">
+    <div className="min-h-[100dvh] w-full flex overflow-hidden bg-[var(--bg-color)]">
       {/* Left Side - Motivation */}
       <div className="hidden lg:flex w-1/2 bg-[var(--surface-color)] border-r border-[var(--border-color)] flex-col justify-center px-20 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-2 bg-[var(--primary)]"></div>

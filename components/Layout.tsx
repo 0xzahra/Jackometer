@@ -107,7 +107,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
   };
 
   return (
-    <div className="min-h-screen flex flex-row bg-[var(--bg-color)] text-[var(--text-primary)] w-full">
+    <div className="h-[100dvh] flex flex-row bg-[var(--bg-color)] text-[var(--text-primary)] w-full overflow-hidden">
       
       {/* Sidebar - Opaque Background to fix transparency issues */}
       <nav 

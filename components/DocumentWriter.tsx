@@ -662,7 +662,7 @@ ${collabLogs.length === 0 ? "*(No external logs available)*" : collabLogs.map(l 
   if (!activeDraft) return <div className="p-10 text-center">Loading Document Engine...</div>;
 
   return (
-    <div className="max-w-7xl mx-auto h-full flex flex-col relative">
+    <div className="max-w-7xl mx-auto min-h-full md:h-full flex flex-col relative">
       <CollaborationModal isOpen={isInviteModalOpen} onClose={() => setIsInviteModalOpen(false)} onAdd={handleAddCollaborator} existingIds={collaborators.map(c => c.id)} />
 
       {/* Top Bar */}
@@ -744,10 +744,10 @@ ${collabLogs.length === 0 ? "*(No external logs available)*" : collabLogs.map(l 
            </div>
         </div>
       ) : viewMode === 'WRITER' ? (
-        <div className="flex flex-col md:flex-row gap-6 flex-1 min-h-0 pb-20 md:pb-0">
+        <div className="flex flex-col md:flex-row gap-6 flex-1 min-h-0 pb-20 md:pb-0 overflow-y-auto md:overflow-visible overflow-x-hidden">
           
           {/* LEFT COLUMN: Controls & Outline */}
-          <div className="w-full md:w-1/3 flex flex-col gap-4 h-auto md:h-full">
+          <div className="w-full md:w-1/3 flex flex-col gap-4 shrink-0 h-auto md:h-full">
              
              {/* Document Details Card */}
              <div className="paper-panel p-4 rounded-sm flex-shrink-0">

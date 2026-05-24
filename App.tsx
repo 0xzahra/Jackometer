@@ -58,7 +58,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col items-center justify-center h-screen bg-[var(--bg-color)] text-[var(--text-primary)] p-8 text-center">
+        <div className="flex flex-col items-center justify-center h-[100dvh] w-full bg-[var(--bg-color)] text-[var(--text-primary)] p-8 text-center">
           <span className="material-icons text-6xl mb-4 text-red-500">error_outline</span>
           <h1 className="text-3xl font-serif font-bold mb-2">System Interruption</h1>
           <p className="mb-8 max-w-md mx-auto text-[var(--text-secondary)]">The application encountered an unexpected error. This may be due to corrupted session data.</p>
@@ -186,7 +186,7 @@ export default function App() {
 
   if (showSplash) {
     return (
-      <div className="h-screen w-screen bg-[var(--bg-color)] flex items-center justify-center">
+      <div className="h-[100dvh] w-full bg-[var(--bg-color)] flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}

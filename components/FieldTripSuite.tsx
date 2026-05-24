@@ -273,7 +273,7 @@ export const FieldTripSuite: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto h-full flex flex-col">
+    <div className="w-full max-w-7xl mx-auto min-h-full md:h-full flex flex-col">
       <div className="flex justify-between items-center mb-6 border-b border-[var(--border-color)] overflow-x-auto">
         <div className="flex space-x-2 md:space-x-4 pb-1">
           {['ENVIRONMENT', 'DATA', 'SLIDES', 'DOCUMENT'].map((t) => (
