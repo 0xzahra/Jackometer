@@ -4,6 +4,7 @@ import { YouTubeVideo, Citation, Collaborator, AppendixItem, UserSearchResult, S
 import { CollaborationModal } from './CollaborationModal';
 import { customAlert, customConfirm } from '../lib/dialogs';
 import { SlopShield } from './SlopShield';
+import { SpeechButton } from './SpeechButton';
 
 interface DocSection {
   id: string;
@@ -755,7 +756,12 @@ ${collabLogs.length === 0 ? "*(No external logs available)*" : collabLogs.map(l 
                 <div className="space-y-2">
                   <input value={activeDraft.course} onChange={(e) => updateDraft('course', e.target.value)} className="w-full text-xs" placeholder="Course (e.g. Microbiology)" />
                   <input value={activeDraft.topic} onChange={(e) => updateDraft('topic', e.target.value)} className="w-full text-xs" placeholder="Research Topic" />
-                  <textarea value={activeDraft.details} onChange={(e) => updateDraft('details', e.target.value)} className="w-full h-16 text-xs resize-none" placeholder="Specific Details/Instructions..."></textarea>
+                  <div className="relative">
+                    <textarea value={activeDraft.details} onChange={(e) => updateDraft('details', e.target.value)} className="w-full h-16 text-xs resize-none pr-8 p-1 border rounded" placeholder="Specific Details/Instructions..."></textarea>
+                    <div className="absolute right-1 top-1">
+                      <SpeechButton onTranscript={(text) => updateDraft('details', (activeDraft.details || '') + (activeDraft.details && !activeDraft.details.endsWith(' ') ? ' ' : '') + text)} />
+                    </div>
+                  </div>
                   <button onClick={handleGenerate} disabled={loading} className="w-full bg-[var(--primary)] text-white text-xs font-bold py-2 rounded mt-2 hover:bg-blue-700 flex items-center justify-center gap-2">
                      {loading ? <span className="material-icons animate-spin text-xs">refresh</span> : <span className="material-icons text-xs">auto_awesome</span>}
                      Write Document
@@ -869,12 +875,17 @@ ${collabLogs.length === 0 ? "*(No external logs available)*" : collabLogs.map(l 
                 <div className="flex-1 w-full">
                 {(activeSection?.content || isEditing) ? (
                    isEditing ? (
-                     <textarea 
-                       className="w-full h-full bg-transparent resize-none outline-none font-mono text-sm leading-relaxed text-[var(--text-primary)] min-h-[300px]"
-                       value={activeSection?.content || ''}
-                       onChange={(e) => handleSectionContentEditDebounced(e.target.value)}
-                       placeholder="Start typing or click 'Write Section'..."
-                     />
+                     <div className="relative w-full h-full min-h-[300px]">
+                       <textarea 
+                         className="w-full h-full bg-transparent resize-none outline-none font-mono text-sm leading-relaxed text-[var(--text-primary)] pb-10"
+                         value={activeSection?.content || ''}
+                         onChange={(e) => handleSectionContentEditDebounced(e.target.value)}
+                         placeholder="Start typing or click 'Write Section'..."
+                       />
+                       <div className="absolute bottom-2 right-2 flex gap-2">
+                          <SpeechButton onTranscript={(text) => handleSectionContentEditDebounced((activeSection?.content || '') + (activeSection?.content && !activeSection?.content.endsWith(' ') ? ' ' : '') + text)} />
+                       </div>
+                     </div>
                    ) : (
                      <div>
                        <article className="prose prose-slate max-w-none pb-4">
@@ -891,10 +902,19 @@ ${collabLogs.length === 0 ? "*(No external logs available)*" : collabLogs.map(l 
                      </div>
                    )
                 ) : (
-                  <div className="flex flex-col items-center justify-center h-full text-[var(--text-secondary)] opacity-50 py-20">
-                    <span className="material-icons text-6xl mb-4">library_books</span>
-                    <p className="italic">Section is empty.</p>
-                    <p className="text-xs mt-2">Click <strong className="text-[var(--accent)]">Write Section</strong> to generate content using AI.</p>
+                  <div className="flex flex-col items-center justify-center h-48 gap-4 py-20">
+                    <span className="material-icons text-3xl text-[var(--text-secondary)] mt-4">
+                      edit_note
+                    </span>
+                    <p className="text-sm text-[var(--text-secondary)] text-center">
+                      This section is empty.
+                    </p>
+                    <button
+                      className="btn-3d px-6 py-3 mt-2"
+                      onClick={handleGenerate}
+                    >
+                      Write This Section
+                    </button>
                   </div>
                 )}
                 </div>

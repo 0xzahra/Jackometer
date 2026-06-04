@@ -113,7 +113,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
         <div className="px-8 mb-6 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <img src="/jackometer-logo.svg" alt="Jackometer" className="w-8 h-8 rounded-lg" />
-            <div className="text-2xl font-bold font-sans text-white tracking-tight cursor-pointer" onClick={() => { setView(AppView.DASHBOARD); setSidebarOpen(false); }}>
+            <div className="text-2xl font-bold font-sans tracking-tight cursor-pointer" style={{ color: 'var(--text-primary)' }} onClick={() => { setView(AppView.DASHBOARD); setSidebarOpen(false); }}>
               Jackometer
             </div>
           </div>
@@ -140,6 +140,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
           <NavButton active={currentView === AppView.PROJECTS} onClick={() => { setView(AppView.PROJECTS); setSidebarOpen(false); }} icon="folder" label="Projects" />
           <NavButton active={currentView === AppView.CAREER} onClick={() => { setView(AppView.CAREER); setSidebarOpen(false); }} icon="work" label="Career Studio" />
           <NavButton active={currentView === AppView.COMPRESSOR} onClick={() => { setView(AppView.COMPRESSOR); setSidebarOpen(false); }} icon="compress" label="File Compressor" />
+          <NavButton active={currentView === AppView.COMMUNITY} onClick={() => { setView(AppView.COMMUNITY); setSidebarOpen(false); }} icon="people" label="Scholar Hub" />
         </div>
 
         <div className="px-6 py-4 border-t border-[var(--border-color)]">
@@ -177,7 +178,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
               <span className="material-icons text-2xl">menu</span>
             </button>
             <h2 className="text-xl font-sans font-bold text-[var(--text-primary)] capitalize truncate ml-2">
-              {currentView.replace(/_/g, ' ').toLowerCase()}
+              {currentView === AppView.DASHBOARD ? '' : currentView.replace(/_/g, ' ').toLowerCase()}
             </h2>
           </div>
           
@@ -226,7 +227,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
         </header>
 
         {/* Content */}
-        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 md:p-6 pb-20">
+        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 md:p-6 pb-24">
           {children}
           {/* Footer */}
           <footer className="text-center text-xs py-4 mt-8 border-t border-[var(--border-color)] text-[var(--text-secondary)]">

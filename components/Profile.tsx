@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { UserProfile } from '../types';
+import { SpeechButton } from './SpeechButton';
 
 interface ProfileProps {
   user: UserProfile;
@@ -97,7 +98,12 @@ export const Profile: React.FC<ProfileProps> = ({ user, onUpdateUser }) => {
               </div>
               <div>
                  <label className="text-xs font-bold text-[var(--text-secondary)] uppercase">Bio / Summary</label>
-                 <textarea name="bio" value={profile.bio} onChange={handleChange} className="w-full mt-1 h-32 resize-none"></textarea>
+                 <div className="relative w-full mt-1">
+                   <textarea name="bio" value={profile.bio} onChange={handleChange} className="w-full h-32 pr-8 resize-none"></textarea>
+                   <div className="absolute right-1 top-1">
+                     <SpeechButton onTranscript={(t) => setProfile(p => ({...p, bio: String(p.bio || '') + (p.bio && !String(p.bio).endsWith(' ') ? ' ' : '') + t}))} />
+                   </div>
+                 </div>
               </div>
               <div>
                   <label className="text-xs font-bold text-[var(--text-secondary)] uppercase">Email Address</label>

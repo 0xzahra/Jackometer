@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { gradeEssay, synthesizeCritique, solveAssignment, analyzeSupervisorStyle } from '../services/geminiService';
 import { customAlert, customConfirm } from '../lib/dialogs';
+import { SpeechButton } from './SpeechButton';
 import { SlopShield } from './SlopShield';
 
 interface AssignmentSuiteProps {
@@ -171,7 +172,7 @@ export const AssignmentSuite: React.FC<AssignmentSuiteProps> = ({ userId }) => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto h-full flex flex-col">
+    <div className="max-w-6xl mx-auto h-full flex flex-col pb-24">
       <div className="flex justify-end mb-4">
          <button onClick={clearProgress} className="text-red-500 hover:bg-red-50 px-3 py-1 rounded text-xs font-bold border border-red-100 flex items-center gap-1">
             <span className="material-icons text-sm">delete_sweep</span> Erase Progress
@@ -186,7 +187,7 @@ export const AssignmentSuite: React.FC<AssignmentSuiteProps> = ({ userId }) => {
             {mode === 'REVIEW' ? 'Get a strict review of your essay.' : mode === 'SUMMARIZE' ? 'Summarize material into key points.' : 'Generate solutions for your assignments.'}
           </p>
         </div>
-        <div className="flex bg-[var(--surface-color)] rounded-xl p-1 border border-[var(--border-color)] shadow-sm">
+        <div className="flex flex-wrap gap-1 bg-[var(--surface-color)] rounded-xl p-1 border border-[var(--border-color)] shadow-sm">
            <button 
              onClick={() => setMode('REVIEW')}
              className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${mode === 'REVIEW' ? 'bg-[var(--accent)] text-white shadow-md' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-color)]'}`}
@@ -215,12 +216,17 @@ export const AssignmentSuite: React.FC<AssignmentSuiteProps> = ({ userId }) => {
            <label className="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2 block">
              {mode === 'REVIEW' ? 'Submit Essay for Review' : mode === 'SUMMARIZE' ? 'Source Material to Summarize' : 'Assignment Question'}
            </label>
-           <textarea 
-             className="flex-1 bg-white/50 dark:bg-black/20 border border-[var(--border-color)] p-4 rounded-xl outline-none resize-none font-sans text-sm leading-relaxed mb-4 shadow-inner"
-             placeholder={mode === 'REVIEW' ? "Paste your essay draft here to get it reviewed..." : mode === 'SUMMARIZE' ? "Paste text..." : "Enter assignment details..."}
-             value={input}
-             onChange={(e) => setInput(e.target.value)}
-           ></textarea>
+           <div className="relative flex-1 mb-4">
+             <textarea 
+               className="w-full h-full bg-white/50 dark:bg-black/20 border border-[var(--border-color)] p-4 pr-10 rounded-xl outline-none resize-none font-sans text-sm leading-relaxed shadow-inner"
+               placeholder={mode === 'REVIEW' ? "Paste your essay draft here to get it reviewed..." : mode === 'SUMMARIZE' ? "Paste text..." : "Enter assignment details..."}
+               value={input}
+               onChange={(e) => setInput(e.target.value)}
+             ></textarea>
+             <div className="absolute right-2 top-2">
+                <SpeechButton onTranscript={(text) => setInput((prev) => (prev || '') + (prev && !prev.endsWith(' ') ? ' ' : '') + text)} />
+             </div>
+           </div>
 
            {/* Custom Format Input for Solver */}
            {mode === 'SOLVER' && (
@@ -282,12 +288,17 @@ export const AssignmentSuite: React.FC<AssignmentSuiteProps> = ({ userId }) => {
              </div>
 
              <div className="space-y-3">
-               <textarea 
-                  className="w-full bg-white border border-[var(--border-color)] p-2 rounded text-xs h-20 resize-none"
-                  placeholder="Paste supervisor's past paper text here..."
-                  value={supervisorText}
-                  onChange={(e) => setSupervisorText(e.target.value)}
-               ></textarea>
+               <div className="relative">
+                 <textarea 
+                    className="w-full bg-white border border-[var(--border-color)] p-2 pr-8 rounded text-xs h-20 resize-none"
+                    placeholder="Paste supervisor's past paper text here..."
+                    value={supervisorText}
+                    onChange={(e) => setSupervisorText(e.target.value)}
+                 ></textarea>
+                 <div className="absolute right-1 top-1">
+                    <SpeechButton onTranscript={(text) => setSupervisorText((prev) => (prev || '') + (prev && !prev.endsWith(' ') ? ' ' : '') + text)} />
+                 </div>
+               </div>
                <div className="flex gap-2">
                   <label className="flex-1 bg-white border border-[var(--border-color)] text-[var(--text-secondary)] py-2 rounded text-xs font-bold text-center cursor-pointer hover:bg-gray-50">
                      Upload File

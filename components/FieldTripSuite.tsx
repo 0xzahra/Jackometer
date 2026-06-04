@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { generateRapidPresentation, generateFieldTripDocument, estimateWeatherConditions, generateFieldTripGuide, saveToGoogleDrive, downloadFile } from '../services/geminiService';
 import { SlideDeck, FieldTable } from '../types';
 import { customAlert, customConfirm } from '../lib/dialogs';
+import { SpeechButton } from './SpeechButton';
 
 
 interface ChecklistItem {
@@ -393,12 +394,17 @@ export const FieldTripSuite: React.FC = () => {
                   
                   <div>
                     <label className="text-xs font-bold text-[var(--text-secondary)] uppercase mb-1 block">Lecturer Requirements (Optional)</label>
-                    <textarea 
-                      className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] p-3 rounded text-[var(--text-primary)] focus:border-[var(--accent)] outline-none resize-none h-24"
-                      placeholder="Paste any specific instructions, required measurements, or focus areas provided by your supervisor..."
-                      value={lecturerReqs}
-                      onChange={(e) => setLecturerReqs(e.target.value)}
-                    ></textarea>
+                    <div className="relative">
+                      <textarea 
+                        className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] p-3 pr-8 rounded text-[var(--text-primary)] focus:border-[var(--accent)] outline-none resize-none h-24"
+                        placeholder="Paste any specific instructions, required measurements, or focus areas provided by your supervisor..."
+                        value={lecturerReqs}
+                        onChange={(e) => setLecturerReqs(e.target.value)}
+                      ></textarea>
+                      <div className="absolute right-1 top-1">
+                        <SpeechButton onTranscript={(text) => setLecturerReqs((prev) => (prev || '') + (prev && !prev.endsWith(' ') ? ' ' : '') + text)} />
+                      </div>
+                    </div>
                   </div>
 
                   <button 
@@ -485,12 +491,17 @@ export const FieldTripSuite: React.FC = () => {
 
                <div className="paper-panel p-6 rounded-sm">
                   <h3 className="text-[var(--text-primary)] font-bold mb-4">Additional Field Notes</h3>
-                  <textarea 
-                    className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded p-3 text-[var(--text-primary)] focus:border-[var(--accent)] outline-none resize-none font-mono text-xs h-32" 
-                    placeholder="Observations..."
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                  ></textarea>
+                  <div className="relative">
+                    <textarea 
+                      className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded p-3 pr-8 text-[var(--text-primary)] focus:border-[var(--accent)] outline-none resize-none font-mono text-xs h-32" 
+                      placeholder="Observations..."
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                    ></textarea>
+                    <div className="absolute right-1 top-1">
+                      <SpeechButton onTranscript={(text) => setNotes((prev) => (prev || '') + (prev && !prev.endsWith(' ') ? ' ' : '') + text)} />
+                    </div>
+                  </div>
                </div>
                
                <div className="p-4 bg-yellow-50 text-yellow-800 text-xs rounded border border-yellow-100 flex items-center">
@@ -522,12 +533,17 @@ export const FieldTripSuite: React.FC = () => {
                      </button>
                   </div>
                </div>
-               <textarea 
-                  className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded p-3 text-sm focus:border-[var(--accent)] outline-none resize-none h-20 mb-4" 
-                  placeholder="Enter specific points, key findings, or context for the slides..."
-                  value={slideInput}
-                  onChange={(e) => setSlideInput(e.target.value)}
-               ></textarea>
+               <div className="relative mb-4">
+                 <textarea 
+                    className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded p-3 pr-8 text-sm focus:border-[var(--accent)] outline-none resize-none h-20" 
+                    placeholder="Enter specific points, key findings, or context for the slides..."
+                    value={slideInput}
+                    onChange={(e) => setSlideInput(e.target.value)}
+                 ></textarea>
+                 <div className="absolute right-1 top-1">
+                   <SpeechButton onTranscript={(text) => setSlideInput((prev) => (prev || '') + (prev && !prev.endsWith(' ') ? ' ' : '') + text)} />
+                 </div>
+               </div>
                <button 
                   onClick={handleGenerateDeck} 
                   disabled={loading} 
@@ -576,12 +592,17 @@ export const FieldTripSuite: React.FC = () => {
             {/* Input Section */}
             <div className="paper-panel p-6 mb-4 rounded-sm flex-shrink-0">
                <h3 className="font-bold text-[var(--text-primary)] mb-2">Report Writer</h3>
-               <textarea 
-                  className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded p-3 text-sm focus:border-[var(--accent)] outline-none resize-none h-20 mb-4" 
-                  placeholder="Enter specific details, methodology notes, or conclusions for the document..."
-                  value={docInput}
-                  onChange={(e) => setDocInput(e.target.value)}
-               ></textarea>
+               <div className="relative mb-4">
+                 <textarea 
+                    className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded p-3 pr-8 text-sm focus:border-[var(--accent)] outline-none resize-none h-20" 
+                    placeholder="Enter specific details, methodology notes, or conclusions for the document..."
+                    value={docInput}
+                    onChange={(e) => setDocInput(e.target.value)}
+                 ></textarea>
+                 <div className="absolute right-1 top-1">
+                   <SpeechButton onTranscript={(text) => setDocInput((prev) => (prev || '') + (prev && !prev.endsWith(' ') ? ' ' : '') + text)} />
+                 </div>
+               </div>
                <div className="flex gap-2">
                  <button 
                     onClick={handleGenerateDoc} 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { showToast } from '../lib/dialogs';
+import { SpeechButton } from './SpeechButton';
 
 export const LiteratureEngine: React.FC = () => {
     const [concept, setConcept] = useState('');
@@ -16,7 +17,7 @@ export const LiteratureEngine: React.FC = () => {
         try {
             const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
             const p = `Act as an academic search expert. Given the concept: "${concept}", generate optimized search keyword combinations for Google Scholar, Scopus, and PubMed.`;
-            const res = await ai.models.generateContent({ model: 'gemini-3.1-8b', contents: p });
+            const res = await ai.models.generateContent({ model: 'gemini-2.0-flash', contents: p });
             setSearchStrings(res.text || '');
         } catch(e) {
             showToast("Failed to generate search keywords.", "error");
@@ -54,7 +55,10 @@ export const LiteratureEngine: React.FC = () => {
                 <div className="glass-panel p-6 shadow-sm border border-[var(--border-color)]">
                     <h2 className="text-xl font-bold text-[var(--text-primary)] border-b pb-2 mb-4 drop-shadow-sm">1. Find Search Words</h2>
                     <p className="text-sm text-gray-500 mb-4 font-medium">Helper: Get useful search phrases for Google Scholar.</p>
-                    <input type="text" placeholder="Enter research concept..." className="w-full mb-4" value={concept} onChange={e => setConcept(e.target.value)} />
+                    <div className="flex gap-2 mb-4 items-center bg-white rounded border border-[var(--border-color)] pr-1">
+                      <input type="text" placeholder="Enter research concept..." className="flex-1 bg-transparent border-none outline-none p-3" value={concept} onChange={e => setConcept(e.target.value)} />
+                      <SpeechButton onTranscript={(text) => setConcept((prev) => (prev || '') + (prev && !prev.endsWith(' ') ? ' ' : '') + text)} />
+                    </div>
                     <button onClick={handleGenerateStrategy} disabled={loading} className="btn-primary">Build My Search Keywords</button>
                     {searchStrings && (
                         <div className="mt-4 p-4 bg-white/50 rounded flex-1 font-mono text-xs whitespace-pre-wrap">{searchStrings}</div>

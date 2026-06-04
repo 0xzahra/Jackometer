@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { generatePassportEdit, generateOptimizedCV, generateResume, reviewCareerDocument } from '../services/geminiService';
 import { CVData } from '../types';
 import { customAlert, customConfirm } from '../lib/dialogs';
+import { SpeechButton } from './SpeechButton';
 
 
 export const CareerStudio: React.FC = () => {
@@ -193,9 +194,18 @@ export const CareerStudio: React.FC = () => {
                <input name="fullName" value={formData.fullName} onChange={handleDataChange} className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] p-3 rounded text-[var(--text-primary)] outline-none" placeholder="Full Name" />
                <input name="email" value={formData.email} onChange={handleDataChange} className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] p-3 rounded text-[var(--text-primary)] outline-none" placeholder="Email" />
                <input name="phone" value={formData.phone} onChange={handleDataChange} className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] p-3 rounded text-[var(--text-primary)] outline-none" placeholder="Phone" />
-               <textarea name="education" value={formData.education} onChange={handleDataChange} className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] p-3 rounded text-[var(--text-primary)] outline-none h-24" placeholder="Education"></textarea>
-               <textarea name="experience" value={formData.experience} onChange={handleDataChange} className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] p-3 rounded text-[var(--text-primary)] outline-none h-32" placeholder="Experience"></textarea>
-               <textarea name="skills" value={formData.skills} onChange={handleDataChange} className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] p-3 rounded text-[var(--text-primary)] outline-none h-20" placeholder="Skills"></textarea>
+               <div className="relative">
+                 <textarea name="education" value={formData.education} onChange={handleDataChange} className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] p-3 pr-8 rounded text-[var(--text-primary)] outline-none h-24" placeholder="Education"></textarea>
+                 <div className="absolute right-1 top-1"><SpeechButton onTranscript={(t) => setFormData(p => ({...p, education: (p.education || '') + (p.education && !p.education.endsWith(' ') ? ' ' : '') + t }))} /></div>
+               </div>
+               <div className="relative">
+                 <textarea name="experience" value={formData.experience} onChange={handleDataChange} className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] p-3 pr-8 rounded text-[var(--text-primary)] outline-none h-32" placeholder="Experience"></textarea>
+                 <div className="absolute right-1 top-1"><SpeechButton onTranscript={(t) => setFormData(p => ({...p, experience: (p.experience || '') + (p.experience && !p.experience.endsWith(' ') ? ' ' : '') + t }))} /></div>
+               </div>
+               <div className="relative">
+                 <textarea name="skills" value={formData.skills} onChange={handleDataChange} className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] p-3 pr-8 rounded text-[var(--text-primary)] outline-none h-20" placeholder="Skills"></textarea>
+                 <div className="absolute right-1 top-1"><SpeechButton onTranscript={(t) => setFormData(p => ({...p, skills: (p.skills || '') + (p.skills && !p.skills.endsWith(' ') ? ' ' : '') + t }))} /></div>
+               </div>
                <button onClick={generateDoc} disabled={docLoading} className="w-full bg-[var(--accent)] text-white py-4 rounded font-bold mt-4 shadow-lg">{docLoading ? 'Generating...' : `Generate ${tool}`}</button>
              </div>
            </div>
@@ -250,13 +260,18 @@ export const CareerStudio: React.FC = () => {
                   </div>
 
                   {/* Text Input */}
-                  <textarea 
-                     className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] p-4 rounded text-sm text-[var(--text-primary)] outline-none h-40 resize-none font-mono"
-                     placeholder="Paste your existing resume content here..."
-                     value={reviewInput}
-                     onChange={(e) => { setReviewInput(e.target.value); setReviewFile(null); }}
-                     disabled={!!reviewFile}
-                  ></textarea>
+                  <div className="relative">
+                    <textarea 
+                       className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] p-4 pr-10 rounded text-sm text-[var(--text-primary)] outline-none h-40 resize-none font-mono"
+                       placeholder="Paste your existing resume content here..."
+                       value={reviewInput}
+                       onChange={(e) => { setReviewInput(e.target.value); setReviewFile(null); }}
+                       disabled={!!reviewFile}
+                    ></textarea>
+                    {(!reviewFile) && <div className="absolute right-2 top-2">
+                      <SpeechButton onTranscript={(text) => setReviewInput(prev => (prev || '') + (prev && !prev.endsWith(' ') ? ' ' : '') + text)} />
+                    </div>}
+                  </div>
 
                   <button 
                      onClick={processReview} 

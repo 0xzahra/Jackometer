@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { GoogleGenAI } from '@google/genai';
 import { customAlert } from '../lib/dialogs';
+import { SpeechButton } from './SpeechButton';
 
 interface Topic {
   title: string;
@@ -32,7 +33,7 @@ export const ResearchEngine: React.FC<{ userId?: string }> = () => {
       const prompt = `You are an academic advisor. A student studying ${department} at ${level} level needs a final year research topic. Generate 8 specific, original, and feasible research topics with a one-sentence description and a suggested methodology for each. Format as a JSON array with fields: title, description, methodology.`;
       
       const response = await ai.models.generateContent({
-        model: 'gemini-3.1-8b',
+        model: 'gemini-2.0-flash',
         contents: prompt
       });
       
@@ -55,7 +56,12 @@ export const ResearchEngine: React.FC<{ userId?: string }> = () => {
         setRawFallback(text);
       }
     } catch (err: any) {
-      customAlert("Failed to generate topics: " + (err.message || String(err)));
+      const msg = err?.message || '';
+      if (msg.includes('404') || msg.includes('NOT_FOUND')) {
+        customAlert('Topic generation failed. Please check your API key in settings.');
+      } else {
+        customAlert('Could not generate topics. Try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -73,13 +79,16 @@ export const ResearchEngine: React.FC<{ userId?: string }> = () => {
         <div className="flex flex-col md:flex-row gap-4 mb-4">
           <div className="flex-1">
             <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1 uppercase">Department / Field of Study</label>
-            <input 
-              type="text" 
-              className="w-full rounded-lg border border-[var(--border-color)] p-3 bg-[var(--surface-color)] text-[var(--text-primary)]"
-              placeholder="e.g. Zoology, Computer Science, Literature..."
-              value={department}
-              onChange={(e) => setDepartment(e.target.value)}
-            />
+            <div className="flex gap-2 items-center bg-[var(--surface-color)] border border-[var(--border-color)] rounded-lg pr-1">
+              <input 
+                type="text" 
+                className="flex-1 rounded-lg p-3 bg-transparent text-[var(--text-primary)] outline-none"
+                placeholder="e.g. Zoology, Computer Science..."
+                value={department}
+                onChange={(e) => setDepartment(e.target.value)}
+              />
+              <SpeechButton onTranscript={(text) => setDepartment((prev) => (prev || '') + (prev && !prev.endsWith(' ') ? ' ' : '') + text)} />
+            </div>
           </div>
           <div className="w-full md:w-64">
             <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1 uppercase">Academic Level</label>

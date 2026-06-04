@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { analyzeData } from '../services/geminiService';
 import { AnalysisResult, FieldTable } from '../types';
 import { customAlert, customConfirm } from '../lib/dialogs';
+import { SpeechButton } from './SpeechButton';
 
 
 export const DataCruncher: React.FC = () => {
@@ -94,12 +95,17 @@ export const DataCruncher: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 flex-1">
         <div className="paper-panel p-6 rounded-sm flex flex-col overflow-y-auto">
           <label className="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">Raw Observations</label>
-          <textarea 
-            className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] p-4 font-mono text-sm text-[var(--text-primary)] outline-none resize-none mb-4 h-40"
-            placeholder="e.g. Specimen A: 5cm, Specimen B: 7cm..."
-            value={inputData}
-            onChange={(e) => setInputData(e.target.value)}
-          ></textarea>
+          <div className="relative mb-4 h-40">
+            <textarea 
+              className="w-full h-full bg-[var(--bg-color)] border border-[var(--border-color)] p-4 pr-10 font-mono text-sm text-[var(--text-primary)] outline-none resize-none"
+              placeholder="e.g. Specimen A: 5cm, Specimen B: 7cm..."
+              value={inputData}
+              onChange={(e) => setInputData(e.target.value)}
+            ></textarea>
+            <div className="absolute right-2 top-2">
+               <SpeechButton onTranscript={(text) => setInputData((prev) => (prev || '') + (prev && !prev.endsWith(' ') ? ' ' : '') + text)} />
+            </div>
+          </div>
 
           {/* Structured Tables */}
           <div className="flex-1 overflow-y-auto border-t border-[var(--border-color)] pt-4">

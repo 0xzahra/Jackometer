@@ -3,6 +3,7 @@ import { generateTechnicalReport, generateLabReport, analyzeMicroscopeImage, gen
 import { AppendixItem, FieldTable, Collaborator, UserSearchResult, SlideDeck } from '../types';
 import { CollaborationModal } from './CollaborationModal';
 import { customAlert, customConfirm } from '../lib/dialogs';
+import { SpeechButton } from './SpeechButton';
 import { SlopShield } from './SlopShield';
 
 interface ReportSuiteProps {
@@ -552,12 +553,17 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
                <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
                  {type === 'TECHNICAL' ? "Experience Details" : "Observations & Procedure"}
                </label>
-               <textarea 
-                  className="w-full h-40 resize-none"
-                  value={activeDoc.details}
-                  onChange={(e) => updateDoc('details', e.target.value)}
-                  placeholder="Enter details or paste your rough notes here..."
-               ></textarea>
+               <div className="relative">
+                 <textarea 
+                    className="w-full h-40 resize-none pr-8 p-3"
+                    value={activeDoc.details}
+                    onChange={(e) => updateDoc('details', e.target.value)}
+                    placeholder="Enter details or paste your rough notes here..."
+                 ></textarea>
+                 <div className="absolute right-1 top-1">
+                   <SpeechButton onTranscript={(text) => updateDoc('details', (activeDoc.details || '') + (activeDoc.details && !activeDoc.details.endsWith(' ') ? ' ' : '') + text)} />
+                 </div>
+               </div>
              </div>
   
              {/* Collapsible Input Tables */}
@@ -613,12 +619,17 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
                          <img src={item.image} className="w-16 h-16 object-cover rounded" alt="Appendix" />
                          <div className="flex-1">
                             <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Figure {idx + 1}</p>
-                            <textarea 
-                               className="w-full text-xs p-1 bg-transparent border-none outline-none resize-none h-12" 
-                               value={item.caption} 
-                               onChange={(e) => updateCaption(item.id, e.target.value)}
-                               placeholder="Is this caption accurate? Edit here..."
-                            />
+                            <div className="relative">
+                              <textarea 
+                                 className="w-full text-xs p-1 pr-6 bg-transparent outline-none resize-none h-12" 
+                                 value={item.caption} 
+                                 onChange={(e) => updateCaption(item.id, e.target.value)}
+                                 placeholder="Is this caption accurate? Edit here..."
+                              />
+                              <div className="absolute right-0 top-0">
+                                <SpeechButton onTranscript={(text) => updateCaption(item.id, (item.caption || '') + (item.caption && !item.caption.endsWith(' ') ? ' ' : '') + text)} />
+                              </div>
+                            </div>
                          </div>
                          <button onClick={() => removeAppendixItem(item.id)} className="text-red-400 hover:text-red-600">
                             <span className="material-icons text-sm">delete</span>
@@ -714,10 +725,6 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
                    </h3>
                 </div>
                 <div className="flex gap-2">
-                   <label className="bg-[var(--surface-color)] border border-[var(--border-color)] text-[var(--text-primary)] px-3 py-1.5 rounded text-xs font-bold cursor-pointer hover:bg-[var(--bg-color)] flex items-center gap-2 shadow-sm">
-                      <span className="material-icons text-sm">cloud_upload</span> Upload Bulky Doc
-                      <input type="file" accept=".txt,.md,.json" className="hidden" onChange={handleSlideUpload} />
-                   </label>
                    <div className="flex bg-white rounded border border-gray-300">
                       <button onClick={handleSlideUndo} disabled={slideHistoryIndex <= 0} className="px-2 py-1 hover:bg-gray-100 disabled:opacity-30"><span className="material-icons text-sm">undo</span></button>
                       <button onClick={handleSlideRedo} disabled={slideHistoryIndex >= slideHistory.length - 1} className="px-2 py-1 hover:bg-gray-100 disabled:opacity-30"><span className="material-icons text-sm">redo</span></button>
@@ -729,13 +736,21 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
              </div>
 
              {!activeDoc.slides ? (
-               <div className="absolute inset-0 flex items-center justify-center text-slate-400 z-0">
-                 <div className="text-center">
-                    <span className="material-icons text-5xl mb-2">slideshow</span>
-                    <p>No presentation generated yet.</p>
-                    <button onClick={handleGenerateSlides} className="mt-4 bg-[var(--accent)] text-white px-6 py-2 rounded font-bold">Generate from Report</button>
-                 </div>
-               </div>
+                <div className="text-center py-12 space-y-4 m-auto">
+                   <span className="material-icons text-4xl text-[var(--text-secondary)]">
+                     slideshow
+                   </span>
+                   <p className="text-[var(--text-secondary)] text-sm px-4">
+                     No slides yet. Generate your report first, then come back here
+                     to turn it into a presentation.
+                   </p>
+                   <button
+                     className="btn-3d px-6 py-3"
+                     onClick={() => setViewMode('REPORT')}
+                   >
+                     Go to Report Tab
+                   </button>
+                </div>
              ) : (
                <div className="w-full h-full overflow-x-auto snap-x snap-mandatory flex gap-8 p-4 items-center z-10">
                  {activeDoc.slides.slides.map((slide, idx) => (

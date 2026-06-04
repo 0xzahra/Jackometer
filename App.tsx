@@ -288,7 +288,7 @@ export default function App() {
               {renderPersistentView(AppView.ASSIGNMENT, <AssignmentSuite userId={user.email} />)}
               {renderPersistentView(AppView.FIELD_TRIP, <FieldTripSuite />)}
               {renderPersistentView(AppView.CAREER, <CareerStudio />)}
-              {renderPersistentView(AppView.COMMUNITY, <Community />)}
+              {renderPersistentView(AppView.COMMUNITY, <Community user={user} />)}
               {renderPersistentView(AppView.SETTINGS, <Settings user={user} onUpdateUser={handleUpdateUser} />)}
               {renderPersistentView(AppView.DATA_CRUNCHER, <DataCruncher />)}
               {renderPersistentView(AppView.COMPRESSOR, <FileCompressor />)}
@@ -303,7 +303,7 @@ export default function App() {
             
             <GlobalDialogs />
             <Onboarding />
-            <VoiceAssistant />
+            <VoiceAssistant setView={handleSetView} />
           </ErrorBoundary>
         </motion.div>
       </AnimatePresence>
