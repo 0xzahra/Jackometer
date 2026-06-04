@@ -24,15 +24,12 @@ const NavButton: React.FC<{
         onClick={onClick}
         className={`w-full flex items-center p-3 rounded-xl transition-all duration-300 group relative overflow-hidden ${
           active 
-            ? 'bg-white/20 text-white shadow-lg border-l-4 border-emerald-400 font-bold opacity-100 transform scale-[1.02]' 
-            : 'text-emerald-100/70 hover:bg-white/10 hover:text-white hover:font-semibold'
+            ? 'bg-[var(--accent)] text-white shadow-lg font-bold opacity-100 transform scale-[1.02]' 
+            : 'text-[var(--text-primary)] opacity-80 hover:opacity-100 hover:bg-[rgba(139,105,20,0.05)] hover:font-semibold'
         }`}
       >
-        {active && (
-           <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/20 to-transparent pointer-events-none rounded-xl"></div>
-        )}
-        <span className={`material-icons text-xl mr-4 relative z-10 transition-transform duration-300 ${active ? 'text-emerald-300 drop-shadow-md shadow-black scale-110' : 'text-emerald-200/70 group-hover:text-emerald-100 group-hover:rotate-6'}`}>{icon}</span>
-        <span className={`font-sans tracking-wide relative z-10 ${active ? 'font-bold text-sm drop-shadow-md' : 'font-medium text-[13px]'}`}>{label}</span>
+        <span className={`material-icons text-xl mr-4 relative z-10 transition-transform duration-300 ${active ? 'text-white scale-110' : 'group-hover:rotate-6'}`}>{icon}</span>
+        <span className={`font-sans tracking-wide relative z-10 ${active ? 'font-bold text-sm' : 'font-medium text-[13px]'}`}>{label}</span>
       </button>
     </div>
   );
@@ -107,11 +104,11 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
   };
 
   return (
-    <div className="h-[100dvh] flex flex-row bg-[var(--bg-color)] text-[var(--text-primary)] w-full overflow-hidden">
+    <div className="h-screen w-full flex flex-row bg-[var(--bg-color)] text-[var(--text-primary)] overflow-hidden">
       
       {/* Sidebar - Opaque Background to fix transparency issues */}
-      <nav 
-        className={`fixed inset-y-0 left-0 z-40 bg-gradient-to-b from-emerald-900 to-emerald-950 dark:from-[#022c22] dark:to-[#064e3b] border-r border-[var(--border-color)] flex flex-col py-8 shadow-2xl transition-transform duration-300 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} w-72 backdrop-blur-xl`}
+      <aside 
+        className={`fixed inset-y-0 left-0 z-40 bg-[var(--panel-bg)] border-r border-[var(--border-color)] flex flex-col py-8 shadow-2xl transition-transform duration-300 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} w-72 backdrop-blur-xl md:relative md:translate-x-0 md:flex md:flex-shrink-0`}
       >
         <div className="px-8 mb-6 flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -120,62 +117,59 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
               Jackometer
             </div>
           </div>
-          <button onClick={() => setSidebarOpen(false)} className="md:hidden text-emerald-100/70 hover:text-white">
-            <span className="material-icons">chevron_left</span>
+          <button onClick={() => setSidebarOpen(false)} className="md:hidden text-emerald-100/70 hover:text-[var(--button-primary)]">
+            <span className="material-icons text-black dark:text-white">close</span>
           </button>
         </div>
         
         <div className="flex-1 overflow-y-auto pt-2">
-          <NavButton active={currentView === AppView.RESEARCH} onClick={() => { setView(AppView.RESEARCH); setSidebarOpen(false); }} icon="lightbulb" label="Topic Ideas" />
-          <NavButton active={currentView === AppView.LIT_REVIEW} onClick={() => { setView(AppView.LIT_REVIEW); setSidebarOpen(false); }} icon="library_books" label="Lit Review Engine" />
+          <p className="text-[10px] uppercase tracking-widest font-semibold text-[var(--text-secondary)] px-4 pt-4 pb-1">Write</p>
           <NavButton active={currentView === AppView.DOCUMENT_WRITER} onClick={() => { setView(AppView.DOCUMENT_WRITER); setSidebarOpen(false); }} icon="history_edu" label="Document Writer" />
-          <NavButton active={currentView === AppView.PROJECTS} onClick={() => { setView(AppView.PROJECTS); setSidebarOpen(false); }} icon="folder" label="Projects" />
+          <NavButton active={currentView === AppView.TECHNICAL_REPORT} onClick={() => { setView(AppView.TECHNICAL_REPORT); setSidebarOpen(false); }} icon="summarize" label="Technical Report" />
           <NavButton active={currentView === AppView.ASSIGNMENT} onClick={() => { setView(AppView.ASSIGNMENT); setSidebarOpen(false); }} icon="assignment" label="Assignment Solver" />
-          <NavButton active={currentView === AppView.FIELD_TRIP} onClick={() => { setView(AppView.FIELD_TRIP); setSidebarOpen(false); }} icon="map" label="Field Trip" />
-          <NavButton active={currentView === AppView.TECHNICAL_REPORT} onClick={() => { setView(AppView.TECHNICAL_REPORT); setSidebarOpen(false); }} icon="engineering" label="Technical Report" />
-          <NavButton active={currentView === AppView.LAB_REPORT} onClick={() => { setView(AppView.LAB_REPORT); setSidebarOpen(false); }} icon="science" label="Lab Report" />
-          <NavButton active={currentView === AppView.DATA_CRUNCHER} onClick={() => { setView(AppView.DATA_CRUNCHER); setSidebarOpen(false); }} icon="analytics" label="Data Cruncher" />
-          <NavButton active={currentView === AppView.COMPRESSOR} onClick={() => { setView(AppView.COMPRESSOR); setSidebarOpen(false); }} icon="folder_zip" label="File Compressor" />
-          <NavButton active={currentView === AppView.SLOP_SHIELD} onClick={() => { setView(AppView.SLOP_SHIELD); setSidebarOpen(false); }} icon="security" label="Slop Shield" />
-          <NavButton active={currentView === AppView.CAREER} onClick={() => { setView(AppView.CAREER); setSidebarOpen(false); }} icon="work_outline" label="Career Growth" />
-          <NavButton active={currentView === AppView.STATISTICS} onClick={() => { setView(AppView.STATISTICS); setSidebarOpen(false); }} icon="bar_chart" label="Statistics" />
-          
-          <div className="my-2 border-t border-[var(--border-color)] mx-4"></div>
-          <NavButton active={currentView === AppView.COMMUNITY} onClick={() => { setView(AppView.COMMUNITY); setSidebarOpen(false); }} icon="forum" label="Community Groups" />
-          <NavButton active={currentView === AppView.INBOX} onClick={() => { setView(AppView.INBOX); setSidebarOpen(false); }} icon="mail" label="Inbox" />
-          <NavButton active={currentView === AppView.NOTIFICATIONS} onClick={() => { setView(AppView.NOTIFICATIONS); setSidebarOpen(false); }} icon="notifications" label="Notifications" />
 
-          <div className="my-2 border-t border-[var(--border-color)] mx-4"></div>
-          <NavButton active={currentView === AppView.SETTINGS} onClick={() => { setView(AppView.SETTINGS); setSidebarOpen(false); }} icon="settings" label="Settings" />
+          <p className="text-[10px] uppercase tracking-widest font-semibold text-[var(--text-secondary)] px-4 pt-4 pb-1">Research</p>
+          <NavButton active={currentView === AppView.RESEARCH} onClick={() => { setView(AppView.RESEARCH); setSidebarOpen(false); }} icon="search" label="Topic Finder" />
+          <NavButton active={currentView === AppView.LIT_REVIEW} onClick={() => { setView(AppView.LIT_REVIEW); setSidebarOpen(false); }} icon="library_books" label="Lit Review Engine" />
+          <NavButton active={currentView === AppView.DATA_CRUNCHER} onClick={() => { setView(AppView.DATA_CRUNCHER); setSidebarOpen(false); }} icon="bar_chart" label="Data Cruncher" />
+          
+          <p className="text-[10px] uppercase tracking-widest font-semibold text-[var(--text-secondary)] px-4 pt-4 pb-1">Field</p>
+          <NavButton active={currentView === AppView.FIELD_TRIP} onClick={() => { setView(AppView.FIELD_TRIP); setSidebarOpen(false); }} icon="terrain" label="Field Trip" />
+          
+          <p className="text-[10px] uppercase tracking-widest font-semibold text-[var(--text-secondary)] px-4 pt-4 pb-1">Tools</p>
+          <NavButton active={currentView === AppView.PROJECTS} onClick={() => { setView(AppView.PROJECTS); setSidebarOpen(false); }} icon="folder" label="Projects" />
+          <NavButton active={currentView === AppView.CAREER} onClick={() => { setView(AppView.CAREER); setSidebarOpen(false); }} icon="work" label="Career Studio" />
+          <NavButton active={currentView === AppView.COMPRESSOR} onClick={() => { setView(AppView.COMPRESSOR); setSidebarOpen(false); }} icon="compress" label="File Compressor" />
         </div>
 
-        <div className="px-6 py-4 border-t border-emerald-800/50">
+        <div className="px-6 py-4 border-t border-[var(--border-color)]">
+          <NavButton active={currentView === AppView.SETTINGS} onClick={() => { setView(AppView.SETTINGS); setSidebarOpen(false); }} icon="settings" label="Settings" />
           <div 
-             className="flex items-center cursor-pointer hover:bg-white/10 rounded p-2 transition-colors mb-2" 
+             className="flex items-center cursor-pointer hover:bg-[rgba(139,105,20,0.05)] rounded p-2 transition-colors mb-2 mt-2" 
              onClick={() => setView(AppView.PROFILE)}
           >
-            <div className="w-8 h-8 rounded-full bg-emerald-400 flex items-center justify-center text-emerald-950 font-bold font-sans">
+            <div className="w-8 h-8 rounded-full bg-[var(--accent)] flex items-center justify-center text-white font-bold font-sans">
               {user.avatar === 'G' ? <span className="material-icons text-xs">google</span> : user.name[0]}
             </div>
             <div className="ml-3 overflow-hidden">
-              <p className="text-sm font-bold text-white truncate">{user.name}</p>
-              <p className="text-xs text-emerald-200/70 truncate">{user.role}</p>
+              <p className="text-sm font-bold text-[var(--text-primary)] truncate">{user.name}</p>
+              <p className="text-xs text-[var(--text-secondary)] truncate">{user.role}</p>
             </div>
           </div>
           <button 
              onClick={onLogout}
-             className="w-full text-xs text-emerald-300 font-bold hover:bg-white/10 p-1 py-1.5 rounded flex items-center justify-center transition-colors"
+             className="w-full text-xs text-red-500 font-bold hover:bg-red-50 dark:hover:bg-red-950/30 p-1 py-1.5 rounded flex items-center justify-center transition-colors"
           >
              <span className="material-icons text-sm mr-1">logout</span> Sign Out
           </button>
         </div>
-      </nav>
+      </aside>
 
       {/* Overlay when sidebar open */}
-      {sidebarOpen && <div className="fixed inset-0 bg-black/50 z-30" onClick={() => setSidebarOpen(false)}></div>}
+      {sidebarOpen && <div className="fixed inset-0 bg-black/40 z-30 md:hidden" onClick={() => setSidebarOpen(false)}></div>}
 
       {/* Main Content */}
-      <main className="flex flex-col flex-1 min-h-0 min-w-0 bg-transparent">
+      <div className="flex flex-col flex-1 min-h-0 overflow-hidden bg-transparent">
         {/* Header */}
         <header className="h-16 flex items-center justify-between px-6 border-b border-[var(--border-color)] bg-[var(--panel-bg)] z-30 flex-shrink-0">
           <div className="flex items-center">
@@ -192,7 +186,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
              {currentView !== AppView.DASHBOARD && (
                <button
                  onClick={() => setView(AppView.DASHBOARD)}
-                 className="hidden md:flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-[var(--text-primary)] px-3 py-1.5 rounded-full text-xs font-bold transition-colors mr-2 border border-[var(--border-color)]"
+                 className="hidden md:flex items-center gap-1 bg-[var(--panel-bg)] hover:bg-[var(--surface-color)] text-[var(--text-primary)] px-3 py-1.5 rounded-full text-xs font-bold transition-colors mr-2 border border-[var(--border-color)]"
                  title="Back to Dashboard"
                >
                   <span className="material-icons text-sm">grid_view</span>
@@ -210,7 +204,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
 
              <button 
                 onClick={toggleTour}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${tourOpen ? 'bg-[var(--accent)] text-white' : 'bg-gray-100 text-[var(--text-secondary)]'}`}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${tourOpen ? 'bg-[var(--accent)] text-white' : 'bg-[var(--panel-bg)] border border-[var(--border-color)] text-[var(--text-secondary)]'}`}
                 title="Interactive Tour"
              >
                 <span className="material-icons text-sm">help_outline</span>
@@ -232,15 +226,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
         </header>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden relative min-h-0">
+        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 md:p-6 pb-20">
           {children}
-        </div>
-
-        {/* Footer */}
-        <footer className="h-10 border-t border-[var(--border-color)] bg-[var(--panel-bg)] flex items-center justify-between px-8 text-xs font-sans text-[var(--text-secondary)] flex-shrink-0">
-           <span>© 2025 Jackometer. All rights reserved.</span>
-        </footer>
-      </main>
+          {/* Footer */}
+          <footer className="text-center text-xs py-4 mt-8 border-t border-[var(--border-color)] text-[var(--text-secondary)]">
+            © 2025 Jackometer. All rights reserved.
+          </footer>
+        </main>
+      </div>
 
           {/* Right Sidebar - Tools Panel */}
       {currentView === AppView.DOCUMENT_WRITER && (

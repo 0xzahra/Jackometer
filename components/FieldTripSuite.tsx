@@ -428,11 +428,11 @@ export const FieldTripSuite: React.FC = () => {
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                        {checklist.map(c => (
-                          <div key={c.id} onClick={() => toggleCheckItem(c.id)} className={`p-3 rounded border cursor-pointer flex items-start gap-3 transition-colors ${c.done ? 'bg-green-50 border-green-200' : 'bg-[var(--bg-color)] border-[var(--border-color)]'}`}>
-                             <div className={`w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 mt-0.5 ${c.done ? 'bg-green-500 border-green-500 text-white' : 'border-gray-400'}`}>
+                          <div key={c.id} onClick={() => toggleCheckItem(c.id)} className={`p-3 rounded border cursor-pointer flex items-start gap-3 transition-colors ${c.done ? 'bg-[var(--accent)]/10 border-[var(--accent)]/30' : 'bg-[var(--bg-color)] border-[var(--border-color)]'}`}>
+                             <div className={`w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 mt-0.5 ${c.done ? 'bg-[var(--accent)] border-[var(--accent)] text-white' : 'border-gray-400'}`}>
                                 {c.done && <span className="material-icons text-sm">check</span>}
                              </div>
-                             <span className={`text-sm ${c.done ? 'text-green-800 line-through opacity-70' : 'text-[var(--text-primary)]'}`}>{c.text}</span>
+                             <span className={`text-sm ${c.done ? 'text-[var(--accent)] line-through opacity-70' : 'text-[var(--text-primary)]'}`}>{c.text}</span>
                           </div>
                        ))}
                     </div>
@@ -594,7 +594,7 @@ export const FieldTripSuite: React.FC = () => {
                  <button 
                     onClick={handleDriveSave} 
                     disabled={driveSaving || !documentContent}
-                    className="bg-green-600 text-white font-bold px-6 py-2 rounded shadow text-sm flex items-center gap-2 disabled:opacity-50"
+                    className="bg-[var(--accent)] text-white font-bold px-6 py-2 rounded shadow text-sm flex items-center gap-2 disabled:opacity-50 hover:opacity-90"
                  >
                     <span className="material-icons text-sm">add_to_drive</span>
                     {driveSaving ? 'Saving...' : 'Save to Drive'}

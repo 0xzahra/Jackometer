@@ -88,7 +88,7 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
   }, [activeDocId]);
 
   const handleAddCollaborator = (user: UserSearchResult) => {
-    const colors = ['bg-green-500', 'bg-purple-500', 'bg-orange-500', 'bg-pink-500', 'bg-indigo-500'];
+    const colors = ['bg-[var(--accent)]', 'bg-purple-500', 'bg-orange-500', 'bg-pink-500', 'bg-indigo-500'];
     const randomColor = colors[collaborators.length % colors.length];
     
     const newCollab: Collaborator = {
@@ -441,7 +441,7 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
                  {collaborators.map(c => (
                     <div key={c.id} className={`w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-white text-xs ${c.color} relative group`}>
                        {c.name[0]}
-                       <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${c.status === 'EDITING' ? 'bg-orange-400' : c.status === 'ONLINE' ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                       <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${c.status === 'EDITING' ? 'bg-orange-400' : c.status === 'ONLINE' ? 'bg-[var(--accent)]' : 'bg-gray-400'}`}></div>
                        {/* Tooltip */}
                        <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-50 pointer-events-none">
                           {c.name} ({c.status})
@@ -544,7 +544,7 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
                     <input type="file" accept="image/*" className="hidden" onChange={handleMicroscopeUpload} />
                   </label>
                   {analyzingImage && <p className="text-xs text-[var(--accent)] mt-2 animate-pulse">Analyzing cellular structure & chemical properties...</p>}
-                  {activeDoc.imageAnalysis && <p className="text-xs text-green-600 mt-2 font-bold">Analysis Attached to Observations.</p>}
+                  {activeDoc.imageAnalysis && <p className="text-xs text-[var(--accent)] mt-2 font-bold">Analysis Attached to Observations.</p>}
                </div>
              )}
   
@@ -648,14 +648,14 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
            </div>
   
            {/* Output Side */}
-           <div className="paper-panel p-10 rounded-sm flex-1 mb-8 overflow-y-auto bg-white border border-[var(--border-color)] relative min-h-[600px] md:h-full max-h-[80vh] md:max-h-none">
+           <div className="paper-panel p-6 md:p-10 rounded-sm flex-1 mb-8 overflow-y-auto bg-white border border-[var(--border-color)] relative min-h-[300px] max-h-[50vh] md:h-full md:max-h-none">
              {activeDoc.report ? (
                <>
                  <div className="absolute top-4 right-4 flex gap-2">
                    <button onClick={() => handleExport('PDF')} className="text-xs font-bold border border-[var(--border-color)] px-3 py-1 rounded hover:bg-gray-50">PDF</button>
                    <button onClick={() => handleExport('DOCX')} className="text-xs font-bold border border-[var(--border-color)] px-3 py-1 rounded hover:bg-gray-50">Word</button>
                    <button onClick={() => handleExport('ODT')} className="text-xs font-bold border border-[var(--border-color)] px-3 py-1 rounded hover:bg-gray-50">ODT</button>
-                   <button onClick={handleDriveSave} className="text-xs font-bold border border-[var(--border-color)] px-3 py-1 rounded hover:bg-green-50 text-green-700 flex items-center gap-1" disabled={driveSaving}>
+                   <button onClick={handleDriveSave} className="text-xs font-bold border border-[var(--border-color)] px-3 py-1 rounded hover:bg-[var(--accent)]/10 text-[var(--accent)] flex items-center gap-1" disabled={driveSaving}>
                       <span className="material-icons text-xs">add_to_drive</span> {driveSaving ? '...' : ''}
                    </button>
                  </div>

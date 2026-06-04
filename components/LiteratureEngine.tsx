@@ -67,7 +67,7 @@ export const LiteratureEngine: React.FC = () => {
                     <p className="text-sm text-gray-500 mb-4 font-medium">Helper: Add PDF papers or clear photos of printed documents.</p>
                     <input type="file" multiple accept=".pdf,image/*" className="mb-4 text-sm" onChange={handleFileChange} />
                     <p className="text-xs text-[var(--text-secondary)] mb-4">Upload your research papers (PDF) or photos of printed documents (JPG/PNG). You can select multiple files at once.</p>
-                    <div className="text-xs text-teal-700 bg-teal-50 p-2 rounded mb-4 shadow-sm border border-teal-100">Tip: You can upload photos of printed papers too.</div>
+                    <div className="text-xs text-[var(--accent)] bg-[var(--accent)]/10 p-2 rounded mb-4 shadow-sm border border-[var(--accent)]/30">Tip: You can upload photos of printed papers too.</div>
                     
                     {uploadedFiles.length > 0 && (
                         <div className="bg-slate-50 border border-[var(--border-color)] rounded-lg overflow-hidden">

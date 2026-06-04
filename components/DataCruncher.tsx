@@ -85,7 +85,7 @@ export const DataCruncher: React.FC = () => {
       </div>
       <div className="flex justify-between items-center mb-6">
          <div>
-             <h2 className="text-2xl font-serif font-bold text-[var(--text-primary)]">Data Cruncher <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded ml-2 font-sans font-bold">OPTIMIZED</span></h2>
+             <h2 className="text-2xl font-serif font-bold text-[var(--text-primary)]">Data Cruncher <span className="text-xs bg-[var(--accent)]/10 text-[var(--accent)] px-2 py-1 rounded ml-2 font-sans font-bold">OPTIMIZED</span></h2>
              <p className="text-xs text-[var(--text-secondary)]">Zero-error processing for biological & statistical data.</p>
          </div>
          <button className="text-[var(--accent)] font-bold text-sm hover:underline" onClick={() => {setInputData(''); setTables([]);}}>Clear All</button>

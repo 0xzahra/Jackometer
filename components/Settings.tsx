@@ -88,7 +88,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser }) => {
                  They are <strong>never</strong> used to train public AI models.
                </p>
                <div className="flex items-center gap-2">
-                 <div className="bg-green-100 text-green-800 text-[10px] font-bold px-2 py-1 rounded uppercase flex items-center">
+                 <div className="bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-bold px-2 py-1 rounded uppercase flex items-center">
                    <span className="material-icons text-[10px] mr-1">lock</span> End-to-End Encryption
                  </div>
                  <div className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-1 rounded uppercase flex items-center">
@@ -274,7 +274,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser }) => {
                 <span className="px-3 py-1 bg-blue-50 text-blue-800 text-xs font-bold rounded-full border border-blue-100">zahranft1.crypto</span>
                 <span className="px-3 py-1 bg-purple-50 text-purple-800 text-xs font-bold rounded-full border border-purple-100">arewa.eth</span>
                 <span className="px-3 py-1 bg-blue-50 text-blue-800 text-xs font-bold rounded-full border border-blue-100">arewa.base.eth</span>
-                <span className="px-3 py-1 bg-green-50 text-green-800 text-xs font-bold rounded-full border border-green-100">zahrah.near</span>
+                <span className="px-3 py-1 bg-[var(--accent)]/10 text-[var(--accent)] text-xs font-bold rounded-full border border-[var(--accent)]/20">zahrah.near</span>
                 <span className="px-3 py-1 bg-orange-50 text-orange-800 text-xs font-bold rounded-full border border-orange-100">techbro.btc</span>
                 <span className="px-3 py-1 bg-cyan-50 text-cyan-800 text-xs font-bold rounded-full border border-cyan-100">realwordasset.ton</span>
                 <span className="px-3 py-1 bg-emerald-50 text-emerald-800 text-xs font-bold rounded-full border border-emerald-100">artemis0@tether.me</span>

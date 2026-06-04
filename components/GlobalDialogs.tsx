@@ -38,7 +38,7 @@ export const GlobalDialogs: React.FC = () => {
               toast.type === 'error'
                 ? 'bg-red-600'
                 : toast.type === 'success'
-                ? 'bg-green-600'
+                ? 'bg-[var(--accent)]'
                 : toast.type === 'warning'
                 ? 'bg-amber-600'
                 : 'bg-slate-800'

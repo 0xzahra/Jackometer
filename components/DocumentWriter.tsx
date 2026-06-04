@@ -446,7 +446,7 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
   // --- HANDLERS ---
   const handleAddCollaborator = (user: UserSearchResult) => {
     const newCollab: Collaborator = {
-      id: user.id, name: user.name, email: user.email, color: 'bg-green-500', status: 'ONLINE'
+      id: user.id, name: user.name, email: user.email, color: 'bg-[var(--accent)]', status: 'ONLINE'
     };
     setCollaborators([...collaborators, newCollab]);
     setIsInviteModalOpen(false);
@@ -662,7 +662,7 @@ ${collabLogs.length === 0 ? "*(No external logs available)*" : collabLogs.map(l 
   if (!activeDraft) return <div className="p-10 text-center">Loading Document Engine...</div>;
 
   return (
-    <div className="max-w-7xl mx-auto min-h-full md:h-full flex flex-col relative">
+    <div className="max-w-7xl mx-auto min-h-full flex flex-col relative">
       <CollaborationModal isOpen={isInviteModalOpen} onClose={() => setIsInviteModalOpen(false)} onAdd={handleAddCollaborator} existingIds={collaborators.map(c => c.id)} />
 
       {/* Top Bar */}
@@ -689,7 +689,7 @@ ${collabLogs.length === 0 ? "*(No external logs available)*" : collabLogs.map(l 
                <button onClick={() => {setViewMode('WRITER'); setIsTrashOpen(false);}} className={`px-3 py-1 text-xs font-bold rounded ${viewMode === 'WRITER' && !isTrashOpen ? 'bg-white shadow text-[var(--primary)]' : 'text-[var(--text-secondary)]'}`}>Writer</button>
                <button onClick={() => {setViewMode('SLIDES'); setIsTrashOpen(false);}} className={`px-3 py-1 text-xs font-bold rounded ${viewMode === 'SLIDES' && !isTrashOpen ? 'bg-white shadow text-[var(--primary)]' : 'text-[var(--text-secondary)]'}`}>Defense</button>
                <button onClick={() => setIsVersionHistoryOpen(true)} className={`px-3 py-1 text-xs font-bold rounded text-[var(--text-secondary)] hover:text-[var(--primary)] flex items-center gap-1`} title="Version History"><span className="material-icons text-[14px]">history</span> Version History</button>
-               <button onClick={() => setIsPowModalOpen(true)} className={`px-3 py-1 text-xs font-bold rounded text-[var(--text-secondary)] hover:text-green-600 flex items-center gap-1`} title="Proof of Work Ledger & Activity Log"><span className="material-icons text-[14px]">receipt_long</span> Activity Log</button>
+               <button onClick={() => setIsPowModalOpen(true)} className={`px-3 py-1 text-xs font-bold rounded text-[var(--text-secondary)] hover:text-[var(--accent)] flex items-center gap-1`} title="Proof of Work Ledger & Activity Log"><span className="material-icons text-[14px]">receipt_long</span> Activity Log</button>
              </div>
 
              {/* Collaborators */}
@@ -711,7 +711,7 @@ ${collabLogs.length === 0 ? "*(No external logs available)*" : collabLogs.map(l 
                  <button onClick={() => handleExportClick('TXT')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 text-sm font-medium text-[var(--text-primary)]">Plain Text (.txt)</button>
                  <div className="border-t border-gray-100 my-1"></div>
                  <button onClick={() => handleExportClick('DRIVE')} className="block w-full text-left px-4 py-2 hover:bg-gray-50 text-sm font-medium flex items-center gap-2 text-[var(--text-primary)]">
-                    <span className="material-icons text-sm text-green-600">add_to_drive</span> 
+                    <span className="material-icons text-sm text-[var(--accent)]">add_to_drive</span> 
                     Save to Google Drive
                  </button>
               </div>
@@ -730,7 +730,7 @@ ${collabLogs.length === 0 ? "*(No external logs available)*" : collabLogs.map(l 
                    <h3 className="font-bold text-gray-800 truncate mb-2">{d.topic || 'Untitled Doc'}</h3>
                    <p className="text-xs text-gray-500 mb-4">{d.course || 'No course specified'}</p>
                    <div className="flex justify-end gap-2 mt-auto">
-                      <button onClick={(e) => restoreDraft(d.id, e)} className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded hover:bg-green-200 transition">Restore</button>
+                      <button onClick={(e) => restoreDraft(d.id, e)} className="px-3 py-1 bg-[var(--accent)]/10 text-[var(--accent)] text-xs font-bold rounded hover:bg-[var(--accent)]/20 transition">Restore</button>
                       <button onClick={(e) => permanentlyDeleteDraft(d.id, e)} className="px-3 py-1 bg-red-100 text-red-700 text-xs font-bold rounded hover:bg-red-200 transition">Permanently Delete</button>
                    </div>
                 </div>
@@ -816,7 +816,7 @@ ${collabLogs.length === 0 ? "*(No external logs available)*" : collabLogs.map(l 
           </div>
   
           {/* RIGHT COLUMN: Editor Area */}
-          <div ref={editorRef} className="w-full md:w-2/3 paper-panel rounded-lg bg-white border border-[var(--border-color)] shadow-inner relative flex flex-col min-h-[500px] mb-8">
+          <div ref={editorRef} className="w-full md:w-2/3 paper-panel rounded-lg bg-white border border-[var(--border-color)] shadow-inner relative flex flex-col min-h-[300px] max-h-[50vh] md:min-h-[500px] md:max-h-none mb-8">
              {/* Editor Toolbar */}
              <div className="h-12 bg-[var(--surface-color)] border-b border-[var(--border-color)] flex items-center justify-between px-4 flex-shrink-0">
                 <div className="flex items-center gap-2 overflow-hidden">
@@ -832,7 +832,7 @@ ${collabLogs.length === 0 ? "*(No external logs available)*" : collabLogs.map(l 
                     <span className="material-icons text-sm">{isEditing ? 'visibility' : 'edit'}</span>
                     <span className="hidden sm:inline">{isEditing ? 'View Mode' : 'Edit Mode'}</span>
                   </button>
-                  <button onClick={handleGenerate} disabled={loading || humanizing} className="bg-green-600 text-white text-xs font-bold px-3 py-1 rounded hover:bg-green-700 flex items-center gap-1 shadow-sm">
+                  <button onClick={handleGenerate} disabled={loading || humanizing} className="bg-[var(--accent)] text-white text-xs font-bold px-3 py-1 rounded hover:opacity-90 flex items-center gap-1 shadow-sm">
                      {loading ? <span className="material-icons animate-spin text-sm">refresh</span> : <span className="material-icons text-sm">auto_awesome</span>}
                      <span className="hidden sm:inline">Write Section</span>
                   </button>
@@ -1043,7 +1043,7 @@ ${collabLogs.length === 0 ? "*(No external logs available)*" : collabLogs.map(l 
       {isPowModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
            <div className="bg-white max-w-3xl w-full rounded-lg shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
-              <div className="bg-green-600 text-white p-4 flex justify-between items-center">
+              <div className="bg-[var(--accent)] text-white p-4 flex justify-between items-center">
                  <h3 className="text-xl font-bold flex items-center gap-2">
                     <span className="material-icons">verified_user</span> Cryptographic Proof of Work
                  </h3>
@@ -1051,10 +1051,10 @@ ${collabLogs.length === 0 ? "*(No external logs available)*" : collabLogs.map(l 
                     <button onClick={() => {
                        const receipt = "JACKOMETER POW RECEIPT\nHash: " + Math.random().toString(36).substring(2) + Date.now() + "\n\n" + JSON.stringify(activeDraft?.activityLog, null, 2);
                        downloadFile(receipt, "POW_Receipt.txt", "text/plain");
-                    }} className="bg-green-800 hover:bg-green-900 text-xs font-bold px-3 py-1.5 rounded flex items-center gap-1 shadow-inner transition-colors">
+                    }} className="bg-black/20 hover:bg-black/30 text-xs font-bold px-3 py-1.5 rounded flex items-center gap-1 shadow-inner transition-colors">
                       <span className="material-icons text-sm">receipt</span> Compile Receipt
                     </button>
-                    <button onClick={() => setIsPowModalOpen(false)} className="hover:text-green-200"><span className="material-icons">close</span></button>
+                    <button onClick={() => setIsPowModalOpen(false)} className="hover:opacity-80"><span className="material-icons">close</span></button>
                  </div>
               </div>
               <div className="p-6 bg-slate-50 flex-1 overflow-y-auto">
@@ -1101,7 +1101,7 @@ ${collabLogs.length === 0 ? "*(No external logs available)*" : collabLogs.map(l 
                             log.type === 'HUMAN_EDIT' ? 'bg-blue-100 text-blue-700' :
                             log.type === 'AI_GENERATION' ? 'bg-purple-100 text-purple-700' :
                             log.type === 'FILE_UPLOAD' ? 'bg-orange-100 text-orange-700' :
-                            'bg-green-100 text-green-700'
+                            'bg-[var(--accent)]/10 text-[var(--accent)]'
                          }`}>{log.type.replace('_', ' ')}</span>
                          <span className="text-slate-700">{log.desc}</span>
                          <span className="ml-auto text-slate-400 italic">by {log.user}</span>
@@ -1130,7 +1130,7 @@ ${collabLogs.length === 0 ? "*(No external logs available)*" : collabLogs.map(l 
                    style={{ width: `${scanProgress}%` }}
                  ></div>
                  {scanProgress === 100 && (
-                    <div className="absolute inset-0 bg-green-500 animate-pulse mix-blend-screen"></div>
+                    <div className="absolute inset-0 bg-[var(--accent)] animate-pulse mix-blend-screen"></div>
                  )}
               </div>
               
@@ -1149,8 +1149,8 @@ ${collabLogs.length === 0 ? "*(No external logs available)*" : collabLogs.map(l 
                          <p className="text-xs text-amber-700 mt-2 italic">You can proceed to export, but we strongly recommend resolving these issues first.</p>
                       </div>
                     ) : (
-                      <div className="bg-green-50 border border-green-200 text-green-800 p-4 rounded-lg mb-6 flex flex-col gap-2">
-                         <span className="flex items-center justify-center gap-2 font-bold"><span className="material-icons text-green-600">check_circle</span> Shield Status: SAFE</span>
+                      <div className="bg-[var(--accent)]/10 border border-[var(--accent)]/30 text-[var(--accent)] p-4 rounded-lg mb-6 flex flex-col gap-2">
+                         <span className="flex items-center justify-center gap-2 font-bold"><span className="material-icons text-[var(--accent)]">check_circle</span> Shield Status: SAFE</span>
                          <span className="text-xs text-center">0% Plagiarized. 0% Predictable AI Syntax detected. Proper citations found.</span>
                       </div>
                     )}

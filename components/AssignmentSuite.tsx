@@ -275,7 +275,7 @@ export const AssignmentSuite: React.FC<AssignmentSuiteProps> = ({ userId }) => {
                  </div>
                ) : (
                  <div>
-                    <label className="text-[10px] font-bold text-green-600 uppercase mb-2 block">Detected Preferences</label>
+                    <label className="text-[10px] font-bold text-[var(--accent)] uppercase mb-2 block">Detected Preferences</label>
                     <p className="text-xs text-[var(--text-primary)] leading-relaxed">{biasProfile}</p>
                  </div>
                )}

@@ -23,6 +23,7 @@ import { GlobalDialogs } from './components/GlobalDialogs';
 import { Statistics } from './components/Statistics';
 import { Onboarding } from './components/Onboarding';
 import { SlopShieldPage } from './components/SlopShieldPage';
+import { StudyDojo } from './components/StudyDojo';
 import { AppView, UserProfile } from './types';
 
 // Mock Live API Context
@@ -85,18 +86,45 @@ export const showToast = (message: string) => {
 // Override window.alert to PREVENT iframe sandbox SecurityErrors which crash the app
 window.alert = (msg: any) => showToast(String(msg));
 
+import { initAuth, logout } from './lib/firebase';
+
 export default function App() {
   const [currentView, setCurrentView] = useState<AppView>(AppView.DASHBOARD);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [user, setUser] = useState<UserProfile | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [showSplash, setShowSplash] = useState(true);
+  const [authInitialized, setAuthInitialized] = useState(false);
   
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowSplash(false);
     }, 1000);
     return () => clearTimeout(timer);
+  }, []);
+  
+  useEffect(() => {
+    const unsubscribe = initAuth(
+      (fbUser, token) => {
+        setUser({
+          name: fbUser.displayName || 'Academic User',
+          email: fbUser.email || '',
+          institution: 'Verified User',
+          role: 'Scholar',
+          avatar: fbUser.photoURL || 'G'
+        });
+        setAuthInitialized(true);
+      },
+      () => {
+        setUser(null);
+        setAuthInitialized(true);
+      }
+    );
+    return () => unsubscribe();
   }, []);
   
   useEffect(() => {
@@ -130,40 +158,19 @@ export default function App() {
     setCurrentView(view);
   };
 
-  // Check for persisted session
-  useEffect(() => {
-    try {
-      const storedUser = localStorage.getItem('jackometer_user');
-      if (storedUser) {
-        const parsed = JSON.parse(storedUser);
-        if (parsed && parsed.name) {
-          setUser(parsed);
-        } else {
-          localStorage.removeItem('jackometer_user');
-        }
-      }
-    } catch (e) {
-      console.error("Session corrupted", e);
-      localStorage.removeItem('jackometer_user');
-    }
-  }, []);
-
   const handleLogin = (userProfile: UserProfile) => {
     setUser(userProfile);
-    localStorage.setItem('jackometer_user', JSON.stringify(userProfile));
   };
 
   const handleUpdateUser = (data: Partial<UserProfile>) => {
     if (!user) return;
     const updatedUser = { ...user, ...data };
     setUser(updatedUser);
-    localStorage.setItem('jackometer_user', JSON.stringify(updatedUser));
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await logout();
     setUser(null);
-    localStorage.removeItem('jackometer_user');
-    // Clear visited views to free memory on logout
     setVisitedViews(new Set([AppView.DASHBOARD]));
     setCurrentView(AppView.DASHBOARD);
   };
@@ -276,6 +283,8 @@ export default function App() {
               {renderPersistentView(AppView.LIT_REVIEW, <LiteratureEngine />)}
               {renderPersistentView(AppView.PROJECTS, <Projects setView={handleSetView} />)}
               {renderPersistentView(AppView.DOCUMENT_WRITER, <DocumentWriter userId={user.email} />)}
+              {renderPersistentView(AppView.ESSAY_REVIEWER, <DocumentWriter userId={user.email} />)}
+              {renderPersistentView(AppView.STUDY_DOJO, <StudyDojo />)}
               {renderPersistentView(AppView.ASSIGNMENT, <AssignmentSuite userId={user.email} />)}
               {renderPersistentView(AppView.FIELD_TRIP, <FieldTripSuite />)}
               {renderPersistentView(AppView.CAREER, <CareerStudio />)}

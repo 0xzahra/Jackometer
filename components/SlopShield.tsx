@@ -29,7 +29,7 @@ const SLOP_MARKERS = [
 function SlopBadge({ score }: { score: number }) {
   const label = score < 31 ? "Clean" : score < 61 ? "Wordy" : "Heavy Slop";
   const color = score < 31
-    ? "bg-green-100 text-green-800 border-green-300"
+    ? "bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]/30"
     : score < 61
     ? "bg-amber-100 text-amber-800 border-amber-300"
     : "bg-red-100 text-red-800 border-red-300";
