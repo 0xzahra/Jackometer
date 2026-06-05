@@ -81,7 +81,7 @@ export const SlopShield: React.FC<SlopShieldProps> = ({ text, onSharpened }) => 
       const key = process.env.VITE_API_KEY || process.env.API_KEY || ''; // Assuming Vite
       const ai = new GoogleGenAI({ apiKey: key });
       const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-3.5-flash',
         contents: prompt
       });
       

@@ -33,7 +33,7 @@ export const ResearchEngine: React.FC<{ userId?: string }> = () => {
       const prompt = `You are an academic advisor. A student studying ${department} at ${level} level needs a final year research topic. Generate 8 specific, original, and feasible research topics with a one-sentence description and a suggested methodology for each. Format as a JSON array with fields: title, description, methodology.`;
       
       const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-3.5-flash',
         contents: prompt
       });
       

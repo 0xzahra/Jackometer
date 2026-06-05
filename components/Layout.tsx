@@ -68,26 +68,26 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
   const tourSteps = [
     {
       title: "Welcome to Jackometer",
-      text: "Your AI-powered academic fortress. Stop writing from scratch. We architect your research.",
+      text: "We are here to help you draft papers, review documents, and organize your academic research.",
       icon: "school",
     },
     {
-      title: "Deep Draft",
-      text: "Generate entire 20-page dissertations with real citations. Just input your topic in Topic Ideas.",
+      title: "Document Drafting",
+      text: "Draft papers and explore research topics easily. Use our tools to synthesize information and brainstorm.",
       icon: "lightbulb",
       highlight: AppView.RESEARCH
     },
     {
-      title: "Ecological Lens",
-      text: "Going on a field trip? The Field Trip tool tracks GPS, weather, and builds your report on the go.",
+      title: "Field Trip & Lab Reports",
+      text: "Going on a field trip? We can help organize your notes, format your data, and prepare reports.",
       icon: "map",
       highlight: AppView.FIELD_TRIP
     },
     {
-      title: "Data Cruncher",
-      text: "Statistical analysis without the headache. Feed it raw data, get bio-systematic results instantly.",
-      icon: "analytics",
-      highlight: AppView.DATA_CRUNCHER
+      title: "Voice Commands",
+      text: "Navigate hands-free! Try saying 'Open Research', 'Go to Dashboard', or 'Open Settings' using the microphone button.",
+      icon: "mic",
+      highlight: AppView.DASHBOARD
     }
   ];
 

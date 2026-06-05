@@ -75,24 +75,23 @@ export const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser }) => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-10">
-      <h2 className="text-3xl font-sans font-bold text-[var(--text-primary)] mb-8 tracking-tight">System Configuration</h2>
+      <h2 className="text-3xl font-sans font-bold text-[var(--text-primary)] mb-8 tracking-tight">Settings</h2>
       
-      {/* Academic Integrity Vault */}
+      {/* Data Privacy */}
       <div className="glass-panel p-8 border-l-4 border-emerald-500 shadow-lg bg-emerald-500/5">
          <div className="flex items-start gap-4">
             <span className="material-icons text-5xl text-[var(--primary)] opacity-90 drop-shadow-sm">verified_user</span>
             <div>
-               <h3 className="text-xl font-bold font-sans tracking-tight mb-2 text-[var(--text-primary)]">Academic Integrity Vault</h3>
+               <h3 className="text-xl font-bold font-sans tracking-tight mb-2 text-[var(--text-primary)]">Data Privacy</h3>
                <p className="text-sm text-[var(--text-secondary)] mb-4">
-                 Your research data, generated drafts, and uploaded lab results are strictly confidential. 
-                 They are <strong>never</strong> used to train public AI models.
+                 Your research drafts and data are private and secure.
                </p>
                <div className="flex items-center gap-2">
                  <div className="bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-bold px-2 py-1 rounded uppercase flex items-center">
-                   <span className="material-icons text-[10px] mr-1">lock</span> End-to-End Encryption
+                   <span className="material-icons text-[10px] mr-1">lock</span> Secure Encryption
                  </div>
                  <div className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-1 rounded uppercase flex items-center">
-                   <span className="material-icons text-[10px] mr-1">cloud_off</span> No Training Data
+                   <span className="material-icons text-[10px] mr-1">cloud_off</span> Private
                  </div>
                </div>
             </div>
@@ -108,25 +107,25 @@ export const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser }) => {
         <div className="text-xs text-[var(--text-secondary)] mt-1">
           {isSupabaseConfigured
             ? "Your login and progress are saved securely."
-            : "Add Supabase environment variables to enable cloud sync."}
+            : "Your progress is saved locally."}
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         
-        {/* Account Security */}
+        {/* Account Settings */}
         <div className="glass-panel p-8">
           <div className="flex items-center gap-3 mb-6 border-b border-[var(--border-color)] pb-3">
             <span className="material-icons text-[var(--accent)]">lock</span>
-            <h3 className="text-lg font-bold text-[var(--text-primary)]">Account Security</h3>
+            <h3 className="text-lg font-bold text-[var(--text-primary)]">Account Settings</h3>
           </div>
           
           <div className="space-y-6">
              {/* Offline Mode Toggle */}
              <div className="flex items-center justify-between pb-4 border-b border-[var(--border-color)]">
                <div>
-                  <h4 className="text-sm font-bold text-[var(--text-primary)]">Offline Draft Mode</h4>
-                  <p className="text-xs text-[var(--text-secondary)]">Disable cloud sync for sensitive work.</p>
+                  <h4 className="text-sm font-bold text-[var(--text-primary)]">Offline Mode</h4>
+                  <p className="text-xs text-[var(--text-secondary)]">Disable cloud sync.</p>
                </div>
                <button 
                  onClick={toggleOfflineMode}
