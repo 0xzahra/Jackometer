@@ -25,6 +25,7 @@ interface Post {
   authorInitial: string;
   content: string;
   imageData?: string;
+  fileName?: string;
   timestamp: string;
   likes: string[];
   replies: any[];
@@ -58,8 +59,10 @@ export const Community: React.FC<{ user: UserProfile }> = ({ user }) => {
     catch { return []; }
   });
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
+  const [selectedScholar, setSelectedScholar] = useState<Scholar | null>(null);
   const [newPostText, setNewPostText] = useState('');
   const [pendingImage, setPendingImage] = useState<string | null>(null);
+  const [pendingFileName, setPendingFileName] = useState<string | null>(null);
   const [following, setFollowing] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem('community_following') || '[]'); }
     catch { return []; }
@@ -80,9 +83,10 @@ export const Community: React.FC<{ user: UserProfile }> = ({ user }) => {
     localStorage.setItem('community_joined', JSON.stringify(updated));
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setPendingFileName(file.name);
       const reader = new FileReader();
       reader.onloadend = () => {
         setPendingImage(reader.result as string);
@@ -102,6 +106,7 @@ export const Community: React.FC<{ user: UserProfile }> = ({ user }) => {
       authorInitial: (user?.name || 'S').charAt(0).toUpperCase(),
       content: newPostText.trim(),
       imageData: pendingImage || undefined,
+      fileName: pendingFileName || undefined,
       timestamp: new Date().toISOString(),
       likes: [],
       replies: [],
@@ -112,6 +117,7 @@ export const Community: React.FC<{ user: UserProfile }> = ({ user }) => {
     localStorage.setItem('community_posts', JSON.stringify(updated));
     setNewPostText('');
     setPendingImage(null);
+    setPendingFileName(null);
   };
 
   const toggleLike = (postId: string) => {
@@ -190,8 +196,15 @@ export const Community: React.FC<{ user: UserProfile }> = ({ user }) => {
       
       <p className="font-serif text-sm leading-relaxed mb-3">{post.content}</p>
       
-      {post.imageData && (
+      {post.imageData && post.fileName && post.imageData.startsWith('data:image') && (
         <img src={post.imageData} className="w-full rounded-lg mt-2 max-h-48 object-cover mb-3 border border-[var(--border-color)]" alt="Attachment" />
+      )}
+      {post.imageData && post.fileName && !post.imageData.startsWith('data:image') && (
+        <div className="flex items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded mt-2 mb-3">
+           <span className="material-icons text-[var(--accent)]">insert_drive_file</span>
+           <span className="text-sm font-medium flex-1 truncate">{post.fileName}</span>
+           <a href={post.imageData} download={post.fileName} className="text-xs text-blue-600 hover:underline font-bold">Download</a>
+        </div>
       )}
       
       <div className="flex gap-4 pt-2 border-t border-[var(--border-color)]">
@@ -291,15 +304,20 @@ export const Community: React.FC<{ user: UserProfile }> = ({ user }) => {
                           </div>
                         </div>
                         {pendingImage && (
-                          <div className="relative inline-block mt-2">
-                             <img src={pendingImage} className="h-20 rounded border border-gray-200" alt="Preview"/>
-                             <button onClick={() => setPendingImage(null)} className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 -mt-2 -mr-2"><span className="material-icons text-[10px]">close</span></button>
+                          <div className="relative inline-flex items-center gap-2 mt-2 p-2 bg-gray-50 border border-gray-200 rounded pr-8">
+                             {pendingImage.startsWith('data:image') ? (
+                               <img src={pendingImage} className="h-10 rounded" alt="Preview"/>
+                             ) : (
+                               <span className="material-icons text-gray-500">description</span>
+                             )}
+                             <span className="text-xs truncate max-w-[200px]">{pendingFileName}</span>
+                             <button onClick={() => {setPendingImage(null); setPendingFileName(null);}} className="absolute top-1 right-1 text-red-500 hover:text-red-700 bg-white rounded-full"><span className="material-icons text-[14px]">close</span></button>
                           </div>
                         )}
                         <div className="flex justify-between items-center mt-3">
                            <label className="text-[var(--text-secondary)] hover:text-[var(--accent)] cursor-pointer flex items-center gap-1 font-bold text-xs">
-                             <span className="material-icons text-sm">image</span> Attach Media
-                             <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                             <span className="material-icons text-sm">attach_file</span> Attach File
+                             <input type="file" accept="*/*" className="hidden" onChange={handleFileUpload} />
                            </label>
                            <button onClick={publishPost} disabled={!newPostText.trim() && !pendingImage} className="btn-3d px-6 py-2 text-sm disabled:opacity-50">Post to Group</button>
                         </div>
@@ -350,7 +368,7 @@ export const Community: React.FC<{ user: UserProfile }> = ({ user }) => {
              </div>
           )}
 
-          {activeTab === 'scholars' && (
+          {activeTab === 'scholars' && selectedScholar === null && (
              <div className="flex flex-col h-full overflow-y-auto w-full max-w-2xl mx-auto custom-scrollbar">
                 <div className="bg-[var(--surface-color)] p-6 rounded-xl border border-[var(--border-color)] mb-8 flex items-center gap-4 shadow-sm">
                    <div className="w-12 h-12 rounded-full bg-[var(--accent)] text-white text-xl font-bold flex items-center justify-center shrink-0">
@@ -368,22 +386,83 @@ export const Community: React.FC<{ user: UserProfile }> = ({ user }) => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                    {SCHOLARS.map(scholar => (
                       <div key={scholar.id} className="sketch-card-soft bg-white p-4 flex flex-col border border-[var(--border-color)] rounded shadow-sm hover:shadow transition">
-                         <div className="flex justify-between items-start mb-3">
+                         <div className="flex justify-between items-start mb-3 cursor-pointer" onClick={() => setSelectedScholar(scholar)}>
                             <div className="flex gap-3">
                                <div className="w-10 h-10 rounded-full bg-gray-200 text-gray-700 font-bold flex items-center justify-center shrink-0">{scholar.name.charAt(0)}</div>
                                <div>
-                                  <h4 className="font-bold text-sm text-[var(--text-primary)]">{scholar.name}</h4>
+                                  <h4 className="font-bold text-sm text-[var(--text-primary)] hover:text-[var(--accent)]">{scholar.name}</h4>
                                   <p className="text-[10px] text-[var(--text-secondary)] uppercase">{scholar.course}</p>
                                   <p className="text-[10px] text-[var(--text-secondary)]">{scholar.school}</p>
                                </div>
                             </div>
                          </div>
-                         <p className="text-xs text-[var(--text-primary)] mb-4 flex-1 italic">"{scholar.bio}"</p>
+                         <p className="text-xs text-[var(--text-primary)] mb-4 flex-1 italic cursor-pointer m-0 line-clamp-2" onClick={() => setSelectedScholar(scholar)}>"{scholar.bio}"</p>
                          <button onClick={() => toggleFollow(scholar)} className={`w-full py-1.5 rounded text-xs font-bold transition-all flex items-center justify-center gap-1 ${following.includes(scholar.id) ? 'bg-[var(--accent)] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
                             {following.includes(scholar.id) ? 'Following' : 'Follow'}
                          </button>
                       </div>
                    ))}
+                </div>
+             </div>
+          )}
+
+          {activeTab === 'scholars' && selectedScholar !== null && (
+             <div className="flex flex-col h-full overflow-y-auto w-full max-w-3xl mx-auto custom-scrollbar pt-2">
+                <button onClick={() => setSelectedScholar(null)} className="self-start text-[var(--text-secondary)] hover:text-[var(--primary)] flex items-center gap-1 font-bold mb-4">
+                   <span className="material-icons text-sm">arrow_back</span> Back to Scholars
+                </button>
+                <div className="bg-white p-8 rounded-xl border border-[var(--border-color)] shadow-sm">
+                   <div className="flex items-center gap-6 mb-6">
+                      <div className="w-20 h-20 rounded-full bg-gray-200 text-gray-800 text-3xl font-bold flex items-center justify-center shrink-0 shadow-inner">
+                         {selectedScholar.name.charAt(0)}
+                      </div>
+                      <div className="flex-1">
+                         <h2 className="font-serif font-bold text-3xl text-[var(--text-primary)] mb-1">{selectedScholar.name}</h2>
+                         <p className="text-sm font-bold text-[var(--text-secondary)] uppercase tracking-wide mb-1 flex items-center gap-2"><span className="material-icons text-[16px]">school</span> {selectedScholar.course}</p>
+                         <p className="text-sm text-[var(--text-secondary)] flex items-center gap-2"><span className="material-icons text-[16px]">location_on</span> {selectedScholar.school}</p>
+                      </div>
+                      <div className="flex flex-col gap-2 shrink-0">
+                         <button onClick={() => toggleFollow(selectedScholar)} className={`px-6 py-2 rounded font-bold shadow-sm transition-colors ${following.includes(selectedScholar.id) ? 'bg-gray-200 text-gray-800' : 'bg-[var(--accent)] text-white hover:opacity-90'}`}>
+                            {following.includes(selectedScholar.id) ? 'Following' : 'Follow'}
+                         </button>
+                         <button onClick={() => {
+                            window.dispatchEvent(new CustomEvent('jackometer-notification', { detail: { type: 'COMMUNITY', title: 'Message Sent', message: `Message request sent to ${selectedScholar.name}.` } }));
+                         }} className="px-6 py-2 rounded border border-gray-300 font-bold text-gray-700 hover:bg-gray-50 flex items-center justify-center gap-2">
+                            <span className="material-icons text-[16px]">mail</span> Message
+                         </button>
+                      </div>
+                   </div>
+                   
+                   <div className="p-4 bg-gray-50 border border-gray-100 rounded-lg mb-8">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2">About</h4>
+                      <p className="text-sm italic pl-2 border-l-2 border-[var(--accent)]">{selectedScholar.bio}</p>
+                   </div>
+                   
+                   <div className="mb-4 text-[var(--text-primary)]">
+                       <h4 className="font-bold border-b border-[var(--border-color)] pb-2 mb-4 text-lg">Shared Documents</h4>
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                           <div className="border border-[var(--border-color)] p-4 rounded bg-[var(--surface-color)] hover:shadow-sm">
+                               <div className="flex gap-3 mb-2">
+                                  <span className="material-icons text-blue-500 rounded p-1 bg-blue-50">description</span>
+                                  <div>
+                                     <h5 className="font-bold text-sm">Research_Proposal_2024.docx</h5>
+                                     <p className="text-xs text-[var(--text-secondary)]">2.1 MB • 4 days ago</p>
+                                  </div>
+                               </div>
+                               <button className="text-xs font-bold text-[var(--accent)] mt-2 hover:underline">Download file</button>
+                           </div>
+                           <div className="border border-[var(--border-color)] p-4 rounded bg-[var(--surface-color)] hover:shadow-sm">
+                               <div className="flex gap-3 mb-2">
+                                  <span className="material-icons text-red-500 rounded p-1 bg-red-50">picture_as_pdf</span>
+                                  <div>
+                                     <h5 className="font-bold text-sm">Literature_Review_Notes.pdf</h5>
+                                     <p className="text-xs text-[var(--text-secondary)]">1.5 MB • 2 wks ago</p>
+                                  </div>
+                               </div>
+                               <button className="text-xs font-bold text-[var(--accent)] mt-2 hover:underline">Download file</button>
+                           </div>
+                       </div>
+                   </div>
                 </div>
              </div>
           )}

@@ -144,6 +144,13 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
         </div>
 
         <div className="px-6 py-4 border-t border-[var(--border-color)]">
+          <a 
+            href="mailto:usmanzahra19@gmail.com?subject=Jackometer App Feedback" 
+            className="flex items-center text-[var(--text-secondary)] hover:bg-[var(--surface-color)] hover:text-[var(--accent)] rounded p-2 transition-colors mb-1 font-sans text-sm font-medium w-full"
+          >
+            <span className="material-icons opacity-70 w-8">feedback</span>
+            <span className="truncate">Send Feedback</span>
+          </a>
           <NavButton active={currentView === AppView.SETTINGS} onClick={() => { setView(AppView.SETTINGS); setSidebarOpen(false); }} icon="settings" label="Settings" />
           <div 
              className="flex items-center cursor-pointer hover:bg-[rgba(139,105,20,0.05)] rounded p-2 transition-colors mb-2 mt-2" 

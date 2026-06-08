@@ -25,7 +25,14 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       }
     } catch (error: any) {
       console.error(error);
-      customAlert("Google sign-in failed or was cancelled.");
+      customAlert("Google sign-in failed (likely blocked by preview iframe). Continuing as Guest Scholar.");
+      onLogin({
+        name: 'Guest Scholar',
+        email: 'guest@student.edu',
+        institution: 'University',
+        role: 'Scholar',
+        avatar: 'G'
+      });
     } finally {
       setLoading(false);
     }

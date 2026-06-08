@@ -40,8 +40,10 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ setView }) => {
         if (active) {
             try {
                 recognitionRef.current.start();
-            } catch (e) {
-                setActive(false);
+            } catch (e: any) {
+                if (e.name !== 'InvalidStateError') {
+                    setActive(false);
+                }
             }
         }
       };
@@ -111,9 +113,15 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ setView }) => {
            setActive(true);
            setTranscript('');
            showToast("Voice assistant listening. Say 'open research' or 'stop listening'.", "success");
-       } catch (e) {
+       } catch (e: any) {
            console.error("Start error", e);
-           setActive(false);
+           if (e.name === 'InvalidStateError') {
+               setActive(true);
+               setTranscript('');
+               showToast("Voice assistant listening. Say 'open research' or 'stop listening'.", "success");
+           } else {
+               setActive(false);
+           }
        }
     }
   };
