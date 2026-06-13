@@ -678,7 +678,7 @@ export const ReportSuite: React.FC<ReportSuiteProps> = ({ type }) => {
                  <SlopShield
                    text={activeDoc.report}
                    onSharpened={(sharpened) => {
-                     updateDoc('report', sharpened);
+                     setActiveDoc({ ...activeDoc, report: sharpened });
                    }}
                  />
                </>
