@@ -15,9 +15,10 @@ export const LiteratureEngine: React.FC = () => {
         if (!concept) return;
         setLoading(true);
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+            const apiKey = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY) || '';
+            const ai = new GoogleGenAI({ apiKey });
             const p = `Act as an academic search expert. Given the concept: "${concept}", generate optimized search keyword combinations for Google Scholar, Scopus, and PubMed.`;
-            const res = await ai.models.generateContent({ model: 'gemini-3.5-flash', contents: p });
+            const res = await ai.models.generateContent({ model: 'gemini-2.0-flash', contents: p });
             setSearchStrings(res.text || '');
         } catch(e) {
             showToast("Failed to generate search keywords.", "error");

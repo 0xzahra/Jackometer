@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { GoogleGenAI } from '@google/genai';
+import { customAlert } from '../lib/dialogs';
 
 interface SlopShieldProps {
   text: string;
@@ -78,10 +79,11 @@ export const SlopShield: React.FC<SlopShieldProps> = ({ text, onSharpened }) => 
     try {
       const prompt = `You are a precision editor. Your only job is to compress the following academic text by removing padding, filler phrases, redundant transitions, and AI-style hedging language. Do not change the findings, data, or argument. Do not add new content. Return only the compressed text with no commentary. Cut at least 30% of the word count while preserving all substantive claims.\n\nTEXT:\n${text}`;
       
-      const key = process.env.VITE_API_KEY || process.env.API_KEY || ''; // Assuming Vite
+      const key = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY) || '';
+      if (!key) { setAnalyzing(false); customAlert("API key missing. Set VITE_GEMINI_API_KEY in .env.local"); return; }
       const ai = new GoogleGenAI({ apiKey: key });
       const response = await ai.models.generateContent({
-        model: 'gemini-3.5-flash',
+        model: 'gemini-2.0-flash',
         contents: prompt
       });
       
