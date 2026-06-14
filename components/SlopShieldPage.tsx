@@ -7,8 +7,8 @@ export const SlopShieldPage: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto w-full px-4 py-8 h-full flex flex-col">
       <div className="mb-6">
-        <h2 className="text-3xl font-serif font-bold text-[var(--text-primary)]">AI-giarism Integrity Check</h2>
-        <p className="text-sm text-[var(--text-secondary)] mt-2">Paste text here to check AI-giarism risk: hidden AI assistance, missing citations, proxy-performance, and generic AI writing.</p>
+        <h2 className="text-3xl font-serif font-bold text-[var(--text-primary)]">Slop Shield</h2>
+        <p className="text-sm text-[var(--text-secondary)] mt-2">Paste generated text here to detect and strip out academic filler text.</p>
       </div>
       
       <div className="sketch-card p-6 flex-1 flex flex-col min-h-0">

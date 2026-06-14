@@ -49,7 +49,6 @@ const SCHOLARS: Scholar[] = [
 ];
 
 export const Community: React.FC<{ user: UserProfile }> = ({ user }) => {
-  const currentUserId = user.id || user.email || 'current-user';
   const [activeTab, setActiveTab] = useState<'groups'|'feed'|'scholars'>('groups');
   const [joinedGroups, setJoinedGroups] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem('community_joined') || '[]'); }
@@ -124,8 +123,8 @@ export const Community: React.FC<{ user: UserProfile }> = ({ user }) => {
   const toggleLike = (postId: string) => {
     const updated = posts.map(p => {
       if (p.id === postId) {
-        const hasLiked = p.likes.includes(currentUserId);
-        const newLikes = hasLiked ? p.likes.filter(id => id !== currentUserId) : [...p.likes, currentUserId];
+        const hasLiked = p.likes.includes(user.id);
+        const newLikes = hasLiked ? p.likes.filter(id => id !== user.id) : [...p.likes, user.id];
         return { ...p, likes: newLikes };
       }
       return p;
@@ -209,8 +208,8 @@ export const Community: React.FC<{ user: UserProfile }> = ({ user }) => {
       )}
       
       <div className="flex gap-4 pt-2 border-t border-[var(--border-color)]">
-         <button onClick={() => toggleLike(post.id)} className={`text-sm flex items-center gap-1 font-bold ${post.likes.includes(currentUserId) ? 'text-red-500' : 'text-[var(--text-secondary)] hover:text-[var(--primary)]'}`}>
-            <span className="material-icons text-[16px]">{post.likes.includes(currentUserId) ? 'favorite' : 'favorite_border'}</span> {post.likes.length}
+         <button onClick={() => toggleLike(post.id)} className={`text-sm flex items-center gap-1 font-bold ${post.likes.includes(user.id) ? 'text-red-500' : 'text-[var(--text-secondary)] hover:text-[var(--primary)]'}`}>
+            <span className="material-icons text-[16px]">{post.likes.includes(user.id) ? 'favorite' : 'favorite_border'}</span> {post.likes.length}
          </button>
          <button onClick={() => setExpandedPost(expandedPost === post.id ? null : post.id)} className="text-sm flex items-center gap-1 font-bold text-[var(--text-secondary)] hover:text-[var(--primary)]">
             <span className="material-icons text-[16px]">chat_bubble_outline</span> {post.replies.length} replies

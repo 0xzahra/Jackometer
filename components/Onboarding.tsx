@@ -28,9 +28,9 @@ export const Onboarding = () => {
       icon: "history_edu"
     },
     {
-      title: "AI-giarism Integrity Check",
-      text: "Review hidden AI assistance, missing citations, proxy-performance risk, and disclosure needs before submission.",
-      icon: "verified_user"
+      title: "Slop Shield",
+      text: "Run your text through our filter to remove unnecessary filler text.",
+      icon: "security"
     },
     {
       title: "Ready to Explore!",
