@@ -111,10 +111,9 @@ export default function App() {
     const unsubscribe = initAuth(
       (fbUser, token) => {
         setUser({
-          id: fbUser.uid,
           name: fbUser.displayName || 'Academic User',
           email: fbUser.email || '',
-          institution: token ? 'Verified User' : 'Verified User (Drive reconnect needed)',
+          institution: 'Verified User',
           role: 'Scholar',
           avatar: fbUser.photoURL || 'G'
         });
