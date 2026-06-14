@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { GoogleGenAI } from '@google/genai';
+import { getGeminiApiKey } from '../services/geminiService';
 
 interface SlopShieldProps {
   text: string;
@@ -7,87 +8,105 @@ interface SlopShieldProps {
 }
 
 const SLOP_MARKERS = [
-  "it is worth noting that",
-  "it is important to note",
-  "in conclusion",
-  "furthermore",
-  "in summary",
-  "as previously mentioned",
-  "this study aims to",
-  "d" + "e" + "l" + "v" + "e",
-  "c" + "o" + "m" + "p" + "r" + "e" + "h" + "e" + "n" + "s" + "i" + "v" + "e",
-  "t" + "e" + "s" + "t" + "a" + "m" + "e" + "n" + "t" + " " + "t" + "o",
-  "it can be seen that",
-  "needless to say",
-  "in the context of",
-  "shed light on",
-  "in light of the above",
-  "p" + "l" + "a" + "y" + "s" + " " + "a" + " " + "c" + "r" + "u" + "c" + "i" + "a" + "l" + " " + "r" + "o" + "l" + "e",
-  "a wide range of"
+  'it is worth noting that',
+  'it is important to note',
+  'in conclusion',
+  'furthermore',
+  'in summary',
+  'as previously mentioned',
+  'this study aims to',
+  'delve',
+  'comprehensive',
+  'testament to',
+  'it can be seen that',
+  'needless to say',
+  'in the context of',
+  'shed light on',
+  'in light of the above',
+  'plays a crucial role',
+  'a wide range of'
 ];
 
-function SlopBadge({ score }: { score: number }) {
-  const label = score < 31 ? "Clean" : score < 61 ? "Wordy" : "Heavy Slop";
+const AI_GIARISM_MARKERS = [
+  { label: 'No inline citations', test: (text: string) => text.length > 700 && !/[\[(][A-Z][A-Za-z .,&-]+,?\s*(19|20)\d{2}[\])]/.test(text) },
+  { label: 'Generic academic filler', test: (text: string) => SLOP_MARKERS.some(m => text.toLowerCase().includes(m)) },
+  { label: 'No personal/process signal', test: (text: string) => text.length > 700 && !/(i observed|we observed|my data|field notes|interview|survey|appendix|table|figure|method|sample|respondents)/i.test(text) },
+  { label: 'Possible proxy performance', test: (text: string) => text.length > 1200 && !/(draft|outline|notes|revision|reflection|limitations|disclosure|acknowledg)/i.test(text) },
+];
+
+function IntegrityBadge({ score }: { score: number }) {
+  const label = score < 31 ? 'Low Risk' : score < 61 ? 'Review Needed' : 'High Integrity Risk';
   const color = score < 31
-    ? "bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]/30"
+    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
     : score < 61
-    ? "bg-amber-100 text-amber-800 border-amber-300"
-    : "bg-red-100 text-red-800 border-red-300";
+    ? 'bg-amber-100 text-amber-800 border-amber-300'
+    : 'bg-red-100 text-red-800 border-red-300';
   return (
     <span className={`text-xs font-bold px-2 py-1 rounded-full border ${color}`}>
-      Slop Score: {score} — {label}
+      AI-giarism Risk: {score}% — {label}
     </span>
   );
 }
 
 export const SlopShield: React.FC<SlopShieldProps> = ({ text, onSharpened }) => {
-  const [mode, setMode] = useState<'idle' | 'scored' | 'sharpened'>('idle');
+  const [mode, setMode] = useState<'idle' | 'scored' | 'revised'>('idle');
   const [analyzing, setAnalyzing] = useState(false);
   const [score, setScore] = useState<number | null>(null);
-  const [sharpened, setSharpened] = useState<string | null>(null);
+  const [warnings, setWarnings] = useState<string[]>([]);
+  const [revised, setRevised] = useState<string | null>(null);
 
-  const calculateScore = (input: string) => {
+  const slopScore = useMemo(() => {
+    const lowerInput = text.toLowerCase();
     let count = 0;
-    const lowerInput = input.toLowerCase();
-    
     for (const marker of SLOP_MARKERS) {
-      const regex = new RegExp(`\\b${marker}\\b`, 'g');
+      const regex = new RegExp(`\\b${marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'g');
       const matches = lowerInput.match(regex);
-      if (matches) {
-        if (marker === 'd' + 'e' + 'l' + 'v' + 'e') count += 10;
-        else count += matches.length * 2;
-      }
+      if (matches) count += marker === 'delve' ? 10 : matches.length * 2;
     }
-    const wordCount = input.split(/\\s+/).filter(w => w.length > 0).length || 1;
-    let slopRatio = (count / (wordCount / 100)) * 10;
-    if (slopRatio > 100) slopRatio = 100;
-    return Math.round(slopRatio);
-  };
+    const wordCount = text.split(/\s+/).filter(w => w.length > 0).length || 1;
+    return Math.min(100, Math.round((count / (wordCount / 100)) * 10));
+  }, [text]);
 
-  const handleCheck = () => {
+  const runIntegrityCheck = () => {
     setAnalyzing(true);
     setTimeout(() => {
-      setScore(calculateScore(text));
+      const detected = AI_GIARISM_MARKERS.filter(m => m.test(text)).map(m => m.label);
+      let risk = slopScore;
+      risk += detected.length * 18;
+      if (text.length > 1000 && detected.includes('No inline citations')) risk += 15;
+      risk = Math.min(100, risk);
+      setWarnings(detected);
+      setScore(risk);
       setMode('scored');
       setAnalyzing(false);
-    }, 600);
+    }, 500);
   };
 
-  const handleSharpen = async () => {
+  const handleAcademicRevision = async () => {
     setAnalyzing(true);
     try {
-      const prompt = `You are a precision editor. Your only job is to compress the following academic text by removing padding, filler phrases, redundant transitions, and AI-style hedging language. Do not change the findings, data, or argument. Do not add new content. Return only the compressed text with no commentary. Cut at least 30% of the word count while preserving all substantive claims.\n\nTEXT:\n${text}`;
-      
-      const key = process.env.VITE_API_KEY || process.env.API_KEY || ''; // Assuming Vite
-      const ai = new GoogleGenAI({ apiKey: key });
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.5-flash',
-        contents: prompt
-      });
-      
-      if (response && response.text) {
-        setSharpened(response.text);
-        setMode('sharpened');
+      const prompt = `
+You are an academic integrity editor. Revise the text to reduce AI-giarism risk without hiding AI use.
+
+Guidance based on Chan (2023) and Med Kharbach's AI-giarism framing:
+- AI assistance is acceptable when it supports brainstorming, outlining, checking, or revision.
+- Risk rises when AI performs the core intellectual work, hides authorship, removes student responsibility, or creates proxy performance.
+
+Task:
+1. Keep the student's argument and meaning.
+2. Remove generic filler and unsupported claims.
+3. Add placeholders where the student must insert their own data, observation, reflection, or citation.
+4. Add a short "AI Use Disclosure" note at the end if the text appears heavily AI-assisted.
+5. Do not invent sources.
+6. Return only the revised text.
+
+TEXT:
+${text}`;
+      const ai = new GoogleGenAI({ apiKey: getGeminiApiKey() });
+      const response = await ai.models.generateContent({ model: 'gemini-3.5-flash', contents: prompt });
+      if (response.text) {
+        setRevised(response.text.trim());
+        setMode('revised');
       }
     } catch (err) {
       console.error(err);
@@ -95,63 +114,55 @@ export const SlopShield: React.FC<SlopShieldProps> = ({ text, onSharpened }) => 
     setAnalyzing(false);
   };
 
-  const getWordCount = (str: string) => str.split(/\\s+/).filter(w => w.length > 0).length;
+  const wordCount = (str: string) => str.split(/\s+/).filter(w => w.length > 0).length;
 
   return (
     <div className="mt-4 flex flex-col items-end w-full">
       {mode === 'idle' && (
-        <button 
-          onClick={handleCheck} 
-          disabled={analyzing}
-          className="btn-outline-sketch px-3 py-1 text-xs flex items-center gap-2"
-        >
-          {analyzing ? <span className="material-icons animate-spin text-sm">refresh</span> : <span className="material-icons text-sm">security</span>}
-          Check for Slop
+        <button onClick={runIntegrityCheck} disabled={analyzing} className="btn-outline-sketch px-3 py-1 text-xs flex items-center gap-2">
+          {analyzing ? <span className="material-icons animate-spin text-sm">refresh</span> : <span className="material-icons text-sm">verified_user</span>}
+          Check AI-giarism Risk
         </button>
       )}
 
       {mode === 'scored' && score !== null && (
-        <div className="flex items-center gap-3 bg-[var(--surface-color)] p-2 rounded-lg border border-[var(--border-color)]">
-          <SlopBadge score={score} />
-          {score > 30 ? (
-            <button 
-              onClick={handleSharpen} 
-              disabled={analyzing}
-              className="btn-outline-sketch px-3 py-1 text-xs flex items-center gap-2"
-            >
-              {analyzing ? <span className="material-icons animate-spin text-sm">refresh</span> : <span className="material-icons text-sm">auto_fix_high</span>}
-              Sharpen
+        <div className="w-full bg-[var(--surface-color)] p-3 rounded-lg border border-[var(--border-color)] space-y-3">
+          <div className="flex flex-wrap items-center gap-3 justify-between">
+            <IntegrityBadge score={score} />
+            <button onClick={() => setMode('idle')} className="text-xs text-[var(--text-secondary)] hover:underline">Re-check</button>
+          </div>
+          <div className="text-xs text-[var(--text-secondary)] space-y-1">
+            <p><strong>What this checks:</strong> generic AI style, missing citations, missing personal/process evidence, and proxy-performance risk.</p>
+            <p><strong>Slop score:</strong> {slopScore}%</p>
+            {warnings.length > 0 ? (
+              <ul className="list-disc pl-5">
+                {warnings.map(w => <li key={w}>{w}</li>)}
+              </ul>
+            ) : <p>No major AI-giarism warning triggered. Still verify citations and follow your school policy.</p>}
+          </div>
+          <div className="flex justify-end gap-2">
+            <button onClick={handleAcademicRevision} disabled={analyzing} className="btn-outline-sketch px-3 py-1 text-xs flex items-center gap-2">
+              {analyzing ? <span className="material-icons animate-spin text-sm">refresh</span> : <span className="material-icons text-sm">edit_note</span>}
+              Revise for Integrity
             </button>
-          ) : (
-            <span className="text-xs text-[var(--text-secondary)] italic mr-2">Good to go</span>
-          )}
+          </div>
         </div>
       )}
 
-      {mode === 'sharpened' && sharpened && (
+      {mode === 'revised' && revised && (
         <div className="sketch-card-soft p-4 w-full text-left mt-2 shadow-sm animate-fade-in-up">
           <div className="flex justify-between items-center mb-3">
-            <h4 className="text-sm font-bold text-[var(--text-primary)]">Sharpened Output</h4>
+            <h4 className="text-sm font-bold text-[var(--text-primary)]">Integrity-Safer Revision</h4>
             <div className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-1 rounded">
-              {getWordCount(text)} &rarr; {getWordCount(sharpened)} words
+              {wordCount(text)} → {wordCount(revised)} words
             </div>
           </div>
           <div className="text-sm text-[var(--text-primary)] mb-4 max-h-48 overflow-y-auto whitespace-pre-wrap break-words pr-2">
-            {sharpened}
+            {revised}
           </div>
           <div className="flex justify-end gap-2 border-t border-[var(--border-color)] pt-3">
-            <button 
-              onClick={() => { setMode('idle'); setSharpened(null); }}
-              className="btn-outline-sketch px-3 py-1.5 text-xs"
-            >
-              Keep Original
-            </button>
-            <button 
-              onClick={() => { onSharpened(sharpened); setMode('idle'); setSharpened(null); }}
-              className="btn-3d px-4 py-1.5 text-xs"
-            >
-              Use This
-            </button>
+            <button onClick={() => { setMode('idle'); setRevised(null); }} className="btn-outline-sketch px-3 py-1.5 text-xs">Keep Original</button>
+            <button onClick={() => { onSharpened(revised); setMode('idle'); setRevised(null); }} className="btn-3d px-4 py-1.5 text-xs">Use Revision</button>
           </div>
         </div>
       )}

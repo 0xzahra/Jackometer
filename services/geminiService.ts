@@ -26,10 +26,11 @@ export const exportToDocx = async (sections: any[], filename: string) => {
   URL.revokeObjectURL(url);
 };
 
-const getGeminiApiKey = () => {
-    const key = process.env.GEMINI_API_KEY || process.env.VITE_API_KEY || process.env.API_KEY;
+export const getGeminiApiKey = () => {
+    const viteKey = typeof import.meta !== 'undefined' ? import.meta.env?.VITE_API_KEY : undefined;
+    const key = viteKey || process.env.GEMINI_API_KEY || process.env.VITE_API_KEY || process.env.API_KEY;
     if (!key) {
-        throw new Error("Gemini API key is missing. Add GEMINI_API_KEY in your Vercel environment variables.");
+        throw new Error("Gemini API key is missing. Add GEMINI_API_KEY or VITE_API_KEY in your Vercel environment variables.");
     }
     return key;
 };
@@ -472,12 +473,14 @@ export const estimateWeatherConditions = async (lat: number, lng: number): Promi
 export const humanizeText = async (text: string): Promise<string> => {
   const ai = getAI();
   const prompt = `
-    You are an advanced Syntax Humanizer.
-    Rewrite the following academic text so that it completely bypasses AI detection tools like Turnitin, GPTZero, and Originality.ai.
-    - Vary sentence lengths and structures (some very short, some compound-complex).
-    - Introduce slight, natural imperfections or colloquial academic phrasing where appropriate.
-    - Do not use words like "moreover", "furthermore", "delve", "tapestry", "crucial", or "underscore".
-    - Avoid predictable AI cadences. Read like a competent human researcher who is summarizing their own organic work.
+    You are an academic integrity editor.
+    Revise the following academic text to reduce AI-giarism risk while preserving meaning.
+    - Remove generic filler and unsupported claims.
+    - Keep the student's core argument.
+    - Add placeholders where the student must insert their own data, observation, reflection, or citation.
+    - Do not invent sources.
+    - If the text appears heavily AI-assisted, add a short "AI Use Disclosure" note at the end.
+    - Focus on transparency, authorship, learning process, and proper citation.
     
     TEXT:
     ${text}
@@ -984,7 +987,7 @@ export const generatePassportEdit = async (base64Image: string, backgroundType: 
   });
 
   for (const part of response.candidates?.[0]?.content?.parts || []) {
-    if (part.inlineData) {
+    if (part.inlineData?.data) {
       return part.inlineData.data;
     }
   }

@@ -140,6 +140,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, 
           <NavButton active={currentView === AppView.PROJECTS} onClick={() => { setView(AppView.PROJECTS); setSidebarOpen(false); }} icon="folder" label="Projects" />
           <NavButton active={currentView === AppView.CAREER} onClick={() => { setView(AppView.CAREER); setSidebarOpen(false); }} icon="work" label="Career Studio" />
           <NavButton active={currentView === AppView.COMPRESSOR} onClick={() => { setView(AppView.COMPRESSOR); setSidebarOpen(false); }} icon="compress" label="File Compressor" />
+          <NavButton active={currentView === AppView.SLOP_SHIELD} onClick={() => { setView(AppView.SLOP_SHIELD); setSidebarOpen(false); }} icon="verified_user" label="AI-giarism Check" />
           <NavButton active={currentView === AppView.COMMUNITY} onClick={() => { setView(AppView.COMMUNITY); setSidebarOpen(false); }} icon="people" label="Scholar Hub" />
         </div>
 

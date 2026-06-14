@@ -325,6 +325,12 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
         .map(s => `--- ${s.title} ---\n${s.content}`)
         .join('\n');
 
+      if (!activeSection) {
+        customAlert("No section selected. Please choose a section from the outline.");
+        setDraftLoading(activeDraft.id, false);
+        return;
+      }
+
       const docResult = await generateSectionContent(
         activeSection.title,
         activeSection.type,
@@ -361,9 +367,55 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
         }
       }, 300);
       
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      customAlert("Generation failed. Please check your connection.");
+      customAlert(`Generation failed: ${e?.message || 'Please check your API key and connection.'}`);
+      setDraftLoading(activeDraft.id, false);
+    }
+  };
+
+  const handleGenerateFullDraft = async () => {
+    if (!activeDraft.topic || !activeDraft.course) {
+      customAlert("Please enter a Topic and Course before generating the full draft.");
+      return;
+    }
+
+    setDraftLoading(activeDraft.id, true);
+    try {
+      const appendixStr = activeDraft.appendix.map((a, i) => `Figure ${i + 1}: ${a.caption}`).join('\n');
+      let previousText = '';
+      let mergedCitations = [...activeDraft.citations];
+      const generatedSections: DocSection[] = [];
+
+      for (const section of activeDraft.sections) {
+        const result = await generateSectionContent(
+          section.title,
+          section.type,
+          activeDraft.topic,
+          activeDraft.course,
+          `${activeDraft.details}\n\nAcademic integrity requirement: write as a student-support draft, include citations where factual claims are made, and do not hide AI assistance. If AI is used, include process notes that help the student disclose assistance honestly.`,
+          previousText,
+          appendixStr
+        );
+
+        const updatedSection = { ...section, content: result.content };
+        generatedSections.push(updatedSection);
+        previousText += `\n--- ${section.title} ---\n${result.content}\n`;
+        result.citations.forEach(cit => {
+          if (!mergedCitations.some(existing => existing.url === cit.url)) {
+            mergedCitations.push(cit);
+          }
+        });
+      }
+
+      saveToHistory(generatedSections);
+      updateDraft('citations', mergedCitations);
+      logActivity('AI_GENERATION', `Generated full document draft across ${generatedSections.length} sections`);
+      customAlert("Full document draft generated. Review sources, edit with your own voice, and add an AI-use disclosure if required by your institution.");
+    } catch (e: any) {
+      console.error(e);
+      customAlert(`Full document generation failed: ${e?.message || 'Unknown error'}`);
+    } finally {
       setDraftLoading(activeDraft.id, false);
     }
   };
@@ -514,7 +566,7 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
        warnings.push("Warning: No inline citations found in the text. This is a severe academic risk.");
     }
     if (humanEdits.length === 0 && fullText.length > 100) {
-       warnings.push("Warning: Internal AI detection shows 100% AI generation. Try using the Syntax Humanizer.");
+       warnings.push("Warning: No human revision activity is recorded. Run the AI-giarism check and add process notes or an AI-use disclosure if required.");
     }
     setScanWarnings(warnings);
   };
@@ -568,10 +620,10 @@ export const DocumentWriter: React.FC<DocumentWriterProps> = ({ userId }) => {
         s.id === activeSectionId ? { ...s, content: humText } : s
       );
       updateDraft('sections', updatedSections);
-      logActivity('HUMAN_EDIT', `Syntax Humanizer bypassed AI detection in ${activeSection.title}`);
-      customAlert("Syntax Humanization Complete: Content rewritten to bypass detectors.");
+      logActivity('HUMAN_EDIT', `Integrity revision applied in ${activeSection.title}`);
+      customAlert("Integrity revision complete. Review the placeholders, citations, and AI-use disclosure before submission.");
     } catch (e) {
-      customAlert("Failed to humanize text.");
+      customAlert("Failed to revise text for integrity.");
     }
     setHumanizing(false);
   };
@@ -762,9 +814,13 @@ ${collabLogs.length === 0 ? "*(No external logs available)*" : collabLogs.map(l 
                       <SpeechButton onTranscript={(text) => updateDraft('details', (activeDraft.details || '') + (activeDraft.details && !activeDraft.details.endsWith(' ') ? ' ' : '') + text)} />
                     </div>
                   </div>
-                  <button onClick={handleGenerate} disabled={loading} className="w-full bg-[var(--primary)] text-white text-xs font-bold py-2 rounded mt-2 hover:bg-blue-700 flex items-center justify-center gap-2">
+                  <button onClick={handleGenerateFullDraft} disabled={loading} className="w-full bg-[var(--primary)] text-white text-xs font-bold py-2 rounded mt-2 hover:bg-blue-700 flex items-center justify-center gap-2">
                      {loading ? <span className="material-icons animate-spin text-xs">refresh</span> : <span className="material-icons text-xs">auto_awesome</span>}
-                     Write Document
+                     Generate Full Draft
+                  </button>
+                  <button onClick={handleGenerate} disabled={loading} className="w-full border border-[var(--primary)] text-[var(--primary)] text-xs font-bold py-2 rounded mt-2 hover:bg-blue-50 flex items-center justify-center gap-2">
+                     {loading ? <span className="material-icons animate-spin text-xs">refresh</span> : <span className="material-icons text-xs">edit_note</span>}
+                     Write Current Section
                   </button>
                 </div>
              </div>
@@ -842,9 +898,9 @@ ${collabLogs.length === 0 ? "*(No external logs available)*" : collabLogs.map(l 
                      {loading ? <span className="material-icons animate-spin text-sm">refresh</span> : <span className="material-icons text-sm">auto_awesome</span>}
                      <span className="hidden sm:inline">Write Section</span>
                   </button>
-                  <button onClick={runHumanizer} disabled={loading || humanizing || !activeSection?.content} className="border border-purple-600 text-purple-600 text-xs font-bold px-3 py-1 rounded hover:bg-purple-50 flex items-center gap-1 shadow-sm ml-1" title="Bypass AI Detectors">
-                     {humanizing ? <span className="material-icons animate-spin text-sm">refresh</span> : <span className="material-icons text-sm">psychology</span>}
-                     <span className="hidden xl:inline">Syntax Humanizer</span>
+                  <button onClick={runHumanizer} disabled={loading || humanizing || !activeSection?.content} className="border border-purple-600 text-purple-600 text-xs font-bold px-3 py-1 rounded hover:bg-purple-50 flex items-center gap-1 shadow-sm ml-1" title="Revise for academic integrity and disclosure">
+                     {humanizing ? <span className="material-icons animate-spin text-sm">refresh</span> : <span className="material-icons text-sm">verified_user</span>}
+                     <span className="hidden xl:inline">Integrity Revise</span>
                   </button>
                   <button onClick={runThesisMentor} disabled={loading || mentorReviewLoading || !activeSection?.content} className="border border-amber-600 text-amber-600 text-xs font-bold px-3 py-1 rounded hover:bg-amber-50 flex items-center gap-1 shadow-sm ml-1" title="Thesis Mentor">
                      {mentorReviewLoading ? <span className="material-icons animate-spin text-sm">refresh</span> : <span className="material-icons text-sm">assistant</span>}

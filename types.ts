@@ -25,10 +25,12 @@ export enum AppView {
 }
 
 export interface UserProfile {
+  id?: string;
   name: string;
   email: string;
   institution: string;
   role: string; // e.g., Student, Researcher
+  course?: string;
   avatar?: string;
 }
 
