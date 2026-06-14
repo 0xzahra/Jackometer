@@ -9,13 +9,27 @@ interface AuthProps {
 
 export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const [loading, setLoading] = useState(false);
+  const [authMessage, setAuthMessage] = useState<string | null>(null);
+
+  const continueAsGuest = () => {
+    onLogin({
+      id: 'guest-scholar',
+      name: 'Guest Scholar',
+      email: 'guest@student.edu',
+      institution: 'Local Workspace',
+      role: 'Scholar',
+      avatar: 'G'
+    });
+  };
 
   const handleGoogleLoginStart = async () => {
     setLoading(true);
+    setAuthMessage(null);
     try {
       const result = await googleSignIn();
       if (result) {
         onLogin({
+          id: result.user.uid,
           name: result.user.displayName || 'Academic User',
           email: result.user.email || '',
           institution: 'Verified User',
@@ -25,14 +39,13 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       }
     } catch (error: any) {
       console.error(error);
-      customAlert("Google sign-in failed (likely blocked by preview iframe). Continuing as Guest Scholar.");
-      onLogin({
-        name: 'Guest Scholar',
-        email: 'guest@student.edu',
-        institution: 'University',
-        role: 'Scholar',
-        avatar: 'G'
-      });
+      const code = error?.code || '';
+      const isPopupIssue = code.includes('popup') || code.includes('unauthorized-domain') || code.includes('cancelled') || String(error?.message || '').includes('too long');
+      const message = isPopupIssue
+        ? 'Google sign-in was blocked or cancelled by this browser. You can continue as Guest Scholar and still use the main tools.'
+        : 'Google sign-in failed. You can continue as Guest Scholar while the authentication setup is checked.';
+      setAuthMessage(message);
+      customAlert(message);
     } finally {
       setLoading(false);
     }
@@ -96,14 +109,30 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             type="button"
             disabled={loading}
             onClick={handleGoogleLoginStart}
-            className="w-full flex items-center justify-center gap-3 bg-[var(--panel-bg)] hover:bg-[var(--surface-color)] text-[var(--text-primary)] font-bold py-3 px-4 rounded-xl shadow border border-[var(--border-color)] transition-all mb-4"
+            className="w-full flex items-center justify-center gap-3 bg-[var(--panel-bg)] hover:bg-[var(--surface-color)] text-[var(--text-primary)] font-bold py-3 px-4 rounded-xl shadow border border-[var(--border-color)] transition-all mb-3 disabled:opacity-60"
           >
             <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
             <span>{loading ? 'Signing in...' : 'Sign in with Google'}</span>
           </button>
+
+          <button
+            type="button"
+            disabled={loading}
+            onClick={continueAsGuest}
+            className="w-full flex items-center justify-center gap-2 bg-[var(--primary)] text-white font-bold py-3 px-4 rounded-xl shadow hover:opacity-90 transition-all disabled:opacity-60"
+          >
+            <span className="material-icons text-base">person</span>
+            Continue as Guest Scholar
+          </button>
+
+          {authMessage && (
+            <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 text-amber-900 px-4 py-3 text-xs leading-relaxed">
+              {authMessage}
+            </div>
+          )}
           
           <div className="text-center mt-6 text-xs text-[var(--text-secondary)]">
-             <p>By signing in, you agree to the Terms of Service & Privacy Policy.</p>
+             <p>Google login saves your workspace. Guest mode keeps the app usable if mobile popup login is blocked.</p>
           </div>
         </div>
       </div>
