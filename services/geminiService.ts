@@ -26,16 +26,10 @@ export const exportToDocx = async (sections: any[], filename: string) => {
   URL.revokeObjectURL(url);
 };
 
-export const GEMINI_MODEL = 'gemini-2.5-flash';
-
-export const getGeminiApiKey = () => {
-    const viteEnv = typeof import.meta !== 'undefined' ? import.meta.env : undefined;
-    const key =
-        viteEnv?.VITE_GEMINI_API_KEY ||
-        viteEnv?.VITE_API_KEY ||
-        '';
+const getGeminiApiKey = () => {
+    const key = process.env.GEMINI_API_KEY || process.env.VITE_API_KEY || process.env.API_KEY;
     if (!key) {
-        throw new Error("Gemini API key is missing. Add VITE_GEMINI_API_KEY or VITE_API_KEY in .env.local or Vercel environment variables.");
+        throw new Error("Gemini API key is missing. Add GEMINI_API_KEY in your Vercel environment variables.");
     }
     return key;
 };
@@ -53,7 +47,7 @@ export const generateDefenseQuestions = async (reportContent: string): Promise<s
     Report Content:
     ${reportContent}
   `;
-  const response = await ai.models.generateContent({ model: GEMINI_MODEL, contents: prompt });
+  const response = await ai.models.generateContent({ model: 'gemini-3.5-flash', contents: prompt });
   return response.text || "";
 };
 const ANTI_SLOP_PROMPT = `
@@ -176,7 +170,7 @@ export const generateResearchTitles = async (topic: string, qualification: strin
   \n${ANTI_SLOP_PROMPT}`;
 
   const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
+    model: 'gemini-3.5-flash',
     contents: prompt,
     config: {
       tools: [{ googleSearch: {} }],
@@ -225,7 +219,7 @@ export const generateStructuredOutline = async (topic: string): Promise<string[]
   \n${ANTI_SLOP_PROMPT}`;
 
   const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
+    model: 'gemini-3.5-flash',
     contents: prompt,
     config: {
       responseMimeType: 'application/json',
@@ -288,7 +282,7 @@ export const generateDeepResearch = async (title: string, chapter: string, conte
   \n${ANTI_SLOP_PROMPT}`;
 
   const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
+    model: 'gemini-3.5-flash',
     contents: prompt,
     config: {
       tools: [{ googleSearch: {} }] 
@@ -307,7 +301,7 @@ export const searchYouTubeVideos = async (topic: string): Promise<YouTubeVideo[]
   \n${ANTI_SLOP_PROMPT}`;
   
   const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
+    model: 'gemini-3.5-flash',
     contents: prompt,
     config: {
       tools: [{ googleSearch: {} }],
@@ -350,7 +344,7 @@ export const generateFieldTripGuide = async (topic: string, requirements: string
   \n${ANTI_SLOP_PROMPT}`;
 
   const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
+    model: 'gemini-3.5-flash',
     contents: prompt,
     config: {
       responseMimeType: 'application/json',
@@ -402,7 +396,7 @@ export const generateFieldTripDocument = async (topic: string, tables: string, n
       - Cite sources inline.
       - Generate a complete REFERENCES section at the end of the document in APA format with URLs.
     \n${ANTI_SLOP_PROMPT}`;
-    const response = await ai.models.generateContent({ model: GEMINI_MODEL, contents: prompt, config: { tools: [{ googleSearch: {} }] } });
+    const response = await ai.models.generateContent({ model: 'gemini-3.5-flash', contents: prompt, config: { tools: [{ googleSearch: {} }] } });
     return response.text || "";
 }
 
@@ -418,7 +412,7 @@ export const generateRapidPresentation = async (topic: string, rawData: string):
   \n${ANTI_SLOP_PROMPT}`;
 
   const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
+    model: 'gemini-3.5-flash',
     contents: prompt,
     config: {
       responseMimeType: 'application/json',
@@ -454,7 +448,7 @@ export const estimateWeatherConditions = async (lat: number, lng: number): Promi
   \n${ANTI_SLOP_PROMPT}`;
 
   const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
+    model: 'gemini-3.5-flash',
     contents: prompt,
     config: {
       responseMimeType: 'application/json',
@@ -488,7 +482,7 @@ export const humanizeText = async (text: string): Promise<string> => {
     TEXT:
     ${text}
   \n${ANTI_SLOP_PROMPT}`;
-  const response = await ai.models.generateContent({ model: GEMINI_MODEL, contents: prompt });
+  const response = await ai.models.generateContent({ model: 'gemini-3.5-flash', contents: prompt });
   return response.text?.trim() || text;
 };
 
@@ -509,7 +503,7 @@ export const reviewWithThesisMentor = async (text: string): Promise<string> => {
   \n${ANTI_SLOP_PROMPT}`;
 
   const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
+    model: 'gemini-3.5-flash',
     contents: prompt
   });
   return response.text || "";
@@ -552,7 +546,7 @@ export const generateSectionContent = async (
   \n${ANTI_SLOP_PROMPT}`;
 
   const response = await ai.models.generateContent({
-      model: GEMINI_MODEL, 
+      model: 'gemini-3.5-flash', 
       contents: prompt,
       config: {
           tools: [{ googleSearch: {} }]
@@ -583,7 +577,7 @@ export const generateAcademicDocument = async (level: string, course: string, to
       - **MANDATORY**: End with "REFERENCES" section in APA format listing all URLs found.
     \n${ANTI_SLOP_PROMPT}`;
     const response = await ai.models.generateContent({
-        model: GEMINI_MODEL, 
+        model: 'gemini-3.5-flash', 
         contents: prompt,
         config: {
             tools: [{ googleSearch: {} }]
@@ -612,7 +606,7 @@ export const enrichCitationFromUrl = async (url: string): Promise<Partial<Citati
   \n${ANTI_SLOP_PROMPT}`;
 
   const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
+    model: 'gemini-3.5-flash',
     contents: prompt,
     config: {
       responseMimeType: 'application/json',
@@ -647,7 +641,7 @@ export const verifyCitations = async (citations: Citation[]): Promise<{id: strin
   \n${ANTI_SLOP_PROMPT}`;
   
   const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
+    model: 'gemini-3.5-flash',
     contents: prompt,
     config: {
       responseMimeType: 'application/json',
@@ -682,7 +676,7 @@ export const scanReference = async (base64Image: string, style: string): Promise
   \n${ANTI_SLOP_PROMPT}`;
   
   const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
+    model: 'gemini-3.5-flash',
     contents: {
       parts: [
         { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
@@ -707,7 +701,7 @@ export const getContextualQuotes = async (citation: Citation, userContext: strin
   \n${ANTI_SLOP_PROMPT}`;
   
   const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
+    model: 'gemini-3.5-flash',
     contents: prompt,
     config: {
       responseMimeType: 'application/json',
@@ -734,7 +728,7 @@ export const generateBibliography = async (citations: Citation[], style: string)
     4. Output plain text.
   \n${ANTI_SLOP_PROMPT}`;
   const response = await ai.models.generateContent({
-    model: GEMINI_MODEL, 
+    model: 'gemini-3.5-flash', 
     contents: prompt
   });
   return response.text || "";
@@ -755,7 +749,7 @@ export const generateTechnicalReport = async (topic: string, details: string, ta
     **CRITICAL**: Include a "REFERENCES" section at the end listing all sources found.
   \n${ANTI_SLOP_PROMPT}`;
   const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
+    model: 'gemini-3.5-flash',
     contents: prompt,
     config: { tools: [{ googleSearch: {} }] }
   });
@@ -777,7 +771,7 @@ export const generateLabReport = async (experiment: string, observations: string
     **CRITICAL**: Include a "REFERENCES" section at the end listing all sources found.
   \n${ANTI_SLOP_PROMPT}`;
   const response = await ai.models.generateContent({
-    model: GEMINI_MODEL, 
+    model: 'gemini-3.5-flash', 
     contents: prompt,
     config: { tools: [{ googleSearch: {} }] }
   });
@@ -799,7 +793,7 @@ export const analyzeMicroscopeImage = async (base64Image: string): Promise<strin
   \n${ANTI_SLOP_PROMPT}`;
   
   const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
+    model: 'gemini-3.5-flash',
     contents: {
       parts: [
         { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
@@ -819,7 +813,7 @@ export const generateImageCaption = async (base64Image: string): Promise<string>
   \n${ANTI_SLOP_PROMPT}`;
   
   const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
+    model: 'gemini-3.5-flash',
     contents: {
       parts: [
         { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
@@ -848,7 +842,7 @@ export const analyzeData = async (dataInput: string, tableData: string): Promise
   \n${ANTI_SLOP_PROMPT}`;
 
   const response = await ai.models.generateContent({
-    model: GEMINI_MODEL, // Switched for speed/consistency
+    model: 'gemini-3.5-flash', // Switched for speed/consistency
     contents: prompt,
     config: {
       responseMimeType: 'application/json',
@@ -889,7 +883,7 @@ export const gradeEssay = async (essay: string, instruction: string): Promise<st
       Hyperlink any resources you suggest using [Resource Name](URL).
     \n${ANTI_SLOP_PROMPT}`;
     const response = await ai.models.generateContent({ 
-        model: GEMINI_MODEL, // Switched for speed
+        model: 'gemini-3.5-flash', // Switched for speed
         contents: prompt,
         config: { tools: [{ googleSearch: {} }] }
     });
@@ -913,7 +907,7 @@ export const synthesizeCritique = async (sourceMaterial: string): Promise<string
       - End with a "REFERENCES" section describing the sources.
     \n${ANTI_SLOP_PROMPT}`;
     const response = await ai.models.generateContent({ 
-        model: GEMINI_MODEL, // Switched for speed
+        model: 'gemini-3.5-flash', // Switched for speed
         contents: prompt,
         config: { tools: [{ googleSearch: {} }] }
     });
@@ -936,7 +930,7 @@ export const analyzeSupervisorStyle = async (text: string): Promise<string> => {
   \n${ANTI_SLOP_PROMPT}`;
 
   const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
+    model: 'gemini-3.5-flash',
     contents: prompt
   });
   return response.text || "Could not analyze style.";
@@ -967,7 +961,7 @@ export const solveAssignment = async (question: string, biasProfile: string = ""
   \n${ANTI_SLOP_PROMPT}`;
 
   const response = await ai.models.generateContent({
-    model: GEMINI_MODEL, // Switched for speed
+    model: 'gemini-3.5-flash', // Switched for speed
     contents: prompt,
     config: { tools: [{ googleSearch: {} }] }
   });
@@ -980,7 +974,7 @@ export const generatePassportEdit = async (base64Image: string, backgroundType: 
   const prompt = `Change the background of this person to a solid ${backgroundType} background suitable for an official passport photo. Crop to headshot if needed.\n${ANTI_SLOP_PROMPT}`;
   
   const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
+    model: 'gemini-3.5-flash',
     contents: {
       parts: [
         { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
@@ -1004,7 +998,7 @@ export const generateOptimizedCV = async (data: CVData): Promise<string> => {
       ${JSON.stringify(data)}
       Format: Plain text, sophisticated layout, academic focus.
     \n${ANTI_SLOP_PROMPT}`;
-    const response = await ai.models.generateContent({ model: GEMINI_MODEL, contents: prompt });
+    const response = await ai.models.generateContent({ model: 'gemini-3.5-flash', contents: prompt });
     return response.text || "";
 }
 
@@ -1015,7 +1009,7 @@ export const generateResume = async (data: CVData): Promise<string> => {
       ${JSON.stringify(data)}
       Format: Plain text, bullet points, action verbs.
     \n${ANTI_SLOP_PROMPT}`;
-    const response = await ai.models.generateContent({ model: GEMINI_MODEL, contents: prompt });
+    const response = await ai.models.generateContent({ model: 'gemini-3.5-flash', contents: prompt });
     return response.text || "";
 }
 
@@ -1042,7 +1036,7 @@ export const reviewCareerDocument = async (docData: { text?: string, fileData?: 
 
   if (docData.fileData && docData.mimeType) {
     const response = await ai.models.generateContent({
-      model: GEMINI_MODEL, // A model that properly accepts both PDF and Images
+      model: 'gemini-3.5-flash', // A model that properly accepts both PDF and Images
       contents: {
         parts: [
           { inlineData: { mimeType: docData.mimeType, data: docData.fileData } },
@@ -1053,7 +1047,7 @@ export const reviewCareerDocument = async (docData: { text?: string, fileData?: 
     return response.text || "";
   } else if (docData.text) {
     const response = await ai.models.generateContent({
-      model: GEMINI_MODEL, 
+      model: 'gemini-3.5-flash', 
       contents: `${prompt}\n\nORIGINAL CONTENT:\n${docData.text}`
     });
     return response.text || "";

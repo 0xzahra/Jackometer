@@ -26,8 +26,6 @@ import { SlopShieldPage } from './components/SlopShieldPage';
 import { StudyDojo } from './components/StudyDojo';
 import { AppView, UserProfile } from './types';
 
-const MotionDiv = motion.div as React.ComponentType<any>;
-
 // Mock Live API Context
 const LiveAPIContext = createContext<any>(null);
 export const useLiveAPIContext = () => useContext(LiveAPIContext);
@@ -196,7 +194,7 @@ export default function App() {
   if (showSplash) {
     return (
       <div className="h-[100dvh] w-full bg-[var(--bg-color)] flex items-center justify-center">
-        <MotionDiv
+        <motion.div
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 1.1, filter: 'blur(10px)' }}
@@ -208,20 +206,20 @@ export default function App() {
           </div>
           <h1 className="text-3xl md:text-4xl font-sans font-bold text-[var(--text-primary)] tracking-tight">Jackometer</h1>
           <p className="text-sm text-[var(--text-secondary)]">Loading your workspace...</p>
-          <MotionDiv 
+          <motion.div 
             className="w-48 h-1 bg-[var(--border-color)] overflow-hidden rounded-full mt-2"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
           >
-            <MotionDiv 
+            <motion.div 
               className="h-full bg-[var(--primary)]"
               initial={{ x: '-100%' }}
               animate={{ x: '100%' }}
               transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
             />
-          </MotionDiv>
-        </MotionDiv>
+          </motion.div>
+        </motion.div>
       </div>
     );
   }
@@ -229,7 +227,7 @@ export default function App() {
   if (!user) {
     return (
       <AnimatePresence mode="wait">
-        <MotionDiv
+        <motion.div
           key="auth"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -240,7 +238,7 @@ export default function App() {
           <ErrorBoundary>
             <Auth onLogin={handleLogin} />
           </ErrorBoundary>
-        </MotionDiv>
+        </motion.div>
       </AnimatePresence>
     );
   }
@@ -251,7 +249,7 @@ export default function App() {
       
       {toast && (
         <AnimatePresence>
-          <MotionDiv 
+          <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9 }}
@@ -259,12 +257,12 @@ export default function App() {
           >
             <span className="material-icons">error_outline</span>
             {toast}
-          </MotionDiv>
+          </motion.div>
         </AnimatePresence>
       )}
 
       <AnimatePresence mode="wait">
-        <MotionDiv
+        <motion.div
           key="app"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -307,7 +305,7 @@ export default function App() {
             <Onboarding />
             <VoiceAssistant setView={handleSetView} />
           </ErrorBoundary>
-        </MotionDiv>
+        </motion.div>
       </AnimatePresence>
     </LiveAPIContext.Provider>
   );

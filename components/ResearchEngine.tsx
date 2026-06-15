@@ -26,14 +26,14 @@ export const ResearchEngine: React.FC<{ userId?: string }> = () => {
     setRawFallback('');
     
     try {
-      const apiKey = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY) || '';
-      if (!apiKey) throw new Error("API Key is missing. Set VITE_GEMINI_API_KEY in .env.local");
+      const apiKey = process.env.VITE_API_KEY || process.env.GEMINI_API_KEY || process.env.API_KEY || '';
+      if (!apiKey) throw new Error("API Key is missing.");
       
       const ai = new GoogleGenAI({ apiKey });
       const prompt = `You are an academic advisor. A student studying ${department} at ${level} level needs a final year research topic. Generate 8 specific, original, and feasible research topics with a one-sentence description and a suggested methodology for each. Format as a JSON array with fields: title, description, methodology.`;
       
       const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-3.5-flash',
         contents: prompt
       });
       
